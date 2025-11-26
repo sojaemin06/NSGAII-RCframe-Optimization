@@ -75,7 +75,7 @@ def visualize_beam_labeling(column_locations, beam_connections, patterns_by_floo
         ax.legend(fontsize=12); ax.grid(True, linestyle='--', alpha=0.6)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig("beam_labeling_by_floor.png")
+    plt.savefig("../results/beam_labeling_by_floor.png")
     print("시각화 결과가 'beam_labeling_by_floor.png' 파일로 저장되었습니다.")
     plt.show()
 

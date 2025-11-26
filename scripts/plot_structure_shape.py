@@ -128,6 +128,6 @@ if __name__ == '__main__':
     ax4.set_title("3D 뷰 (부재 번호 포함)")
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig("structure_visualization.png")
+    plt.savefig("../results/structure_visualization.png")
     print("시각화 결과가 'structure_visualization.png' 파일로 저장되었습니다.")
     plt.show()

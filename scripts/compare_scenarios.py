@@ -15,12 +15,12 @@ def plot_comparison():
     # --- 데이터 로드 ---
     try:
         # 수렴 과정 데이터
-        hof_conv_a = pd.read_csv(os.path.join("Results_Scenario_A_02", "hof_convergence_A.csv"))
-        hof_conv_b = pd.read_csv(os.path.join("Results_Scenario_C_02", "hof_convergence_C.csv"))
+        hof_conv_a = pd.read_csv(os.path.join("../results/Results_Scenario_A_02", "hof_convergence_A.csv"))
+        hof_conv_b = pd.read_csv(os.path.join("../results/Results_Scenario_C_02", "hof_convergence_C.csv"))
         
         # 최종 파레토 해 데이터
-        pareto_a = pd.read_csv(os.path.join("Results_Scenario_A_02", "pareto_solutions_A.csv"))
-        pareto_b = pd.read_csv(os.path.join("Results_Scenario_C_02", "pareto_solutions_C.csv"))
+        pareto_a = pd.read_csv(os.path.join("../results/Results_Scenario_A_02", "pareto_solutions_A.csv"))
+        pareto_b = pd.read_csv(os.path.join("../results/Results_Scenario_C_02", "pareto_solutions_C.csv"))
     except FileNotFoundError as e:
         print(f"오류: 결과 파일을 찾을 수 없습니다. '{e.filename}'")
         print("먼저 experiment_scenario_A.py와 experiment_scenario_C.py를 실행하여 결과 파일을 생성해야 합니다.")
@@ -52,7 +52,7 @@ def plot_comparison():
     ax2.grid(True, linestyle='--', alpha=0.6)
 
     fig_conv.tight_layout()
-    save_path_conv = "scenarios_convergence_comparison.png"
+    save_path_conv = "../results/scenarios_convergence_comparison.png"
     fig_conv.savefig(save_path_conv, dpi=300)
     print(f"수렴도 비교 그래프가 '{save_path_conv}' 파일로 저장되었습니다.")
     plt.show()
@@ -79,7 +79,7 @@ def plot_comparison():
     ax4.grid(True, linestyle='--', alpha=0.6)
 
     fig_pareto.tight_layout()
-    save_path_pareto = "scenarios_pareto_front_comparison.png"
+    save_path_pareto = "../results/scenarios_pareto_front_comparison.png"
     fig_pareto.savefig(save_path_pareto, dpi=300)
     print(f"파레토 전선 비교 그래프가 '{save_path_pareto}' 파일로 저장되었습니다.")
     plt.show()

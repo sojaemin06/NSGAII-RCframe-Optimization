@@ -106,7 +106,7 @@ def get_grouping_maps():
 
 def create_displacement_plots():
     try:
-        df = pd.read_csv(get_path('displacement_checks_all.csv'))
+        df = pd.read_csv(get_path('../results/displacement_checks_all.csv'))
     except FileNotFoundError:
         print(f"Error: 'displacement_checks_all.csv' not found in {SCRIPT_DIR}. Skipping displacement plots.")
         return
@@ -137,13 +137,13 @@ def create_displacement_plots():
         plt.ylabel('Story', fontsize=16)
         plt.grid(True)
         plt.legend(fontsize=14)
-        plt.savefig(get_path(details['filename']))
+        plt.savefig(get_path('../results/' + details['filename']))
         plt.close()
     print("Generated 4 displacement plots.")
 
 def create_pareto_plots():
     try:
-        df = pd.read_csv(get_path('pareto_summary.csv'), thousands=',')
+        df = pd.read_csv(get_path('../results/pareto_summary.csv'), thousands=',')
     except FileNotFoundError:
         print(f"Error: 'pareto_summary.csv' not found in {SCRIPT_DIR}. Skipping pareto plots.")
         return
@@ -158,7 +158,7 @@ def create_pareto_plots():
         ax.set_ylabel('Economic & Environmental Demand ($f_1$)', fontsize=16)
         ax.grid(True)
         plt.tight_layout()
-        plt.savefig(get_path('analysis_pareto_objective_space_inverted.png'))
+        plt.savefig(get_path('../results/analysis_pareto_objective_space_inverted.png'))
         plt.close(fig)
 
     cost_col, co2_col = 'Cost', 'CO2'
@@ -175,13 +175,13 @@ def create_pareto_plots():
         ax_p_sol.get_yaxis().set_major_formatter(formatter)
         ax_p_sol.grid(True)
         plt.tight_layout()
-        plt.savefig(get_path('analysis_pareto_solution_space_new.png'))
+        plt.savefig(get_path('../results/analysis_pareto_solution_space_new.png'))
         plt.close(fig_p_sol)
     print("Generated 2 pareto plots.")
 
 def create_representative_displacement_plots():
     try:
-        df = pd.read_csv(get_path('displacement_checks_all.csv'))
+        df = pd.read_csv(get_path('../results/displacement_checks_all.csv'))
     except FileNotFoundError:
         print(f"Error: 'displacement_checks_all.csv' not found. Skipping representative displacement plots.")
         return
@@ -210,13 +210,13 @@ def create_representative_displacement_plots():
         plt.ylabel('Story', fontsize=16)
         plt.grid(True)
         plt.legend(fontsize=14)
-        plt.savefig(get_path(details['filename']))
+        plt.savefig(get_path('../results/' + details['filename']))
         plt.close()
     print("Generated 4 representative displacement plots.")
 
 def create_convergence_plots():
     try:
-        df_hof = pd.read_csv(get_path('hof_convergence.csv'))
+        df_hof = pd.read_csv(get_path('../results/hof_convergence.csv'))
         fig_conv, ax_conv = plt.subplots(figsize=(8, 7))
         line1, = ax_conv.plot(df_hof['gen'], df_hof['best_obj1'], color='tab:blue', marker='o', linestyle='-', label="Best Fitness1")
         ax_conv.set_xlabel("Generation", fontsize=16)
@@ -229,14 +229,14 @@ def create_convergence_plots():
         ax_conv_twin.tick_params(axis='y', labelcolor='tab:red')
         ax_conv.legend(handles=[line1, line2], loc='upper right', fontsize=14)
         plt.tight_layout()
-        plt.savefig(get_path("analysis_convergence_hof.png"))
+        plt.savefig(get_path("../results/analysis_convergence_hof.png"))
         plt.close()
         print("Generated HOF convergence plot.")
     except FileNotFoundError:
         print(f"Error: 'hof_convergence.csv' not found. Skipping HOF plot.")
 
     try:
-        df_log = pd.read_csv(get_path('optimization_log.csv'))
+        df_log = pd.read_csv(get_path('../results/optimization_log.csv'))
         fig_valid, ax_valid = plt.subplots(figsize=(8, 7))
         ax_valid.plot(df_log["gen"], df_log["valid_ratio"], marker='o', linestyle='-', color='g')
         ax_valid.set_xlabel("Generation", fontsize=16)
@@ -244,7 +244,7 @@ def create_convergence_plots():
         ax_valid.set_ylim(0, 105)
         ax_valid.grid(True)
         plt.tight_layout()
-        plt.savefig(get_path("analysis_feasible_ratio.png"))
+        plt.savefig(get_path("../results/analysis_feasible_ratio.png"))
         plt.close()
         print("Generated feasible solution ratio plot.")
     except FileNotFoundError:
@@ -252,9 +252,9 @@ def create_convergence_plots():
 
 def create_performance_comparison_plots():
     try:
-        df_summary = pd.read_csv(get_path('pareto_summary.csv'), thousands=',')
-        df_dcr = pd.read_csv(get_path('dcr_by_element.csv'))
-        df_vars = pd.read_csv(get_path('design_variables.csv'))
+        df_summary = pd.read_csv(get_path('../results/pareto_summary.csv'), thousands=',')
+        df_dcr = pd.read_csv(get_path('../results/dcr_by_element.csv'))
+        df_vars = pd.read_csv(get_path('../results/design_variables.csv'))
     except FileNotFoundError as e:
         print(f"Error: {e.filename} not found. Skipping performance plots.")
         return
@@ -277,7 +277,7 @@ def create_performance_comparison_plots():
         ax_radar.fill(angles, values, color=colors[i], alpha=0.15)
     ax_radar.set_ylim(0, 1.1)
     plt.tight_layout()
-    plt.savefig(get_path("solution_comparison_radar.png"))
+    plt.savefig(get_path("../results/solution_comparison_radar.png"))
     plt.close()
     print("Generated radar chart for all solutions.")
 
@@ -294,14 +294,14 @@ def create_performance_comparison_plots():
     ax_box.set_ylabel('Section Index ID', fontsize=16)
     ax_box.grid(True, axis='y')
     plt.tight_layout()
-    plt.savefig(get_path("solution_comparison_boxplot.png"))
+    plt.savefig(get_path("../results/solution_comparison_boxplot.png"))
     plt.close()
     print("Generated box plot for all solutions.")
 
 def create_dcr_analysis_plots(col_map, beam_map, num_col_groups, num_beam_groups, num_columns, num_beams):
     try:
-        df_dcr = pd.read_csv(get_path('dcr_by_element.csv'))
-        df_summary = pd.read_csv(get_path('pareto_summary.csv'), thousands=',')
+        df_dcr = pd.read_csv(get_path('../results/dcr_by_element.csv'))
+        df_summary = pd.read_csv(get_path('../results/pareto_summary.csv'), thousands=',')
     except FileNotFoundError as e:
         print(f"Error: {e.filename} not found. Skipping DCR analysis plots.")
         return
@@ -310,15 +310,15 @@ def create_dcr_analysis_plots(col_map, beam_map, num_col_groups, num_beam_groups
         sol_id = result['ID']
         fig, axs = plt.subplots(1, 3, figsize=(20, 5))
         # ... (plotting logic as before)
-        plt.savefig(get_path(f"stress_ratios_{sol_id.replace('#','')}.png"))
+        plt.savefig(get_path(f"../results/stress_ratios_{sol_id.replace('#','')}.png"))
         plt.close()
     print("Generated DCR distribution plots for all solutions.")
 
 def create_representative_performance_plots():
     try:
-        df_summary = pd.read_csv(get_path('pareto_summary.csv'), thousands=',')
-        df_dcr = pd.read_csv(get_path('dcr_by_element.csv'))
-        df_vars = pd.read_csv(get_path('design_variables.csv'))
+        df_summary = pd.read_csv(get_path('../results/pareto_summary.csv'), thousands=',')
+        df_dcr = pd.read_csv(get_path('../results/dcr_by_element.csv'))
+        df_vars = pd.read_csv(get_path('../results/design_variables.csv'))
     except FileNotFoundError as e:
         print(f"Error: {e.filename} not found. Skipping representative performance plots.")
         return
@@ -345,7 +345,7 @@ def create_representative_performance_plots():
     ax_radar.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=14)
     ax_radar.set_ylim(0, 1.1)
     plt.tight_layout()
-    plt.savefig(get_path("representative_solution_comparison_radar.png"))
+    plt.savefig(get_path("../results/representative_solution_comparison_radar.png"))
     plt.close()
     print("Generated radar chart for representative solutions.")
 
@@ -362,7 +362,7 @@ def create_representative_performance_plots():
     ax_box.set_ylabel('Section Index ID', fontsize=16)
     ax_box.grid(True, axis='y')
     plt.tight_layout()
-    plt.savefig(get_path("representative_solution_comparison_boxplot.png"))
+    plt.savefig(get_path("../results/representative_solution_comparison_boxplot.png"))
     plt.close()
     print("Generated box plot for representative solutions.")
 
@@ -371,8 +371,8 @@ def create_representative_dcr_analysis_plots(col_map, beam_map, num_col_groups, 
     Generates detailed DCR analysis plots for each representative solution.
     """
     try:
-        df_dcr = pd.read_csv(get_path('dcr_by_element.csv'))
-        df_summary = pd.read_csv(get_path('pareto_summary.csv'), thousands=',')
+        df_dcr = pd.read_csv(get_path('../results/dcr_by_element.csv'))
+        df_summary = pd.read_csv(get_path('../results/pareto_summary.csv'), thousands=',')
     except FileNotFoundError as e:
         print(f"Error: {e.filename} not found in {SCRIPT_DIR}. Skipping representative DCR analysis plots.")
         return
@@ -453,7 +453,7 @@ def create_representative_dcr_analysis_plots(col_map, beam_map, num_col_groups, 
             ax_bar_beam.grid(axis='y', linestyle=':', alpha=0.7)
 
         plt.tight_layout()
-        plt.savefig(get_path(f"representative_stress_ratios_{rep_id_str}.png"))
+        plt.savefig(get_path(f"../results/representative_stress_ratios_{rep_id_str}.png"))
         plt.close(fig)
         print(f"Generated detailed DCR plot for {sol_id}.")
 

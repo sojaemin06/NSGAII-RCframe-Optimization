@@ -42,7 +42,7 @@ def plot_comparison_from_csv():
     for pop_size in population_sizes_to_test:
         print(f"Processing population size: {pop_size}")
         
-        method_folder = f"population_{pop_size}_02"
+        method_folder = f"../results/population_{pop_size}_02"
         
         if not os.path.isdir(method_folder):
             print(f"  [Warning] Directory not found, skipping: {method_folder}")
@@ -93,7 +93,7 @@ def plot_comparison_from_csv():
     ax_conv1.set_xlabel('Generation', fontsize=16); ax_conv1.set_ylabel('Best Fitness1 in Hof', fontsize=16); ax_conv1.legend(fontsize=14); ax_conv1.grid(True)
     ax_conv2.set_xlabel('Generation', fontsize=16); ax_conv2.set_ylabel('Best Fitness2 in Hof', fontsize=16); ax_conv2.legend(fontsize=14); ax_conv2.grid(True)
     fig_conv.tight_layout(rect=[0, 0.03, 1, 0.96])
-    save_path_conv = "population_size_convergence.png"
+    save_path_conv = "../results/population_size_convergence.png"
     fig_conv.savefig(save_path_conv)
     print(f"\nConvergence comparison plot saved to: {save_path_conv}")
 
@@ -101,7 +101,7 @@ def plot_comparison_from_csv():
     ax_pareto_obj.set_xlabel('Fitness2 (Mean DCR)', fontsize=16); ax_pareto_obj.set_ylabel('Fitness1 (Normalized Cost + CO2)', fontsize=16); ax_pareto_obj.legend(fontsize=14); ax_pareto_obj.grid(True)
     ax_pareto_real.set_xlabel('Total Cost', fontsize=16); ax_pareto_real.set_ylabel('Total CO2', fontsize=16); ax_pareto_real.legend(fontsize=14); ax_pareto_real.grid(True)
     fig_pareto.tight_layout(rect=[0, 0.03, 1, 0.96])
-    save_path_pareto = "population_size_pareto.png"
+    save_path_pareto = "../results/population_size_pareto.png"
     fig_pareto.savefig(save_path_pareto)
     print(f"Pareto front comparison plot saved to: {save_path_pareto}")
     

@@ -48,6 +48,6 @@ def create_expanded_sections_csv(original_csv_path, new_csv_path):
         print(f"파일 생성 중 오류가 발생했습니다: {e}")
 
 if __name__ == '__main__':
-    original_file = 'column_sections_simple02.csv'
-    new_file = 'column_sections_expanded_rotated.csv'
+    original_file = '../data/column_sections_simple02.csv'
+    new_file = '../data/column_sections_expanded_rotated.csv'
     create_expanded_sections_csv(original_file, new_file)

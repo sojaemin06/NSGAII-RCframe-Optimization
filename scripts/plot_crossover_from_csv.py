@@ -4,35 +4,25 @@ import matplotlib.pyplot as plt
 
 def plot_comparison_from_csv():
     """
-    Generates comparison plots for parent selection strategies
+    Generates comparison plots for crossover strategies
     by reading data from previously saved CSV files.
     """
     print("="*80)
-    print("### Generating Final Comparison Plots from CSV Data ###")
+    print("### Generating Final Comparison Plots for Crossover Strategies from CSV Data ###")
 
     # --- Configuration ---
     # List of experiment methods to plot. This should match the folder names.
-    parent_selection_methods = [
-        'Random_Selection',
-        'Tournament_Size_2',
-        'Tournament_Size_3',
-        'Tournament_Size_5',
-        'Tournament_Size_7',
-        'Tournament_Size_9',
-        'Tournament_Size_11',
-        'Best_Selection'
+    crossover_methods_to_test = [
+        "Uniform", 
+        "TwoPoint", 
+        "OnePoint"
     ]
 
     # Style mapping for plots
     style_map = {
-        'Random_Selection':    {'color': 'C0', 'marker': 'o', 'linestyle': '-'},
-        'Tournament_Size_2':   {'color': 'C1', 'marker': 's', 'linestyle': '--'},
-        'Tournament_Size_3':   {'color': 'C2', 'marker': 'P', 'linestyle': ':'},
-        'Tournament_Size_5':   {'color': 'C3', 'marker': 'D', 'linestyle': '-.'},
-        'Tournament_Size_7':   {'color': 'C4', 'marker': 'v', 'linestyle': '-'},
-        'Tournament_Size_9':   {'color': 'C5', 'marker': '^', 'linestyle': '--'},
-        'Tournament_Size_11':  {'color': 'C6', 'marker': '<', 'linestyle': ':'},
-        'Best_Selection':      {'color': 'C7', 'marker': '>', 'linestyle': '-.'}
+        'Uniform':  {'color': 'C0', 'marker': 'o', 'linestyle': '-'},
+        'TwoPoint': {'color': 'C1', 'marker': 's', 'linestyle': '--'},
+        'OnePoint': {'color': 'C2', 'marker': 'P', 'linestyle': ':'}
     }
 
     # --- Plotting Setup ---
@@ -45,10 +35,10 @@ def plot_comparison_from_csv():
     fig_pareto, (ax_pareto_obj, ax_pareto_real) = plt.subplots(1, 2, figsize=(18, 7))
 
     # --- Loop through methods, load data, and plot ---
-    for method in parent_selection_methods:
+    for method in crossover_methods_to_test:
         print(f"Processing method: {method}")
         
-        method_folder = f"parent_selection_{method}_02"
+        method_folder = f"../results/crossover_{method}_02"
         
         if not os.path.isdir(method_folder):
             print(f"  [Warning] Directory not found, skipping: {method_folder}")
@@ -99,7 +89,7 @@ def plot_comparison_from_csv():
     ax_conv1.set_xlabel('Generation', fontsize=16); ax_conv1.set_ylabel('Best Fitness1 in Hof', fontsize=16); ax_conv1.legend(fontsize=14); ax_conv1.grid(True)
     ax_conv2.set_xlabel('Generation', fontsize=16); ax_conv2.set_ylabel('Best Fitness2 in Hof', fontsize=16); ax_conv2.legend(fontsize=14); ax_conv2.grid(True)
     fig_conv.tight_layout(rect=[0, 0.03, 1, 0.96])
-    save_path_conv = "parent_selection_convergence.png"
+    save_path_conv = "../results/crossover_convergence.png"
     fig_conv.savefig(save_path_conv)
     print(f"\nConvergence comparison plot saved to: {save_path_conv}")
 
@@ -107,7 +97,7 @@ def plot_comparison_from_csv():
     ax_pareto_obj.set_xlabel('Fitness2 (Mean DCR)', fontsize=16); ax_pareto_obj.set_ylabel('Fitness1 (Normalized Cost + CO2)', fontsize=16); ax_pareto_obj.legend(fontsize=14); ax_pareto_obj.grid(True)
     ax_pareto_real.set_xlabel('Total Cost', fontsize=16); ax_pareto_real.set_ylabel('Total CO2', fontsize=16); ax_pareto_real.legend(fontsize=14); ax_pareto_real.grid(True)
     fig_pareto.tight_layout(rect=[0, 0.03, 1, 0.96])
-    save_path_pareto = "parent_selection_pareto.png"
+    save_path_pareto = "../results/crossover_pareto.png"
     fig_pareto.savefig(save_path_pareto)
     print(f"Pareto front comparison plot saved to: {save_path_pareto}")
     

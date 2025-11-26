@@ -45,7 +45,7 @@ def plot_comparison_from_csv():
     # The actual values file is in the base folder, not in each experiment folder.
     # Load it once before the loop.
     df_actual_all = None
-    actual_values_csv_path = os.path.join(base_output_folder, "실제값.csv")
+    actual_values_csv_path = os.path.join(base_output_folder, "../data/실제값.csv")
     if os.path.exists(actual_values_csv_path):
         try:
             # 1. Load the CSV with the first column as the index
@@ -71,7 +71,7 @@ def plot_comparison_from_csv():
         print(f"Processing method: {method}")
         
         # Construct path to the result folder for the current method
-        method_folder = os.path.join(base_output_folder, f"Results_main_하중증가,모집단600_{method}")
+        method_folder = os.path.join(base_output_folder, f"../results/Results_main_하중증가,모집단600_{method}")
         
         if not os.path.isdir(method_folder):
             print(f"  [Warning] Directory not found, skipping: {method_folder}")
@@ -141,7 +141,7 @@ def plot_comparison_from_csv():
     plt.tight_layout(rect=[0, 0.03, 1, 0.96])
     
     # 저장 경로를 스크립트가 있는 폴더로 변경
-    save_path = os.path.join(base_output_folder, "comparison_summary_hof_from_csv.png")
+    save_path = os.path.join(base_output_folder, "../results/comparison_summary_hof_from_csv.png")
     plt.savefig(save_path)
     print(f"\nComparison summary plot saved to: {save_path}")
     plt.show()
@@ -193,7 +193,7 @@ def plot_comparison_from_csv():
         fig_bar.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         # Save the bar chart to a separate file
-        bar_chart_save_path = os.path.join(base_output_folder, "comparison_actual_values_bar_chart.png")
+        bar_chart_save_path = os.path.join(base_output_folder, "../results/comparison_actual_values_bar_chart.png")
         plt.savefig(bar_chart_save_path)
         print(f"Bar chart saved to: {bar_chart_save_path}")
         plt.show()

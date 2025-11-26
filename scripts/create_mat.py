@@ -50,9 +50,9 @@ def create_expanded_rotated_mat(original_mat_path, expanded_csv_path, new_mat_pa
 
 # --- 스크립트 실행 ---
 if __name__ == '__main__':
-    original_mat = 'pm_dataset_simple02.mat'
-    expanded_csv = 'column_sections_expanded_rotated.csv'
-    new_mat = 'pm_dataset_expanded_rotated.mat'
+    original_mat = '../data/pm_dataset_simple02.mat'
+    expanded_csv = '../data/column_sections_expanded_rotated.csv'
+    new_mat = '../data/pm_dataset_expanded_rotated.mat'
     
     print(f"'{original_mat}'과 '{expanded_csv}' 파일을 참조하여 '{new_mat}' 파일을 생성합니다...")
     create_expanded_rotated_mat(original_mat, expanded_csv, new_mat)
