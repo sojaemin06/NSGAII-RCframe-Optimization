@@ -13,7 +13,8 @@ def build_model_for_section(floors, H, column_locations, beam_connections, col_i
             node_map[(k, i)] = node_id_counter
             if k == 0: ops.fix(node_id_counter, 1, 1, 1, 1, 1, 1)
             node_id_counter += 1
-    ops.geomTransf('Linear', 1, 1, 0, 0); ops.geomTransf('Linear', 2, 0, 1, 0); ops.geomTransf('Linear', 3, 0, 0, 1)
+    # P-Delta 효과 고려를 위해 Linear -> PDelta 변경
+    ops.geomTransf('PDelta', 1, 1, 0, 0); ops.geomTransf('PDelta', 2, 0, 1, 0); ops.geomTransf('PDelta', 3, 0, 0, 1)
     column_elem_ids, beam_elem_ids = [], []; elem_id_counter = 1
     num_locations = len(column_locations)
     for k in range(floors):

@@ -17,9 +17,25 @@ from src.modeling import build_model_for_section
 from src.evaluation import evaluate
 from src.optimization import run_ga_optimization
 from src.visualization import plot_Structure, visualize_load_patterns
+from src.utils import get_precalculated_strength, load_pm_data_for_column, get_pm_capacity_from_df
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='NSGA-II Optimization for RC Frames')
+    parser.add_argument('--seed', type=int, default=None, help='Random seed')
+    parser.add_argument('--pop', type=int, default=600, help='Population size')
+    parser.add_argument('--gen', type=int, default=200, help='Number of generations')
+    parser.add_argument('--output', type=str, default=None, help='Output directory')
+    parser.add_argument('--batch', action='store_true', help='Run in batch mode (no user input)')
+    # 하중 인자 추가 (기본값은 기존 코드와 동일하게 유지)
+    parser.add_argument('--ex', type=float, default=40, help='Seismic Load X (kN)')
+    parser.add_argument('--ey', type=float, default=40, help='Seismic Load Y (kN)')
+    parser.add_argument('--wx', type=float, default=35, help='Wind Load X (kN)')
+    parser.add_argument('--wy', type=float, default=38, help='Wind Load Y (kN)')
+    args = parser.parse_args()
+
     # =================================================================
     # ===                  라이브러리 임포트                          ===
     # =================================================================
@@ -31,9 +47,10 @@ def main():
     plt.rcParams['font.size'] = 12  # 기본 글꼴 크기 설정
     plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
 
-    # RANDOM_SEED = 42 
-    # random.seed(RANDOM_SEED)
-    # np.random.seed(RANDOM_SEED)
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        print(f"Random Seed set to: {args.seed}")
 
     # =================================================================
     # ===              1. 최적화 및 모델링 주요 설정                  ===
@@ -63,14 +80,15 @@ def main():
 
     DL_rand=25
     LL_rand=20
-    Wx_rand=35
-    Wy_rand=38
-    Ex_rand=40
-    Ey_rand=40
+    # 인자로 받은 하중 값 적용
+    Wx_rand = args.wx
+    Wy_rand = args.wy
+    Ex_rand = args.ex
+    Ey_rand = args.ey
 
     # --- 1.5. 유전 알고리즘 파라미터 ---
-    POPULATION_SIZE = 600
-    NUM_GENERATIONS = 200
+    POPULATION_SIZE = args.pop
+    NUM_GENERATIONS = args.gen
     CXPB, MUTPB = 0.8, 0.2
 
     # --- 1.6. 부재 단면 정보 로드 ---
@@ -131,6 +149,7 @@ def main():
     # --- 2.1. 그룹핑 전략 실행 ---
     col_map, beam_map, num_col_groups, num_beam_groups = get_grouping_maps(GROUPING_STRATEGY, floors, column_locations, beam_connections)
     num_columns = len(column_locations) * floors
+    num_beams = len(beam_connections) * floors
     
     # --- 2.2. 유전 정보(Chromosome) 구조 정의 ---
     chromosome_structure = {'col_sec': num_col_groups, 'col_rot': num_col_groups, 'beam_sec': num_beam_groups}
@@ -165,7 +184,11 @@ def main():
     # =================================================================
     # ===                    5. 메인 실행 블록                        ===
     # =================================================================
-    output_folder = f"../results/Results_main_하중증가,모집단{POPULATION_SIZE}_06_200세대"
+    if args.output:
+        output_folder = args.output
+    else:
+        output_folder = f"../results/Results_main_하중증가,모집단{POPULATION_SIZE}_06_200세대"
+    
     os.makedirs(output_folder, exist_ok=True)
     print(f"\n결과는 '{output_folder}' 폴더에 저장됩니다.")
     print("\n" + "="*90)
@@ -220,8 +243,8 @@ def main():
         initial_pop=None, start_gen=0, logbook=None, hof=None, hof_stats_history=None
     )
     
-    # --- 추가 세대 진행 여부 확인 루프 ---
-    while True:
+    # --- 추가 세대 진행 여부 확인 루프 (Batch 모드에서는 건너뜀) ---
+    while not args.batch:
         try:
             last_gen_num = logbook.select("gen")[-1]
             more_gens_str = input(f"\n현재 {last_gen_num} 세대까지 완료. 추가로 진행할 세대 수를 입력하세요 (종료하려면 Enter): ")
@@ -465,7 +488,7 @@ def main():
             col_indices, col_rotations = ind[:len_col_sec], ind[len_col_sec:len_col_sec + len_col_rot]
             beam_indices = ind[len_col_sec + len_col_rot:]
             
-            column_elem_ids, beam_elem_ids, _ = build_model_for_section(col_indices, col_rotations, beam_indices)
+            column_elem_ids, beam_elem_ids, _ = build_model_for_section(floors, H, column_locations, beam_connections, col_indices, col_rotations, beam_indices, col_map, beam_map, column_sections, beam_sections, num_columns)
             
             output_data_long = []
             
@@ -585,7 +608,11 @@ def main():
         
         # --- 그래프 1: 최적 구조물 형상 (개별 저장) ---
         print("\n- 최적 구조물 형상 그래프 생성 중...")
-        build_model_for_section(all_results[0]['individual'][:chromosome_structure['col_sec']], all_results[0]['individual'][chromosome_structure['col_sec']:chromosome_structure['col_sec']+chromosome_structure['col_rot']], all_results[0]['individual'][chromosome_structure['col_sec']+chromosome_structure['col_rot']:])
+        ind_vis = all_results[0]['individual']
+        col_ind_vis = ind_vis[:chromosome_structure['col_sec']]
+        col_rot_vis = ind_vis[chromosome_structure['col_sec']:chromosome_structure['col_sec']+chromosome_structure['col_rot']]
+        beam_ind_vis = ind_vis[chromosome_structure['col_sec']+chromosome_structure['col_rot']:]
+        build_model_for_section(floors, H, column_locations, beam_connections, col_ind_vis, col_rot_vis, beam_ind_vis, col_map, beam_map, column_sections, beam_sections, num_columns)
         
         # 1.1: 2D Plan View
         fig_2d, ax_2d = plt.subplots(figsize=(8, 8))

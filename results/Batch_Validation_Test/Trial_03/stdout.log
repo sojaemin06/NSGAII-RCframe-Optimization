@@ -1,0 +1,49 @@
+Random Seed set to: 8159
+
+[Hybrid Grouping] Analyzing column connectivity and local geometry for grouping...
+[Hybrid Grouping] Analyzing beam location using global Convex Hull...
+
+[Data-driven Fixed Scale for Normalization]
+- Estimated Cost Range: 9,901,947 ~ 127,155,378
+- Estimated CO2 Range : 29,239 ~ 359,868
+
+
+결과는 'C:\SCI_NSGA2_RCframe_다중목적최적화\results\Batch_Validation_Test\Trial_03' 폴더에 저장됩니다.
+
+==========================================================================================
+### 최적화 실행 조건 요약 ###
+- 그룹핑 전략: Hybrid, 교배 전략: OnePoint
+- 인구: 10, 세대: 2, 교배/변이율: 0.8/0.2
+
+[하중 기본값]
+- 추가 고정하중(DL): 25 kN/m, 활하중(LL): 20 kN/m
+- 지진하중(Ex, Ey): 40, 40 kN | 풍하중(Wx, Wy): 35, 38 kN
+- 자중: 단면적에 따라 자동 계산
+
+[부분 재하 상세 (OpenSees 보 Element ID)]
+- 1층 적용 보 ID: [61, 62, 63, 64, 65, 66, 67, 68, 69, 72, 73, 74, 75, 77, 78, 80, 81]
+- 2층 적용 보 ID: [84, 85, 87, 88, 90, 91, 92, 93, 96, 97, 98, 99, 100, 101, 102, 103, 104]
+- 3층 적용 보 ID: [108, 109, 111, 112, 114, 117, 119, 120, 122, 123]
+- 4층 적용 보 ID: [128, 129, 131, 132, 134, 135, 140, 141, 143, 144, 146, 147]
+
+[횡력의 절점 하중 상세 (역삼각형 분포, kN)]
+  Floor | Nodal Fx (Seismic)   | Nodal Fy (Seismic)   | Nodal Fx (Wind)   | Nodal Fy (Wind)  
+---------------------------------------------------------------------------------------
+  1     | 0.267                | 0.267                | 0.233             | 0.253            
+  2     | 0.533                | 0.533                | 0.467             | 0.507            
+  3     | 0.800                | 0.800                | 0.700             | 0.760            
+  4     | 1.067                | 1.067                | 0.933             | 1.013            
+==========================================================================================
+
+초기 집단 평가 중...
+최적화 시작...
+gen	nevals	avg                    	max                    	min                    	std                    	sep1	success_rate	valid_ratio	sep2	avg_cost	max_cost	min_cost	std_cost	avg_co2	max_co2	min_co2	std_co2	avg_dcr	max_dcr	min_dcr	std_dcr	sep3	best_margins                      	min_AM_str	min_AM_drift	min_AM_wind	min_AM_defl	min_AM_hier	min_NM_str	min_NM_drift	min_NM_wind	min_NM_defl	min_NM_hier	sep4	hof_size	sep5	hof_avg_cost	hof_max_cost	hof_min_cost	hof_std_cost	hof_avg_co2	hof_max_co2	hof_min_co2	hof_std_co2	hof_avg_dcr	hof_max_dcr	hof_min_dcr	hof_std_dcr
+0  	10    	[0.59074792 0.3560679 ]	[0.75043167 0.55381281]	[0.31576421 0.27063022]	[0.13795846 0.10282132]	|   	100         	0          	|   	0       	0       	0       	0       	0      	0      	0      	0      	0      	0      	0      	0      	|   	S:0.00 D:0.00 W:0.00 F:0.00 H:2.00	0         	0           	0          	0          	0.5        	0         	0           	0          	0          	1          	|   	0       	|   	0           	0           	0           	0           	0          	0          	0          	0          	0          	0          	0          	0          
+1  	9     	[0.61631462 0.3251739 ]	[0.75043167 0.49872982]	[0.47984219 0.27063022]	[0.09791988 0.0673941 ]	|   	100         	0          	|   	0       	0       	0       	0       	0      	0      	0      	0      	0      	0      	0      	0      	|   	S:0.00 D:0.00 W:0.00 F:0.00 H:2.00	0         	0           	0          	0          	0.5        	0         	0           	0          	0          	1          	|   	0       	|   	0           	0           	0           	0           	0          	0          	0          	0          	0          	0          	0          	0          
+2  	8     	[0.63039249 0.2978419 ]	[0.75043167 0.37214288]	[0.47984219 0.27063022]	[0.08357842 0.02826483]	|   	100         	0          	|   	0       	0       	0       	0       	0      	0      	0      	0      	0      	0      	0      	0      	|   	S:0.00 D:0.00 W:0.00 F:0.00 H:2.00	0         	0           	0          	0          	0.363636   	0         	0           	0          	0          	1          	|   	0       	|   	0           	0           	0           	0           	0          	0          	0          	0          	0          	0          	0          	0          
+
+================================================================================
+### 최종 최적화 완료 ###
+총 0개의 유효한 파레토 최적해를 찾았습니다.
+================================================================================
+모든 제약조건을 만족하는 해를 찾지 못했습니다.

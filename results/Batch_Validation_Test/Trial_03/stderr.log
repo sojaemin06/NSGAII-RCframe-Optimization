@@ -1,0 +1,66 @@
+
+Initial Population Evaluation:   0%|          | 0/10 [00:00<?, ?individual/s]
+Initial Population Evaluation:  10%|█         | 1/10 [00:01<00:12,  1.42s/individual]
+Initial Population Evaluation:  20%|██        | 2/10 [00:02<00:11,  1.39s/individual]
+Initial Population Evaluation:  30%|███       | 3/10 [00:04<00:09,  1.38s/individual]
+Initial Population Evaluation:  40%|████      | 4/10 [00:05<00:08,  1.38s/individual]
+Initial Population Evaluation:  50%|█████     | 5/10 [00:06<00:06,  1.36s/individual]
+Initial Population Evaluation:  60%|██████    | 6/10 [00:08<00:05,  1.36s/individual]
+Initial Population Evaluation:  70%|███████   | 7/10 [00:09<00:04,  1.35s/individual]
+Initial Population Evaluation:  80%|████████  | 8/10 [00:10<00:02,  1.34s/individual]
+Initial Population Evaluation:  90%|█████████ | 9/10 [00:12<00:01,  1.34s/individual]
+Initial Population Evaluation: 100%|██████████| 10/10 [00:13<00:00,  1.33s/individual]
+Initial Population Evaluation: 100%|██████████| 10/10 [00:13<00:00,  1.35s/individual]
+
+세대 진화:   0%|          | 0/2 [00:00<?, ?it/s]
+
+Gen 1 Evaluation:   0%|          | 0/9 [00:00<?, ?ind/s][A
+
+Gen 1 Evaluation:  11%|█         | 1/9 [00:01<00:11,  1.39s/ind][A
+
+Gen 1 Evaluation:  22%|██▏       | 2/9 [00:02<00:09,  1.36s/ind][A
+
+Gen 1 Evaluation:  33%|███▎      | 3/9 [00:04<00:08,  1.34s/ind][A
+
+Gen 1 Evaluation:  44%|████▍     | 4/9 [00:05<00:06,  1.32s/ind][A
+
+Gen 1 Evaluation:  56%|█████▌    | 5/9 [00:06<00:05,  1.32s/ind][A
+
+Gen 1 Evaluation:  67%|██████▋   | 6/9 [00:07<00:03,  1.33s/ind][A
+
+Gen 1 Evaluation:  78%|███████▊  | 7/9 [00:09<00:02,  1.33s/ind][A
+
+Gen 1 Evaluation:  89%|████████▉ | 8/9 [00:10<00:01,  1.33s/ind][A
+
+Gen 1 Evaluation: 100%|██████████| 9/9 [00:11<00:00,  1.33s/ind][A
+
+                                                                [A
+                                                
+
+세대 진화:   0%|          | 0/2 [00:11<?, ?it/s]
+세대 진화:  50%|█████     | 1/2 [00:12<00:12, 12.00s/it]
+
+Gen 2 Evaluation:   0%|          | 0/8 [00:00<?, ?ind/s][A
+
+Gen 2 Evaluation:  12%|█▎        | 1/8 [00:01<00:09,  1.34s/ind][A
+
+Gen 2 Evaluation:  25%|██▌       | 2/8 [00:02<00:08,  1.36s/ind][A
+
+Gen 2 Evaluation:  38%|███▊      | 3/8 [00:04<00:06,  1.35s/ind][A
+
+Gen 2 Evaluation:  50%|█████     | 4/8 [00:05<00:05,  1.34s/ind][A
+
+Gen 2 Evaluation:  62%|██████▎   | 5/8 [00:06<00:04,  1.35s/ind][A
+
+Gen 2 Evaluation:  75%|███████▌  | 6/8 [00:08<00:02,  1.34s/ind][A
+
+Gen 2 Evaluation:  88%|████████▊ | 7/8 [00:09<00:01,  1.35s/ind][A
+
+Gen 2 Evaluation: 100%|██████████| 8/8 [00:10<00:00,  1.36s/ind][A
+
+                                                                [A
+                                                        
+
+세대 진화:  50%|█████     | 1/2 [00:22<00:12, 12.00s/it]
+세대 진화: 100%|██████████| 2/2 [00:22<00:00, 11.30s/it]
+세대 진화: 100%|██████████| 2/2 [00:22<00:00, 11.41s/it]
