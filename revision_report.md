@@ -58,6 +58,11 @@
     * **가중치:** Cost와 CO2의 강한 양의 상관관계(Correlation) 제시.
     * **평균 DCR:** 제약조건(Max DCR)을 만족하는 해들 중 '구조적 여유도'를 평가하는 보조 지표로서의 가치 주장.
 
+#### R2-6: SLS(사용성) 검토 한계 (Methodology)
+* **Comment:** 단면 DB만으로는 전역 처짐 검토 불가.
+* **Response (Clarify):**
+    * 전체 구조 해석(OpenSees) 결과를 바탕으로 층간 변위(Drift)를 검토하고 있음을 명확히 기술.
+
 #### R2-7: 구조 해석 모델 상세화 (Modeling)
 * **Comment:** P-Delta, 요소 타입, 재료 모델 등 정보 누락.
 * **Response (Accept & Action):**
@@ -87,14 +92,62 @@
 * **Response (Rebuttal):**
     * 형상 최적화(기둥 회전) 효과를 검증하기 위한 **의도적(Intentional)** 시나리오임을 강조.
 
+#### R2-12: 실무적 한계 (Practicality)
+* **Comment:** 그룹핑 고정, 균일 스터럽 등은 비경제적.
+* **Response (Defer):**
+    * 연구의 한계점(Limitation) 및 향후 연구 과제로 기술.
+
+#### R2-13: 비교 분석 (Comparison)
+* **Comment:** 기존 설계안과의 비교 부재.
+* **Response (Accept):**
+    * 일반적인 규준 설계(Conventional Design) 결과를 도출하여 비교 데이터 추가 예정.
+
+#### R2-14: 데이터 공개 (Data)
+* **Comment:** 데이터 제공 안 됨.
+* **Response (Accept):**
+    * GitHub 레포지토리 공개 준비.
+
 ---
 
 ### 🛡️ Reviewer #3
+
+#### R3-1: 평균 DCR 목적함수 의문 (Objective)
+* **Comment:** R2-4와 동일.
+* **Response:** R2-4와 동일하게 대응.
 
 #### R3-2: "Hybrid" 용어 삭제 권고 (Terminology)
 * **Comment:** 알고리즘 하이브리드로 오해 소지.
 * **Response (Rebuttal):**
     * "Hybrid Optimization Algorithm"이 아니라 **"Hybrid Design Variables (Size + Shape)"**임을 명확히 정의하여 용어 고수.
+
+#### R3-3, R3-4: 철근 상세 및 거푸집 (Detailing)
+* **Comment:** 철근 상세 미비, 거푸집 비용 누락.
+* **Response (Defer):**
+    * 연구 범위(Scope) 밖임을 명시하고 한계점으로 기술.
+
+#### R3-5, R3-6, R3-21: 서술 오류 (Editing)
+* **Comment:** 지진은 외력 아님, 중복 표현, 과한 형용사.
+* **Response (Accept):**
+    * 원고 전면 수정(Proofreading) 시 반영.
+
+#### R3-7: 서론 축소 (Structure)
+* **Comment:** R2-2와 동일.
+* **Response:** R2-2와 동일하게 대응.
+
+#### R3-9: 철근비 변환 설명 (Detailing)
+* **Comment:** 철근비($\rho$) -> 실제 철근 개수 변환 과정 설명 요구.
+* **Response (Clarify):**
+    * `src/utils.py`의 로직(MATLAB 사전 계산 DB)을 바탕으로 문서 보강.
+
+#### R3-10: 설계 변수 그림 (Visualization)
+* **Comment:** 설계 변수 설명 그림 누락.
+* **Response (Accept):**
+    * 염색체(Chromosome) 구조 및 매핑 다이어그램 추가.
+
+#### R3-11, R3-12: 변수 정의 (Notation)
+* **Comment:** 가중치, DCR 정의 누락.
+* **Response (Accept):**
+    * 수식 설명 보강.
 
 #### R3-13: 처짐 및 장기 거동 (SLS)
 * **Comment:** 처짐 계산 단순화, 크리프 미고려.
@@ -104,6 +157,25 @@
 #### R3-16: 통계적 신뢰성 (Statistics)
 * **Comment:** R2-10과 동일.
 * **Response:** R2-10과 동일하게 대응 (`batch_run_optimization.py`).
+
+#### R3-17: 세대 수 적절성 (Parameters)
+* **Comment:** 100세대가 충분한가?
+* **Response (Clarify):**
+    * 수렴 그래프(Convergence Plot)를 통해 100세대 이전에 수렴함을 증명.
+
+#### R3-18: 결과 테이블 설명 (Results)
+* **Comment:** Table 9의 0/1 의미 등 설명 부족.
+* **Response (Accept):**
+    * 표 주석(Footnote) 보강.
+
+#### R3-19: 그림 분석 (Results)
+* **Comment:** Figure 15 분석 텍스트 부족.
+* **Response (Accept):**
+    * 본문에 상세 분석 추가.
+
+#### R3-20: 계산 시간 (Cost)
+* **Comment:** R1-5와 동일.
+* **Response:** R1-5와 동일하게 대응.
 
 ---
 
@@ -116,3 +188,4 @@
 3.  **`src/modeling.py` 수정:**
     *   `geomTransf`를 `Linear`에서 `PDelta`로 변경.
 4.  **`scripts/experiment_high_load.py` 생성:** 현실적인 지진 하중(400kN) 테스트용 스크립트.
+5.  **문서화:** `docs/modeling_details.md` 작성 (모델링 상세 스펙).
