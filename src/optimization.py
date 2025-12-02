@@ -207,6 +207,14 @@ def run_ga_optimization(chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, crossover_
     margin_stats.register("min_NM_hier", lambda pop: calculate_margin_stat(pop, 'normalized_margins', 'hierarchy', np.min))
 
     # 그룹 5: Hall of Fame 통계 (유효해 대상)
+    def calculate_hypervolume(hof):
+        """Hall of Fame의 Hypervolume을 계산 (Reference Point: 1.1, 1.1)"""
+        if not hof: return 0.0
+        # 유효한 해들의 목적함수 값 추출 (f1, f2)
+        front = [ind.fitness.values for ind in hof]
+        # DEAP의 hypervolume 함수 사용 (최소화 문제 기준)
+        return tools.hypervolume(front, [1.1, 1.1])
+
     hof_value_stats = tools.Statistics()
     hof_value_stats.register("hof_avg_cost", lambda h: calculate_valid_stat(h, 'cost', np.mean))
     hof_value_stats.register("hof_max_cost", lambda h: calculate_valid_stat(h, 'cost', np.max))
@@ -220,6 +228,7 @@ def run_ga_optimization(chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, crossover_
     hof_value_stats.register("hof_max_dcr", lambda h: calculate_valid_stat(h, 'mean_strength_ratio', np.max))
     hof_value_stats.register("hof_min_dcr", lambda h: calculate_valid_stat(h, 'mean_strength_ratio', np.min))
     hof_value_stats.register("hof_std_dcr", lambda h: calculate_valid_stat(h, 'mean_strength_ratio', np.std))
+    hof_value_stats.register("hypervolume", calculate_hypervolume) # HV 추가
 
     # --- 로그북 헤더 재구성 ---
     logbook = tools.Logbook()
@@ -249,7 +258,8 @@ def run_ga_optimization(chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, crossover_
         if hof:
             best_obj1 = min(ind.fitness.values[0] for ind in hof)
             best_obj2 = min(ind.fitness.values[1] for ind in hof)
-            hof_stats_history.append({'gen': 0, 'best_obj1': best_obj1, 'best_obj2': best_obj2})
+            hv = calculate_hypervolume(hof)
+            hof_stats_history.append({'gen': 0, 'best_obj1': best_obj1, 'best_obj2': best_obj2, 'hypervolume': hv})
 
         record = fitness_stats.compile(pop)
         record.update(health_stats.compile(pop))
@@ -290,7 +300,8 @@ def run_ga_optimization(chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, crossover_
         if hof:
             best_obj1 = min(ind.fitness.values[0] for ind in hof)
             best_obj2 = min(ind.fitness.values[1] for ind in hof)
-            hof_stats_history.append({'gen': gen, 'best_obj1': best_obj1, 'best_obj2': best_obj2})
+            hv = calculate_hypervolume(hof)
+            hof_stats_history.append({'gen': gen, 'best_obj1': best_obj1, 'best_obj2': best_obj2, 'hypervolume': hv})
         record = fitness_stats.compile(pop)
         record.update(health_stats.compile(pop))
         record.update(value_stats.compile(pop))

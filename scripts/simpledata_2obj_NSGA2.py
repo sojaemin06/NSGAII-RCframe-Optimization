@@ -17,7 +17,7 @@ from src.modeling import build_model_for_section
 from src.evaluation import evaluate
 from src.optimization import run_ga_optimization
 from src.visualization import plot_Structure, visualize_load_patterns
-from src.utils import get_precalculated_strength, load_pm_data_for_column, get_pm_capacity_from_df
+from src.utils import get_precalculated_strength, load_pm_data_for_column, get_pm_capacity_from_df, calculate_normalization_constants
 
 
 def main():
@@ -41,6 +41,9 @@ def main():
     # =================================================================
     import openseespy.opensees as ops
     from deap import base, creator, tools, algorithms
+    import time # 시간 측정을 위해 추가
+
+    start_time = time.time() # 시작 시간 기록
 
     # --- ✅ 1. Matplotlib 전역 글꼴 설정: Times New Roman ---
     plt.rcParams['font.family'] = 'Times New Roman'
@@ -158,28 +161,13 @@ def main():
     column_sections = [(row["b"]/1000, row["h"]/1000) for _, row in column_sections_df.iterrows()]
     beam_lengths = [math.sqrt((column_locations[p2][0] - column_locations[p1][0])**2 + (column_locations[p2][1] - column_locations[p1][1])**2) for p1, p2 in beam_connections]
 
-    # --- 데이터 기반 고정 스케일 자동 계산 (최종안) ---
+    # --- 데이터 기반 고정 스케일 자동 계산 (최종안 - 거푸집 비용 포함) ---
     total_column_length = (len(column_locations) * floors) * H
     total_beam_length = sum(beam_lengths) * floors
-    min_col_cost_per_m = column_sections_df['Cost'].min()
-    max_col_cost_per_m = column_sections_df['Cost'].max()
-    min_beam_cost_per_m = beam_sections_df['Cost'].min()
-    max_beam_cost_per_m = beam_sections_df['Cost'].max()
-    min_col_co2_per_m = column_sections_df['CO2'].min()
-    max_col_co2_per_m = column_sections_df['CO2'].max()
-    min_beam_co2_per_m = beam_sections_df['CO2'].min()
-    max_beam_co2_per_m = beam_sections_df['CO2'].max()
-    FIXED_MIN_COST = (min_col_cost_per_m * total_column_length) + (min_beam_cost_per_m * total_beam_length)
-    FIXED_MAX_COST = (max_col_cost_per_m * total_column_length) + (max_beam_cost_per_m * total_beam_length)
-    FIXED_RANGE_COST = FIXED_MAX_COST - FIXED_MIN_COST
-    if FIXED_RANGE_COST == 0: FIXED_RANGE_COST = 1.0
-    FIXED_MIN_CO2 = (min_col_co2_per_m * total_column_length) + (min_beam_co2_per_m * total_beam_length)
-    FIXED_MAX_CO2 = (max_col_co2_per_m * total_column_length) + (max_beam_co2_per_m * total_beam_length)
-    FIXED_RANGE_CO2 = FIXED_MAX_CO2 - FIXED_MIN_CO2
-    if FIXED_RANGE_CO2 == 0: FIXED_RANGE_CO2 = 1.0
-    print("\n[Data-driven Fixed Scale for Normalization]")
-    print(f"- Estimated Cost Range: {FIXED_MIN_COST:,.0f} ~ {FIXED_MAX_COST:,.0f}")
-    print(f"- Estimated CO2 Range : {FIXED_MIN_CO2:,.0f} ~ {FIXED_MAX_CO2:,.0f}\n")
+    
+    FIXED_MIN_COST, FIXED_RANGE_COST, FIXED_MIN_CO2, FIXED_RANGE_CO2 = calculate_normalization_constants(
+        column_sections_df, beam_sections_df, total_column_length, total_beam_length
+    )
 
     # =================================================================
     # ===                    5. 메인 실행 블록                        ===
@@ -286,15 +274,69 @@ def main():
         # 유효해 판별 기준을 'violation' 값으로 통일
         if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0:
             valid_solutions.append(ind)
+            
     print(f"총 {len(valid_solutions)}개의 유효한 파레토 최적해를 찾았습니다.")
     print("="*80)
 
+    # =================================================================
+    # ===             공통: 최적화 로그 및 수렴 데이터 저장             ===
+    # =================================================================
+    print("\n\n" + "="*90)
+    print(f"### 최적화 결과 데이터를 '{output_folder}' 폴더에 저장합니다. ###")
+
+    # 1. 최적화 과정 로그 (optimization_log.csv) - 무조건 저장
+    log_df = pd.DataFrame(logbook)
+    log_df = log_df.drop(columns=[col for col in log_df.columns if 'sep' in str(col)], errors='ignore')
+    log_df.to_csv(os.path.join(output_folder, "optimization_log.csv"), index=False)
+    print("- 'optimization_log.csv' 저장 완료.")
+
+    # 2. Hall of Fame 수렴도 데이터 저장 (hof_convergence.csv) - 무조건 저장
+    if hof_stats_history:
+        hof_df = pd.DataFrame(hof_stats_history)
+        hof_df.to_csv(os.path.join(output_folder, "hof_convergence.csv"), index=False)
+        print("- 'hof_convergence.csv' 저장 완료.")
+
+        # 2.3: Hall of Fame 수렴도 그래프 생성
+        fig_conv, ax_conv = plt.subplots(figsize=(8, 7))
+        gen_hof = [s['gen'] for s in hof_stats_history]
+        hof_best_obj1 = [s['best_obj1'] for s in hof_stats_history]
+        hof_best_obj2 = [s['best_obj2'] for s in hof_stats_history]
+        color1 = 'tab:blue'
+        ax_conv.set_xlabel("Generation")
+        ax_conv.set_ylabel("Fitness1 (Normalized Cost+CO2)", color=color1)
+        ax_conv.plot(gen_hof, hof_best_obj1, color=color1, marker='o', linestyle='-', label="Best Fitness1")
+        ax_conv.tick_params(axis='y', labelcolor=color1)
+        ax_conv.grid(True)
+        ax_conv_twin = ax_conv.twinx()
+        color2 = 'tab:red'
+        ax_conv_twin.set_ylabel("Fitness2 (Mean DCR)", color=color2)
+        ax_conv_twin.plot(gen_hof, hof_best_obj2, color=color2, marker='s', linestyle='-', label="Best Fitness2")
+        ax_conv_twin.tick_params(axis='y', labelcolor=color2)
+        ax_conv.set_title('Convergence of the Hall of Fame', fontsize=14)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, "analysis_convergence_hof.png"))
+        print("- 'analysis_convergence_hof.png' 저장 완료.")
+
+    # 2.4: 유효해 비율 수렴도 그래프 - 무조건 저장
+    fig_valid, ax_valid = plt.subplots(figsize=(8, 7))
+    gen = logbook.select("gen")
+    valid_ratios_log = logbook.select("valid_ratio")
+    ax_valid.plot(gen, valid_ratios_log, marker='o', linestyle='-', color='g')
+    ax_valid.set_title("Ratio of Feasible Solutions per Generation", fontsize=14)
+    ax_valid.set_xlabel("Generation")
+    ax_valid.set_ylabel("Feasible Solutions (%)")
+    ax_valid.set_ylim(0, 105)
+    ax_valid.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_folder, "analysis_feasible_ratio.png"))
+    print("- 'analysis_feasible_ratio.png' 저장 완료.")
+
+    all_results = []
     if not valid_solutions:
-        print("모든 제약조건을 만족하는 해를 찾지 못했습니다.")
+        print("\n[Warning] 모든 제약조건을 만족하는 해를 찾지 못했습니다.")
     else:
         # 정렬 기준을 첫 번째 목표값(피트니스)으로 변경
         sorted_pareto = sorted(valid_solutions, key=lambda ind: ind.fitness.values[0])
-        all_results = []
         for i, ind in enumerate(sorted_pareto):
             result_dict = ind.detailed_results
             result_dict['ID'] = f"Sol #{i+1}"
@@ -323,31 +365,18 @@ def main():
             row_string = ""
             for h in headers: row_string += f"{row_data[h]:<{col_widths[h]}} "
             print(row_string)
-        
+    
+    if all_results:
         # =================================================================
         # ===             추가: 최적화 결과 데이터 CSV 저장             ===
         # =================================================================
-        print("\n\n" + "="*90)
-        print(f"### 최적화 결과 데이터를 '{output_folder}' 폴더에 CSV 파일로 저장합니다. ###")
-
-        # 1. 파레토 최적해 요약 (pareto_summary.csv)
+        
+        # 3. 파레토 최적해 요약 (pareto_summary.csv)
         summary_df = pd.DataFrame(summary_data_list)
         summary_df.to_csv(os.path.join(output_folder, "pareto_summary.csv"), index=False)
         print("- 'pareto_summary.csv' 저장 완료.")
 
-        # 2. 최적화 과정 로그 (optimization_log.csv)
-        log_df = pd.DataFrame(logbook)
-        log_df = log_df.drop(columns=[col for col in log_df.columns if 'sep' in str(col)], errors='ignore')
-        log_df.to_csv(os.path.join(output_folder, "optimization_log.csv"), index=False)
-        print("- 'optimization_log.csv' 저장 완료.")
-
-        # Hall of Fame 수렴도 데이터 저장 (hof_convergence.csv)
-        if hof_stats_history:
-            hof_df = pd.DataFrame(hof_stats_history)
-            hof_df.to_csv(os.path.join(output_folder, "hof_convergence.csv"), index=False)
-            print("- 'hof_convergence.csv' 저장 완료.")
-
-        # 3. 최적해별 설계 변수 (design_variables.csv)
+        # 4. 최적해별 설계 변수 (design_variables.csv)
         design_vars_data = []
         for r in all_results:
             ind = r['individual']
@@ -366,7 +395,7 @@ def main():
         design_vars_df.to_csv(os.path.join(output_folder, "design_variables.csv"), index=False)
         print("- 'design_variables.csv' 저장 완료.")
 
-        # 4. 최적해별 변위/변형 검토 결과 (displacement_checks_all.csv)
+        # 5. 최적해별 변위/변형 검토 결과 (displacement_checks_all.csv)
         displacement_data = []
         for r in all_results:
             sol_id = r['ID']
@@ -383,7 +412,7 @@ def main():
             displacement_df = pd.DataFrame(displacement_data); displacement_df.to_csv(os.path.join(output_folder, "displacement_checks_all.csv"), index=False)
             print("- 'displacement_checks_all.csv' 저장 완료.")
 
-        # 5. 최적해별 부재 DCR (dcr_by_element.csv)
+        # 6. 최적해별 부재 DCR (dcr_by_element.csv)
         dcr_data = []
         for r in all_results:
             sol_id = r['ID']; ratios = r.get('strength_ratios', [])
@@ -488,7 +517,7 @@ def main():
             col_indices, col_rotations = ind[:len_col_sec], ind[len_col_sec:len_col_sec + len_col_rot]
             beam_indices = ind[len_col_sec + len_col_rot:]
             
-            column_elem_ids, beam_elem_ids, _ = build_model_for_section(floors, H, column_locations, beam_connections, col_indices, col_rotations, beam_indices, col_map, beam_map, column_sections, beam_sections, num_columns)
+            column_elem_ids, beam_elem_ids, _, _ = build_model_for_section(floors, H, column_locations, beam_connections, col_indices, col_rotations, beam_indices, col_map, beam_map, column_sections, beam_sections, num_columns)
             
             output_data_long = []
             
@@ -1030,6 +1059,16 @@ def main():
                 # plt.show()
 
     h5_file.close()
+    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"\nTotal Execution Time: {elapsed_time:.2f} seconds ({elapsed_time/3600:.2f} hours)")
+    
+    # 실행 시간을 파일로 저장 (R1-5 대응)
+    with open(os.path.join(output_folder, "execution_time.txt"), "w") as f:
+        f.write(f"Total Execution Time: {elapsed_time:.2f} seconds\n")
+        f.write(f"Total Execution Time: {elapsed_time/60:.2f} minutes\n")
+        f.write(f"Total Execution Time: {elapsed_time/3600:.2f} hours\n")
 
 if __name__ == '__main__':
     main()

@@ -17,6 +17,7 @@ from src.modeling import build_model_for_section
 from src.evaluation import evaluate
 from src.optimization import run_ga_optimization
 from src.visualization import plot_Structure, visualize_load_patterns
+from src.utils import calculate_normalization_constants
 
 
 def main():
@@ -115,28 +116,13 @@ def main():
     column_sections = [(row["b"]/1000, row["h"]/1000) for _, row in column_sections_df.iterrows()]
     beam_lengths = [math.sqrt((column_locations[p2][0] - column_locations[p1][0])**2 + (column_locations[p2][1] - column_locations[p1][1])**2) for p1, p2 in beam_connections]
 
-    # --- 데이터 기반 고정 스케일 자동 계산 (최종안) ---
+    # --- 데이터 기반 고정 스케일 자동 계산 (최종안 - 거푸집 비용 포함) ---
     total_column_length = (len(column_locations) * floors) * H
     total_beam_length = sum(beam_lengths) * floors
-    min_col_cost_per_m = column_sections_df['Cost'].min()
-    max_col_cost_per_m = column_sections_df['Cost'].max()
-    min_beam_cost_per_m = beam_sections_df['Cost'].min()
-    max_beam_cost_per_m = beam_sections_df['Cost'].max()
-    min_col_co2_per_m = column_sections_df['CO2'].min()
-    max_col_co2_per_m = column_sections_df['CO2'].max()
-    min_beam_co2_per_m = beam_sections_df['CO2'].min()
-    max_beam_co2_per_m = beam_sections_df['CO2'].max()
-    FIXED_MIN_COST = (min_col_cost_per_m * total_column_length) + (min_beam_cost_per_m * total_beam_length)
-    FIXED_MAX_COST = (max_col_cost_per_m * total_column_length) + (max_beam_cost_per_m * total_beam_length)
-    FIXED_RANGE_COST = FIXED_MAX_COST - FIXED_MIN_COST
-    if FIXED_RANGE_COST == 0: FIXED_RANGE_COST = 1.0
-    FIXED_MIN_CO2 = (min_col_co2_per_m * total_column_length) + (min_beam_co2_per_m * total_beam_length)
-    FIXED_MAX_CO2 = (max_col_co2_per_m * total_column_length) + (max_beam_co2_per_m * total_beam_length)
-    FIXED_RANGE_CO2 = FIXED_MAX_CO2 - FIXED_MIN_CO2
-    if FIXED_RANGE_CO2 == 0: FIXED_RANGE_CO2 = 1.0
-    print("\n[Data-driven Fixed Scale for Normalization]")
-    print(f"- Estimated Cost Range: {FIXED_MIN_COST:,.0f} ~ {FIXED_MAX_COST:,.0f}")
-    print(f"- Estimated CO2 Range : {FIXED_MIN_CO2:,.0f} ~ {FIXED_MAX_CO2:,.0f}\n")
+
+    FIXED_MIN_COST, FIXED_RANGE_COST, FIXED_MIN_CO2, FIXED_RANGE_CO2 = calculate_normalization_constants(
+        column_sections_df, beam_sections_df, total_column_length, total_beam_length
+    )
 
     # =================================================================
     # ===                      메인 실행 블록                         ===

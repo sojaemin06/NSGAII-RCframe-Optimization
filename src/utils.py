@@ -64,3 +64,48 @@ def extract_local_element_forces(column_elem_ids, beam_elem_ids):
     df_all = df_all.sort_values(['ElementType','ElementID'])
     df_max = (df_all.groupby(['ElementType','ElementID'], observed=True).agg({col:lambda x: x.iloc[0] if abs(x.iloc[0]) > abs(x.iloc[1]) else x.iloc[1] for col in ['Axial (kN)','Shear-y (kN)','Shear-z (kN)','Torsion (kNm)','Moment-y (kNm)','Moment-z (kNm)']}).reset_index())
     return df_max
+
+def calculate_normalization_constants(column_sections_df, beam_sections_df, total_column_length, total_beam_length, FORMWORK_UNIT_COST=20000):
+    """
+    단면 DB와 총 길이를 기반으로 정규화를 위한 최소/최대 비용 및 CO2 배출량을 계산합니다.
+    *거푸집 비용(Formwork Cost)을 포함하여 계산합니다.*
+    """
+    # 1. 최소/최대 비용 (재료비 + 거푸집 비용)
+    # 기둥: 둘레 = 2*(b+h)
+    col_perimeters = 2 * (column_sections_df['b'] + column_sections_df['h']) / 1000.0 # m 단위
+    # 보: 둘레 = b + 2*h (밑면 + 옆면)
+    beam_perimeters = (beam_sections_df['b'] + 2 * beam_sections_df['h']) / 1000.0 # m 단위
+
+    # m당 총 비용 = m당 재료비(Cost) + m당 거푸집비용(둘레 * 단위비용)
+    col_total_costs = column_sections_df['Cost'] + (col_perimeters * FORMWORK_UNIT_COST)
+    beam_total_costs = beam_sections_df['Cost'] + (beam_perimeters * FORMWORK_UNIT_COST)
+
+    min_col_cost_per_m = col_total_costs.min()
+    max_col_cost_per_m = col_total_costs.max()
+    min_beam_cost_per_m = beam_total_costs.min()
+    max_beam_cost_per_m = beam_total_costs.max()
+
+    FIXED_MIN_COST = (min_col_cost_per_m * total_column_length) + (min_beam_cost_per_m * total_beam_length)
+    FIXED_MAX_COST = (max_col_cost_per_m * total_column_length) + (max_beam_cost_per_m * total_beam_length)
+    
+    FIXED_RANGE_COST = FIXED_MAX_COST - FIXED_MIN_COST
+    if FIXED_RANGE_COST == 0: FIXED_RANGE_COST = 1.0
+
+    # 2. 최소/최대 CO2 (변동 없음)
+    min_col_co2_per_m = column_sections_df['CO2'].min()
+    max_col_co2_per_m = column_sections_df['CO2'].max()
+    min_beam_co2_per_m = beam_sections_df['CO2'].min()
+    max_beam_co2_per_m = beam_sections_df['CO2'].max()
+
+    FIXED_MIN_CO2 = (min_col_co2_per_m * total_column_length) + (min_beam_co2_per_m * total_beam_length)
+    FIXED_MAX_CO2 = (max_col_co2_per_m * total_column_length) + (max_beam_co2_per_m * total_beam_length)
+
+    FIXED_RANGE_CO2 = FIXED_MAX_CO2 - FIXED_MIN_CO2
+    if FIXED_RANGE_CO2 == 0: FIXED_RANGE_CO2 = 1.0
+
+    print("\n[Data-driven Fixed Scale for Normalization (Including Formwork Cost)]")
+    print(f"- Estimated Cost Range: {FIXED_MIN_COST:,.0f} ~ {FIXED_MAX_COST:,.0f}")
+    print(f"- Estimated CO2 Range : {FIXED_MIN_CO2:,.0f} ~ {FIXED_MAX_CO2:,.0f}\n")
+
+    return FIXED_MIN_COST, FIXED_RANGE_COST, FIXED_MIN_CO2, FIXED_RANGE_CO2
+

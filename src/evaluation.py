@@ -3,8 +3,25 @@ import math
 import numpy as np
 import pandas as pd
 import openseespy.opensees as ops
+import sys
+import os
+from contextlib import contextmanager
 from .modeling import build_model_for_section
 from .utils import get_precalculated_strength, load_pm_data_for_column, get_pm_capacity_from_df, extract_local_element_forces
+
+@contextmanager
+def suppress_stdout_stderr():
+    """
+    A context manager that redirects stdout and stderr to devnull
+    to suppress unwanted output (e.g., OpenSees warnings).
+    """
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        try:
+            sys.stdout, sys.stderr = fnull, fnull
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, patterns_by_floor, beam_lengths, col_map, beam_map, num_columns, floors, H, column_locations, beam_connections, column_sections_df, beam_sections_df, FIXED_MIN_COST, FIXED_RANGE_COST, FIXED_MIN_CO2, FIXED_RANGE_CO2, load_combinations, column_sections, beam_sections):
     """
@@ -20,72 +37,93 @@ def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, 
         "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
         "forces_df": pd.DataFrame(), "violation": float('inf'), "margins": {}
     }
-    try:
-        len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
-        col_indices = individual[:len_col_sec]
-        col_rotations = individual[len_col_sec : len_col_sec + len_col_rot]
-        beam_indices = individual[len_col_sec + len_col_rot :]
-        column_elem_ids, beam_elem_ids, node_map = build_model_for_section(floors, H, column_locations, beam_connections, col_indices, col_rotations, beam_indices, col_map, beam_map, column_sections, beam_sections, num_columns)
-    except Exception:
-        return failure_results_dict # 튜플 대신 실패 딕셔너리를 반환
     
-    lateral_force_dist_sum = sum(range(1, floors + 1))
-    deflection_ratios = []
-    for i, elem_id in enumerate(beam_elem_ids):
-        beam_len = beam_lengths[i % len(beam_connections)]; group_idx = beam_map.get(num_columns + i + 1, 0)
-        sec_idx = beam_indices[group_idx]; h_b = beam_sections[sec_idx][1]
-        min_thickness = beam_len / 21.0
-        deflection_ratios.append(min_thickness / h_b)
-    actual_deflection_ratio = max(deflection_ratios) if deflection_ratios else 0.0
+    # 전체 해석 과정을 suppress_stdout_stderr로 감싸서 경고 메시지 숨김
+    # (단, 에러 발생 시 디버깅이 어려울 수 있으므로 주의 필요)
+    with suppress_stdout_stderr():
+        try:
+            len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
+            col_indices = individual[:len_col_sec]
+            col_rotations = individual[len_col_sec : len_col_sec + len_col_rot]
+            beam_indices = individual[len_col_sec + len_col_rot :]
+            column_elem_ids, beam_elem_ids, node_map, master_nodes = build_model_for_section(floors, H, column_locations, beam_connections, col_indices, col_rotations, beam_indices, col_map, beam_map, column_sections, beam_sections, num_columns)
+        except Exception:
+            return failure_results_dict # 튜플 대신 실패 딕셔너리를 반환
+        
+        lateral_force_dist_sum = sum(range(1, floors + 1))
+        deflection_ratios = []
+        for i, elem_id in enumerate(beam_elem_ids):
+            beam_len = beam_lengths[i % len(beam_connections)]; group_idx = beam_map.get(num_columns + i + 1, 0)
+            sec_idx = beam_indices[group_idx]; h_b = beam_sections[sec_idx][1]
+            min_thickness = beam_len / 21.0
+            deflection_ratios.append(min_thickness / h_b)
+        actual_deflection_ratio = max(deflection_ratios) if deflection_ratios else 0.0
 
-    all_max_combo_forces, analysis_ok = [], True
-    ops.timeSeries('Linear',1)
-    ops.system('ProfileSPD')
-    ops.numberer('RCM')
-    ops.constraints('Transformation')
-    ops.integrator('LoadControl',1.0)
-    ops.algorithm('Linear')
-    ops.analysis('Static')
-    for i, (combo_name, factors) in enumerate(load_combinations):
-        pattern_tag = i + 1
-        ops.reset()
-        ops.pattern('Plain', pattern_tag, 1)
-        superimposed_beam_load = DL * factors["DL"] + LL * factors["LL"]
-        for beam_idx, eid in enumerate(beam_elem_ids):
-            group_idx = beam_map[num_columns + beam_idx + 1]
-            sec_idx = beam_indices[group_idx]
-            b, h = beam_sections[sec_idx]
-            unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
-            beam_self_weight = b * h * unit_weight
-            total_beam_load = beam_self_weight * factors["DL"]
-            beam_floor = (beam_idx // len(beam_connections)) + 1; conn_idx = beam_idx % len(beam_connections)
-            loaded_beams_for_this_floor = patterns_by_floor.get(beam_floor, set())
-            if conn_idx in loaded_beams_for_this_floor: total_beam_load += superimposed_beam_load
-            if abs(total_beam_load) > 1e-6:
-                ops.eleLoad('-ele', eid, '-type', '-beamUniform', 0, -total_beam_load)
-        for col_idx, eid in enumerate(column_elem_ids):
-            group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
-            b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
-            col_self_weight = b * h * H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
-            ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
-            ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
-        base_force_x = Wx * factors["Wx"] + Ex * factors["Ex"]
-        base_force_y = Wy * factors["Wy"] + Ey * factors["Ey"]
-        if abs(base_force_x) > 1e-9 or abs(base_force_y) > 1e-9:
-            for k in range(1, floors + 1):
-                floor_multiplier = k / lateral_force_dist_sum; story_force_x = base_force_x * floor_multiplier; story_force_y = base_force_y * floor_multiplier
-                nodal_load_x = story_force_x / len(column_locations); nodal_load_y = story_force_y / len(column_locations)
-                for loc_idx in range(len(column_locations)):
-                    if node_map.get((k, loc_idx)): ops.load(node_map[(k, loc_idx)], nodal_load_x, nodal_load_y, 0, 0, 0, 0)
-        if ops.analyze(1)!=0: analysis_ok = False; ops.remove('loadPattern', pattern_tag); break
-        df_max_curr = extract_local_element_forces(column_elem_ids, beam_elem_ids)
-        if df_max_curr.empty: analysis_ok = False; ops.remove('loadPattern', pattern_tag); break
-        df_max_curr['Combo'] = combo_name # <<< 하중조합 이름 추가
-        all_max_combo_forces.append(df_max_curr)
-        ops.remove('loadPattern', pattern_tag)
-
+        all_max_combo_forces, analysis_ok = [], True
+        ops.timeSeries('Linear',1)
+        ops.system('ProfileSPD')
+        ops.numberer('RCM')
+        ops.constraints('Transformation')
+        ops.integrator('LoadControl',1.0)
+        # P-Delta (기하 비선형) 고려를 위해 Newton 알고리즘 사용
+        ops.algorithm('Newton')
+        ops.analysis('Static')
+        for i, (combo_name, factors) in enumerate(load_combinations):
+            pattern_tag = i + 1
+            ops.reset()
+            ops.pattern('Plain', pattern_tag, 1)
+            superimposed_beam_load = DL * factors["DL"] + LL * factors["LL"]
+            for beam_idx, eid in enumerate(beam_elem_ids):
+                group_idx = beam_map[num_columns + beam_idx + 1]
+                sec_idx = beam_indices[group_idx]
+                b, h = beam_sections[sec_idx]
+                unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
+                beam_self_weight = b * h * unit_weight
+                total_beam_load = beam_self_weight * factors["DL"]
+                beam_floor = (beam_idx // len(beam_connections)) + 1; conn_idx = beam_idx % len(beam_connections)
+                loaded_beams_for_this_floor = patterns_by_floor.get(beam_floor, set())
+                if conn_idx in loaded_beams_for_this_floor: total_beam_load += superimposed_beam_load
+                if abs(total_beam_load) > 1e-6:
+                    ops.eleLoad('-ele', eid, '-type', '-beamUniform', 0, -total_beam_load)
+            for col_idx, eid in enumerate(column_elem_ids):
+                group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
+                b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
+                col_self_weight = b * h * H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
+                ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
+                ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
+            base_force_x = Wx * factors["Wx"] + Ex * factors["Ex"]
+            base_force_y = Wy * factors["Wy"] + Ey * factors["Ey"]
+            if abs(base_force_x) > 1e-9 or abs(base_force_y) > 1e-9:
+                for k in range(1, floors + 1):
+                    floor_multiplier = k / lateral_force_dist_sum
+                    story_force_x = base_force_x * floor_multiplier
+                    story_force_y = base_force_y * floor_multiplier
+                    # Rigid Diaphragm 적용: 마스터 노드에 횡하중 집중 재하
+                    if k in master_nodes:
+                        ops.load(master_nodes[k], story_force_x, story_force_y, 0, 0, 0, 0)
+                        
+            if ops.analyze(1) != 0:
+                print(f"[DEBUG] Analysis Failed at {combo_name}")
+                analysis_ok = False
+                ops.remove('loadPattern', pattern_tag)
+                break
+                
+            df_max_curr = extract_local_element_forces(column_elem_ids, beam_elem_ids)
+            if df_max_curr.empty:
+                print(f"[DEBUG] Force extraction failed at {combo_name}")
+                analysis_ok = False
+                ops.remove('loadPattern', pattern_tag)
+                break
+                
+            df_max_curr['Combo'] = combo_name # <<< 하중조합 이름 추가
+            all_max_combo_forces.append(df_max_curr)
+            ops.remove('loadPattern', pattern_tag)
+                    
+    # (분석 실패 시 즉시 리턴)
     if not analysis_ok or not all_max_combo_forces:
-        return failure_results_dict # 튜플 대신 실패 딕셔너리를 반환
+        print(f"[DEBUG] Evaluation returning failure dict. AnalysisOK: {analysis_ok}, Forces count: {len(all_max_combo_forces)}")
+        return failure_results_dict 
+
     df_all_combos = pd.concat(all_max_combo_forces, ignore_index=True)
     
     force_cols = ['Axial (kN)', 'Shear-y (kN)', 'Shear-z (kN)', 'Torsion (kNm)', 'Moment-y (kNm)', 'Moment-z (kNm)']
@@ -96,7 +134,6 @@ def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, 
         for force in force_cols:
             max_idx = group[force].abs().idxmax()
             row[force] = group.loc[max_idx, force]
-            # 해당 부재력을 발생시킨 하중조합의 이름을 함께 저장
             row[f'{force}_Combo'] = group.loc[max_idx, 'Combo'] 
         max_rows.append(row)
     final_max_forces = pd.DataFrame(max_rows)
@@ -115,103 +152,72 @@ def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, 
                 strengths, pm_df = get_precalculated_strength(elem_type, sec_idx, column_sections_df, beam_sections_df), load_pm_data_for_column(h5_file, sec_idx)
                 pn_z, mn_z = get_pm_capacity_from_df(p/(mz+1e-9), pm_df, axis='z')
                 pn_y, mn_y = get_pm_capacity_from_df(p/(my+1e-9), pm_df, axis='y')
-                ratios = [p/(pn_z+1e-9),                 # <-- P-M 상호작용이 고려된 축력 응력비 (강축 기준)
-                        p/(pn_y+1e-9),                 # <-- P-M 상호작용이 고려된 축력 응력비 (약축 기준)
-                        vy/(strengths['Vn_y']+1e-9),
-                        vz/(strengths['Vn_z']+1e-9),
-                        my/(mn_y+1e-9),
-                        mz/(mn_z+1e-9)]
+                ratios = [p/(pn_z+1e-9), p/(pn_y+1e-9), vy/(strengths['Vn_y']+1e-9), vz/(strengths['Vn_z']+1e-9), my/(mn_y+1e-9), mz/(mn_z+1e-9)]
             else:
                 abs_beam_idx = beam_elem_ids.index(elem_id); group_idx = beam_map[num_columns + abs_beam_idx + 1]; sec_idx = beam_indices[group_idx]
                 strengths = get_precalculated_strength(elem_type, sec_idx, column_sections_df, beam_sections_df)
-                ratios = [vz/(strengths['Vn_z']+1e-9),
-                            mz/(strengths['Mn_z']+1e-9)]
+                ratios = [vz/(strengths['Vn_z']+1e-9), mz/(strengths['Mn_z']+1e-9)]
             strength_ratios.append(max(r for r in ratios if r is not None and not math.isinf(r) and r >= 0))
         except (KeyError, IndexError): strength_ratios.append(float('inf'))
     max_strength_ratio = max(strength_ratios) if strength_ratios else 1.0
     mean_strength_ratio = np.mean([r for r in strength_ratios if not math.isinf(r)]) if strength_ratios else 0.0
 
     story_drifts_x, story_drifts_y = [], []; actual_drift_ratio = 0.0
-    if analysis_ok:
-        allowable_drift_ratio = 0.015
-        # --- X방향 층간변위 검토 (최대값 기준) ---
-        ops.reset(); ops.pattern('Plain', 101, 1)
-        drift_factors_x = next((f for name, f in load_combinations if name == "ASCE-S-E1"), None)
-        NODALLOADx, NODALLOADy = Ex*drift_factors_x["Ex"], Ey*drift_factors_x["Ey"]
-        for k in range(1,floors+1):
-            for loc_idx in range(len(column_locations)):
-                if node_map.get((k, loc_idx)): ops.load(node_map[(k, loc_idx)],NODALLOADx,NODALLOADy,0,0,0,0)
-        if ops.analyze(1) == 0:
-            for k in range(1, floors + 1):
-                max_story_drift_x = 0
-                for loc_idx in range(len(column_locations)):
-                    node_upper, node_lower = node_map.get((k, loc_idx)), node_map.get((k - 1, loc_idx))
-                    if node_upper and node_lower:
-                        drift = abs(ops.nodeDisp(node_upper, 1) - ops.nodeDisp(node_lower, 1)) / H
-                        if drift > max_story_drift_x: max_story_drift_x = drift
-                story_drifts_x.append(max_story_drift_x)
-        
-        # --- Y방향 층간변위 검토 (최대값 기준) ---
-        ops.reset(); ops.pattern('Plain', 102, 1)
-        drift_factors_y = next((f for name, f in load_combinations if name == "ASCE-S-E5"), None)
-        NODALLOADx, NODALLOADy = Ex*drift_factors_y["Ex"], Ey*drift_factors_y["Ey"]
-        for k in range(1,floors+1):
-            for loc_idx in range(len(column_locations)):
-                if node_map.get((k, loc_idx)): ops.load(node_map[(k, loc_idx)],NODALLOADx,NODALLOADy,0,0,0,0)
-        if ops.analyze(1) == 0:
-            for k in range(1, floors + 1):
-                max_story_drift_y = 0
-                for loc_idx in range(len(column_locations)):
-                    node_upper, node_lower = node_map.get((k, loc_idx)), node_map.get((k - 1, loc_idx))
-                    if node_upper and node_lower:
-                        drift = abs(ops.nodeDisp(node_upper, 2) - ops.nodeDisp(node_lower, 2)) / H
-                        if drift > max_story_drift_y: max_story_drift_y = drift
-                story_drifts_y.append(max_story_drift_y)
-
-        max_drift_x = max(story_drifts_x) if story_drifts_x else 0
-        max_drift_y = max(story_drifts_y) if story_drifts_y else 0
-        actual_drift_ratio = max(max_drift_x, max_drift_y) / allowable_drift_ratio
-    else: actual_drift_ratio = float('inf')
+    allowable_drift_ratio = 0.015
+    
+    # --- X방향 층간변위 ---
+    ops.reset(); ops.pattern('Plain', 101, 1)
+    drift_factors_x = next((f for name, f in load_combinations if name == "ASCE-S-E1"), None)
+    NODALLOADx, NODALLOADy = Ex*drift_factors_x["Ex"], Ey*drift_factors_x["Ey"]
+    for k in range(1,floors+1):
+        if k in master_nodes: ops.load(master_nodes[k], NODALLOADx, NODALLOADy, 0, 0, 0, 0)
+    if ops.analyze(1) == 0:
+        prev_disp_x = 0.0
+        for k in range(1, floors + 1):
+            curr_disp_x = ops.nodeDisp(master_nodes[k], 1); drift = abs(curr_disp_x - prev_disp_x) / H; story_drifts_x.append(drift); prev_disp_x = curr_disp_x
+    
+    # --- Y방향 층간변위 ---
+    ops.reset(); ops.pattern('Plain', 102, 1)
+    drift_factors_y = next((f for name, f in load_combinations if name == "ASCE-S-E5"), None)
+    NODALLOADx, NODALLOADy = Ex*drift_factors_y["Ex"], Ey*drift_factors_y["Ey"]
+    for k in range(1,floors+1):
+        if k in master_nodes: ops.load(master_nodes[k], NODALLOADx, NODALLOADy, 0, 0, 0, 0)
+    if ops.analyze(1) == 0:
+        prev_disp_y = 0.0
+        for k in range(1, floors + 1):
+            curr_disp_y = ops.nodeDisp(master_nodes[k], 2); drift = abs(curr_disp_y - prev_disp_y) / H; story_drifts_y.append(drift); prev_disp_y = curr_disp_y
+    
+    max_drift_x = max(story_drifts_x) if story_drifts_x else 0; max_drift_y = max(story_drifts_y) if story_drifts_y else 0
+    actual_drift_ratio = max(max_drift_x, max_drift_y) / allowable_drift_ratio
 
     wind_disps_x, wind_disps_y = [], []; actual_wind_disp_ratio = 0.0
-    if analysis_ok:
-        lateral_force_dist_sum = sum(range(1, floors + 1))
-        # --- X 방향 풍하중 변위 검토 (최대값 기준) ---
-        actual_wind_disp_ratio_x = float('inf')
-        ops.reset(); ops.pattern('Plain', 201, 1)
-        wind_factors_x = next((f for name, f in load_combinations if name == "ASCE-S-W1"), None)
-        if wind_factors_x:
-            base_force_x = Wx * wind_factors_x["Wx"]
-            for k in range(1, floors + 1):
-                story_force_x = base_force_x * (k / lateral_force_dist_sum)
-                nodal_load_x = story_force_x / len(column_locations)
-                for loc_idx in range(len(column_locations)):
-                    if node_map.get((k, loc_idx)): ops.load(node_map[(k, loc_idx)], nodal_load_x, 0, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
-                # 각 층의 모든 절점 중 최대 변위(절대값)를 계산
-                disps = [max([abs(ops.nodeDisp(nid, 1)) for (fl, _), nid in node_map.items() if fl == k]) for k in range(1, floors + 1)]
-                wind_disps_x = disps
-                if wind_disps_x:
-                    actual_wind_disp_ratio_x = wind_disps_x[-1] / ((floors * H) / 400.0)
-        
-        # --- Y 방향 풍하중 변위 검토 (최대값 기준) ---
-        actual_wind_disp_ratio_y = float('inf')
-        ops.reset(); ops.pattern('Plain', 202, 1)
-        wind_factors_y = next((f for name, f in load_combinations if name == "ASCE-S-W3"), None)
-        if wind_factors_y:
-            base_force_y = Wy * wind_factors_y["Wy"]
-            for k in range(1, floors + 1):
-                story_force_y = base_force_y * (k / lateral_force_dist_sum)
-                nodal_load_y = story_force_y / len(column_locations)
-                for loc_idx in range(len(column_locations)):
-                    if node_map.get((k, loc_idx)): ops.load(node_map[(k, loc_idx)], 0, nodal_load_y, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
-                # 각 층의 모든 절점 중 최대 변위(절대값)를 계산
-                disps = [max([abs(ops.nodeDisp(nid, 2)) for (fl, _), nid in node_map.items() if fl == k]) for k in range(1, floors + 1)]
-                wind_disps_y = disps
-                if wind_disps_y:
-                    actual_wind_disp_ratio_y = wind_disps_y[-1] / ((floors * H) / 400.0)
-        actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
+    actual_wind_disp_ratio_x = float('inf')
+    
+    # --- X 방향 풍하중 변위 ---
+    ops.reset(); ops.pattern('Plain', 201, 1)
+    wind_factors_x = next((f for name, f in load_combinations if name == "ASCE-S-W1"), None)
+    if wind_factors_x:
+        base_force_x = Wx * wind_factors_x["Wx"]
+        for k in range(1, floors + 1):
+            story_force_x = base_force_x * (k / lateral_force_dist_sum)
+            if k in master_nodes: ops.load(master_nodes[k], story_force_x, 0, 0, 0, 0, 0)
+        if ops.analyze(1) == 0:
+            wind_disps_x = [abs(ops.nodeDisp(master_nodes[k], 1)) for k in range(1, floors + 1)]
+            if wind_disps_x: actual_wind_disp_ratio_x = wind_disps_x[-1] / ((floors * H) / 400.0)
+    
+    # --- Y 방향 풍하중 변위 ---
+    actual_wind_disp_ratio_y = float('inf')
+    ops.reset(); ops.pattern('Plain', 202, 1)
+    wind_factors_y = next((f for name, f in load_combinations if name == "ASCE-S-W3"), None)
+    if wind_factors_y:
+        base_force_y = Wy * wind_factors_y["Wy"]
+        for k in range(1, floors + 1):
+            story_force_y = base_force_y * (k / lateral_force_dist_sum)
+            if k in master_nodes: ops.load(master_nodes[k], 0, story_force_y, 0, 0, 0, 0)
+        if ops.analyze(1) == 0:
+            wind_disps_y = [abs(ops.nodeDisp(master_nodes[k], 2)) for k in range(1, floors + 1)]
+            if wind_disps_y: actual_wind_disp_ratio_y = wind_disps_y[-1] / ((floors * H) / 400.0)
+    actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
 
     hierarchy_ratios = [1.0]
     GROUPING_STRATEGY = 'Hybrid'
@@ -226,16 +232,30 @@ def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, 
                 hierarchy_ratios.append(max(ratio_x, ratio_y))
     actual_hierarchy_ratio = max(hierarchy_ratios)
 
+    # 거푸집 단가 (KRW/m^2, 가정값) - R3-4 대응
+    # [Note]: 이 단가는 자재비뿐만 아니라 설치/해체 노무비, 자재 손료(전용 횟수 고려)가 포함된 
+    # '일위대가(Composite Unit Price)'로 가정합니다. 따라서 전용(Reuse) 여부와 관계없이 
+    # 매 층 발생하는 총 설치 면적(Total Contact Area)에 대해 산정하는 것이 타당합니다.
+    FORMWORK_UNIT_COST = 20000
+
     total_cost, total_co2 = 0, 0
     for i in range(num_columns):
         group_idx = col_map[i + 1]; sec_idx = col_indices[group_idx]
+        b, h = column_sections[sec_idx] # m 단위
+        # 재료비 (Cost 컬럼은 m당 재료비)
         total_cost += column_sections_df.iloc[sec_idx]['Cost'] * H
+        # 거푸집 비용 추가 (둘레 * 높이)
+        total_cost += (2 * (b + h) * H) * FORMWORK_UNIT_COST
         total_co2 += column_sections_df.iloc[sec_idx]['CO2'] * H
     for k in range(floors):
         for i in range(len(beam_connections)):
             abs_beam_idx = k * len(beam_connections) + i; group_idx = beam_map[num_columns + abs_beam_idx + 1]
             sec_idx = beam_indices[group_idx]
+            b, h = beam_sections[sec_idx] # m 단위
+            # 재료비
             total_cost += beam_sections_df.iloc[sec_idx]['Cost'] * beam_lengths[i]
+            # 거푸집 비용 추가 (밑면 + 양 옆면)
+            total_cost += ((b + 2 * h) * beam_lengths[i]) * FORMWORK_UNIT_COST
             total_co2 += beam_sections_df.iloc[sec_idx]['CO2'] * beam_lengths[i]
 
     # 1. 각 제약조건의 '최대 허용 위반 비율'을 사전에 정의 (위반의 '스케일'을 정의하는 단계)
@@ -268,6 +288,10 @@ def evaluate(individual, chromosome_structure, DL, LL, Wx, Wy, Ex, Ey, h5_file, 
         # 가중치 적용하여 합산
         total_normalized_violation += weights[key] * normalized_margin
         normalized_margins[key] = normalized_margin  # 계산된 마진 값을 딕셔너리에 저장
+
+    # [DEBUG] 해석 결과 모니터링
+    if max_strength_ratio > 5.0 or actual_drift_ratio > 5.0:
+        print(f"[DEBUG] High Response -> Max DCR: {max_strength_ratio:.4f}, Drift Ratio: {actual_drift_ratio:.4f}")
 
     # 최종 Fitness가 아닌, 계산에 필요한 Raw 값들을 딕셔너리에 담아 반환
     detailed_results_dict = {

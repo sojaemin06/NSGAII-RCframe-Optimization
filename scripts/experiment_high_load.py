@@ -6,10 +6,10 @@ import time
 def run_high_load_experiment():
     # 설정
     seed = 42
-    pop_size = 100 # 테스트를 위해 작게 설정 (실제로는 600 권장)
-    generations = 20 # 테스트를 위해 작게 설정
-    ex_load = 400.0 # 10배 증대 (40 -> 400)
-    ey_load = 400.0 # 10배 증대
+    pop_size = 200 # 수렴성 확인을 위해 조금 더 크게 설정
+    generations = 100 # 수렴성 확인을 위해 조금 더 길게 설정
+    ex_load = 600.0 # R2-8 대응: 공학적 근거에 기반한 하중 (40 -> 600)
+    ey_load = 600.0
     
     # 현재 스크립트 위치 기준 상대 경로
     current_dir = os.path.dirname(os.path.abspath(__file__))
