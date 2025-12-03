@@ -59,7 +59,7 @@ def main():
     Ey_rand=40
 
     # --- 1.5. 유전 알고리즘 파라미터 ---
-    POPULATION_SIZE = 600
+    POPULATION_SIZE = 50
     NUM_GENERATIONS = 200
     CXPB, MUTPB = 0.8, 0.2
 
