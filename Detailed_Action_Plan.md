@@ -130,6 +130,10 @@
 *   **[문서 수정]** `2. Theoretical Background`:
     *   NSGA-II에 대한 교과서적인 설명(2.1, 2.2절) 대폭 삭제 및 요약.
 
+### R3-8: 콘크리트 압축 강도 값의 적절성
+*   **[문서 수정]** `3.1 Material Properties` 또는 `Appendix`:
+    *   Table 2에 제시된 콘크리트 압축 강도($f_{ck}$) 값들이 실무에서 일반적으로 사용되는 범위에 해당하는지 명확히 설명하거나, 필요시 수정.
+
 ### R3-9: 철근비 변환 설명
 *   **[문서 수정]** `3.2 Section Database`:
     *   MATLAB에서 철근비($\rho$)를 기반으로 실제 철근 개수(Bar Layout)를 배치하는 알고리즘 로직 다이어그램 추가.
@@ -144,10 +148,20 @@
     *   Equation 14에서 "DCR" 용어의 정의(Demand-Capacity Ratio) 명시.
 
 ### R3-14, R3-15: 구조 해석 및 하중 상세 (Modeling)
-*   **[문서 수정]** `Modeling Details` 섹션:
-    *   지진 하중 고려 방식(ELF) 명시.
-    *   Load Cases 개수 및 적용 방식 서술.
-    *   **중요:** "Dead Load Checkerboard" 지적에 대해, "Only Live Load was applied in checkerboard pattern"으로 정정하거나 코드 확인 후 수정. (코드는 LL만 체크무늬임)
+*   **[문서 수정]** `3. Proposed Optimization Framework` 또는 `Modeling Details` (Appendix):
+    *   **하중 산정 및 적용 상세 (Load Conditions):**
+        *   **고정 하중 (Dead Load):**
+            *   구조물 자중(Self-weight): 콘크리트 단위 중량 $24 \text{kN/m}^3$ 적용 (자동 계산).
+            *   슬래브 및 마감 하중: **면적당 $5.0 \text{kN/m}^2$ (Slab DL + SDL)** 적용. 해석 시 각 보의 **분담 폭(Tributary Width)**에 비례하여 등가 등분포 선하중(Equivalent Uniform Load)으로 치환하여 재하.
+        *   **활하중 (Live Load):** **면적당 $2.0 \text{kN/m}^2$** 적용. 보의 분담 폭에 따라 선하중으로 치환하며, 최대 모멘트 유도를 위한 **체크무늬 배치(Pattern Loading)** 적용.
+        *   **풍하중 (Wind Load):** ASCE 7-16 MWFRS 기준. 기본 풍속 $V=30 \text{m/s}$, 노출 범주 B. 높이별 풍압 계수($K_z$)를 고려하여 층별 하중($F_x$) 산정.
+        *   **지진 하중 (Seismic Load):** ASCE 7-16 등가정적해석법(ELF). 지반 조건 Site Class D ($S_{DS}=0.60g, S_{D1}=0.36g$), 반응 수정 계수 $R=5.0$.
+            *   **중량 산정 ($W$):** 해석 모델의 단순화된 보 하중 합산 대신, **"전체 슬래브 면적 $\times$ 면적 하중"**을 별도로 계산하여 지진 중량의 정확성 확보.
+            *   기저 전단력($V=C_s W$)을 층별 무게와 높이에 따라 분배($C_{vx}$).
+    *   **하중 조합 (Load Combinations):** ACI 318-19 (LRFD) 기준.
+        *   $1.2D + 1.6L$
+        *   $1.2D + 1.0L + 1.0(E \text{ or } W)$
+        *   지진 하중의 경우 직교 효과(Orthogonal Effects, 100:30 Rule) 고려.
 
 ### R3-16: 통계적 검증
 *   **[코드]** R2-10과 동일 (`batch_run_optimization.py`).
