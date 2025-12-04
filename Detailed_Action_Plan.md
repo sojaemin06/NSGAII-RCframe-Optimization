@@ -70,7 +70,11 @@
 
 ### R2-7: 구조 해석 모델 상세화
 *   **[문서 수정]** 신설된 `Modeling Details` 섹션에 `docs/modeling_details.md` 내용 요약 기술.
-*   **[코드]** `src/modeling.py`: `Linear` -> `PDelta` 수정 완료.
+    *   **해석 가정 명시:**
+        *   **P-Delta Effect:** 고려함 (Geometric Nonlinearity).
+        *   **유효 강성 (Effective Stiffness):** ACI 318 기준 적용 (Column $0.7I_g$, Beam $0.35I_g$).
+        *   **강체 격막 (Rigid Diaphragm):** 층별 자유도 구속을 통해 고려함.
+*   **[코드]** `src/structural_analysis.py`: `PDelta` 변환, 유효 강성 계수, `rigidDiaphragm` 적용 완료.
 
 ### R2-8: 지진 하중 현실화 (중요)
 *   **[문서 수정]** `4.1 Target Structure`:

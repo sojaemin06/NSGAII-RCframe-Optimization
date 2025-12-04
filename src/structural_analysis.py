@@ -42,7 +42,7 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
             node_map[(k, i)] = node_id_counter
             if k == 0: ops.fix(node_id_counter, 1, 1, 1, 1, 1, 1)
             node_id_counter += 1
-    ops.geomTransf('Linear', 1, 1, 0, 0); ops.geomTransf('Linear', 2, 0, 1, 0); ops.geomTransf('Linear', 3, 0, 0, 1)
+    ops.geomTransf('PDelta', 1, 1, 0, 0); ops.geomTransf('PDelta', 2, 0, 1, 0); ops.geomTransf('PDelta', 3, 0, 0, 1)
     column_elem_ids, beam_elem_ids = [], []; elem_id_counter = 1
     num_locations = len(COLUMN_LOCATIONS)
     num_columns = num_locations * FLOORS
@@ -52,7 +52,16 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
             abs_col_idx = k * num_locations + i; group_idx = col_map[abs_col_idx + 1]
             rotation_flag = col_rotations[group_idx]; transf_tag = 2 if rotation_flag == 1 else 1
             sec_idx = col_indices[group_idx]; b_c, h_c = column_sections[sec_idx]
-            A_c, Iz_c, Iy_c = b_c*h_c, (b_c*h_c**3)/12, (h_c*b_c**3)/12; J_c = Iy_c + Iz_c
+            
+            # [수정] 유효 강성 적용 (Effective Stiffness) - ACI 318
+            # 기둥: 0.7 Ig
+            A_c = b_c * h_c
+            Iz_c = 0.7 * (b_c * h_c**3) / 12 
+            Iy_c = 0.7 * (h_c * b_c**3) / 12
+            J_c = (Iy_c + Iz_c) # 비틀림 상수는 저감 여부 논란 있으나 보통 유지하거나 0.5적용. 여기선 일단 유지하되 I기반이라 자동 저감됨. (엄밀히는 J는 형상계수라 별도이나 근사적으로)
+            # J_c를 단순히 Iy+Iz로 근사하는 건 원형이나 정사각형에서만 유효하나 여기선 약산으로 유지. 
+            # 단, 균열 비틀림 강성은 매우 작아질 수 있으므로 보수적으로 유지.
+            
             n1, n2 = node_map[(k, i)], node_map[(k + 1, i)]
             ops.element('elasticBeamColumn', elem_id_counter, n1, n2, A_c, E, G, J_c, Iy_c, Iz_c, transf_tag)
             column_elem_ids.append(elem_id_counter); elem_id_counter += 1
@@ -60,7 +69,14 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
         for i, (loc_idx1, loc_idx2) in enumerate(BEAM_CONNECTIONS):
             abs_beam_idx = (k - 1) * len(BEAM_CONNECTIONS) + i; group_idx = beam_map[num_columns + abs_beam_idx + 1]
             sec_idx = beam_indices[group_idx]; b_b, h_b = beam_sections[sec_idx]
-            A_b, Iz_b, Iy_b = b_b*h_b, (b_b*h_b**3)/12, (h_b*b_b**3)/12; J_b = Iy_b + Iz_b
+            
+            # [수정] 유효 강성 적용 (Effective Stiffness) - ACI 318
+            # 보: 0.35 Ig
+            A_b = b_b * h_b
+            Iz_b = 0.35 * (b_b * h_b**3) / 12
+            Iy_b = 0.35 * (h_b * b_b**3) / 12
+            J_b = (Iy_b + Iz_b)
+
             n1, n2 = node_map[(k, loc_idx1)], node_map[(k, loc_idx2)]
             ops.element('elasticBeamColumn', elem_id_counter, n1, n2, A_b, E, G, J_b, Iy_b, Iz_b, 3)
             beam_elem_ids.append(elem_id_counter); elem_id_counter += 1

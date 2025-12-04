@@ -46,7 +46,7 @@ def main():
     
     # 7. 최적화 실행
     pop, logbook, hof, hof_stats = run_ga_optimization(
-        DL=DL_RAND, LL=LL_RAND, Wx=WX_RAND, Wy=WY_RAND, Ex=EX_RAND, Ey=EY_RAND,
+        DL=DL_AREA_LOAD, LL=LL_AREA_LOAD, Wx=WX_RAND, Wy=WY_RAND, Ex=EX_RAND, Ey=EY_RAND,
         crossover_method=CROSSOVER_STRATEGY, patterns_by_floor=PATTERNS_BY_FLOOR, h5_file=h5_file,
         num_generations=NUM_GENERATIONS, population_size=POPULATION_SIZE,
         col_map=col_map, beam_map=beam_map, beam_sections=beam_sections, column_sections=column_sections,
@@ -82,6 +82,7 @@ def main():
                      col_map, beam_map, beam_sections, column_sections)
         
         # 추가 세대 진행 여부
+        break # 테스트를 위해 자동 종료
         try:
             more_gens = input(f"\nCurrent generations: {logbook[-1]['gen']}. Enter additional generations to continue (or Enter to finish): ")
             if not more_gens.strip():
