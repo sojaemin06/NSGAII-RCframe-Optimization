@@ -1,8 +1,8 @@
-
 import random
 import numpy as np
 from tqdm import tqdm
 from deap import base, creator, tools, algorithms
+from deap.benchmarks.tools import hypervolume as hv_indicator
 from src.config import *
 from src.structural_analysis import evaluate
 
@@ -12,14 +12,13 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
                         beam_sections_df, column_sections_df, beam_lengths, 
                         chromosome_structure, num_columns, num_beams,
                         fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2,
-                        tournament_size=7, cxpb=0.9, mutpb=0.1, # Added cxpb, mutpb arguments
+                        tournament_size=7, cxpb=0.9, mutpb=0.1,
                         initial_pop=None, start_gen=0, logbook=None, hof=None, hof_stats_history=None):
     """
     DEAP 라이브러리를 사용하여 NSGA-II 다중목표 유전 알고리즘을 설정하고 실행하는 함수.
     """
     # --- 1. 제약조건 우선 선택 함수 정의 ---
     def constrained_dominance_selection(individuals, k):
-        """제약조건 우선 원칙(Constraint-Dominance Principle)을 적용하는 선택 함수."""
         feasible_inds = [ind for ind in individuals if ind.detailed_results['violation'] == 0.0]
         infeasible_inds = [ind for ind in individuals if ind.detailed_results['violation'] > 0.0]
         
@@ -92,7 +91,7 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
     toolbox.register("mutate", custom_mutate, indpb=0.1)
     toolbox.register("select_offspring", tools.selTournament, tournsize=tournament_size)
     
-    # 통계 및 로그북 설정 (헬퍼 함수들은 내부 정의 혹은 utils로 이동 가능하지만 여기 둠)
+    # 통계 및 로그북 설정
     def get_valid_ratio(population):
         valid_count = sum(1 for ind in population if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation', float('inf')) == 0.0)
         return valid_count / len(population) * 100 if population else 0.0
@@ -114,16 +113,6 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
     def calculate_valid_stat(pop, key, stat_func, default_val=0.0):
         valid_values = [ind.detailed_results[key] for ind in pop if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0 and key in ind.detailed_results]
         return stat_func(valid_values) if valid_values else default_val
-    
-    def calculate_margin_stat(pop, margin_dict_key, margin_key, stat_func, default_val=float('inf')):
-        margin_values = []
-        for ind in pop:
-            if hasattr(ind, 'detailed_results') and isinstance(ind.detailed_results, dict):
-                margins_dict = ind.detailed_results.get(margin_dict_key, {})
-                val = margins_dict.get(margin_key)
-                if val is not None: margin_values.append(val)
-        valid_values = [v for v in margin_values if v != float('inf')]
-        return stat_func(valid_values) if valid_values else default_val
 
     fitness_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
     fitness_stats.register("avg", np.mean, axis=0)
@@ -141,14 +130,13 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
     value_stats.register("avg_dcr", lambda pop: calculate_valid_stat(pop, 'mean_strength_ratio', np.mean))
     value_stats.register("min_dcr", lambda pop: calculate_valid_stat(pop, 'mean_strength_ratio', np.min))
 
-    # Hypervolume Statistic (on population)
-    HV_REFERENCE_POINT = [11.0, 11.0] # Reference point for minimization
+    # Hypervolume Statistic
+    HV_REFERENCE_POINT = [2.5, 2.5]
     def get_hypervolume(population):
         feasible_inds = [ind for ind in population if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation', float('inf')) == 0.0]
         if not feasible_inds: return 0.0
-        front = [ind.fitness.values for ind in feasible_inds]
         try:
-            return tools.hypervolume(front, HV_REFERENCE_POINT)
+            return hv_indicator(feasible_inds, HV_REFERENCE_POINT)
         except:
             return 0.0
 
@@ -163,6 +151,7 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + fitness_stats.fields + ['sep1'] + health_stats.fields + ['sep2'] + value_stats.fields + ['sep3'] + margin_stats.fields + ['sep4', 'hof_size'] + ['sep5'] + hof_value_stats.fields
 
+    # --- 초기 모집단 생성 또는 로드 ---
     if initial_pop is None:
         pop = toolbox.population(n=population_size)
         hof = tools.ParetoFront()
@@ -179,11 +168,10 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         feasible_pop = [ind for ind in pop if ind.detailed_results.get('violation') == 0.0]
         hof.update(feasible_pop)
         
-        # Calculate Hypervolume of HOF
         hv_val = 0.0
         if hof:
             try:
-                hv_val = tools.hypervolume([ind.fitness.values for ind in hof], HV_REFERENCE_POINT)
+                hv_val = hv_indicator(hof, HV_REFERENCE_POINT)
             except:
                 hv_val = 0.0
         
@@ -206,9 +194,13 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         pop = initial_pop
         print(f"\n이전 {start_gen} 세대에서 최적화를 계속합니다...")
 
+    # --- 메인 루프 ---
     for gen in tqdm(range(start_gen + 1, start_gen + num_generations + 1), desc="세대 진화"):
+        if pop is None:
+            raise ValueError(f"Error: Population became None at Gen {gen}")
+            
         offspring = toolbox.select_offspring(pop, len(pop))
-        offspring = algorithms.varAnd(offspring, toolbox, cxpb, mutpb) # Use arguments
+        offspring = algorithms.varAnd(offspring, toolbox, cxpb, mutpb)
         
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         
@@ -226,17 +218,17 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         feasible_pop = [ind for ind in pop if ind.detailed_results.get('violation') == 0.0]
         hof.update(feasible_pop)
         
-        # Calculate Hypervolume of HOF
         hv_val = 0.0
         if hof:
             try:
-                hv_val = tools.hypervolume([ind.fitness.values for ind in hof], HV_REFERENCE_POINT)
+                hv_val = hv_indicator(hof, HV_REFERENCE_POINT)
             except:
                 hv_val = 0.0
         
         best_obj1 = min([ind.fitness.values[0] for ind in hof]) if hof else float('inf')
         best_obj2 = min([ind.fitness.values[1] for ind in hof]) if hof else float('inf')
         hof_stats_history.append({'gen': gen, 'best_obj1': best_obj1, 'best_obj2': best_obj2, 'hypervolume': hv_val})
+        
         record = fitness_stats.compile(pop)
         record.update(health_stats.compile(pop))
         record.update(value_stats.compile(pop))

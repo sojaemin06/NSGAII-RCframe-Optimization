@@ -32,10 +32,10 @@ BEAM_CONNECTIONS = [(0, 1), (1, 2), (2, 3),
 DL_AREA_LOAD = 5.0 # kN/m2 (Dead Load including Slab Self-weight)
 LL_AREA_LOAD = 2.0 # kN/m2 (Live Load)
 
-WX_RAND = 35 # (사용 안함, 내부 계산됨)
-WY_RAND = 38 # (사용 안함, 내부 계산됨)
-EX_RAND = 0
-EY_RAND = 0
+WX_RAND = 35 # [수정] 대칭 조건 (Symmetric Loading)
+WY_RAND = 35 # [수정] 대칭 조건 (Symmetric Loading)
+EX_RAND = 40 # [수정] 대칭 조건 (Symmetric Loading)
+EY_RAND = 40 # [수정] 대칭 조건 (Symmetric Loading)
 
 # 각 보별 분담 폭 (Tributary Width) [m]
 # BEAM_CONNECTIONS 리스트 순서와 일치해야 함
@@ -72,6 +72,9 @@ PERIOD_X = 0.9
 SLAB_THICKNESS = 0.15 # m
 CONCRETE_UNIT_WEIGHT = 24.0 # kN/m3
 SLAB_DL_KN_M2 = SLAB_THICKNESS * CONCRETE_UNIT_WEIGHT # 3.6 kN/m2
+
+# --- 1.4.3 비용 파라미터 ---
+FORMWORK_UNIT_COST = 25.0 # 단위 면적당 거푸집 설치 비용 (예: $/m^2 또는 KRW/m^2)
 
 # 평면 면적 (자동 계산 또는 고정값)
 # 좌표 분석 결과: (15x6) + (15x4) + (10x5) = 90 + 60 + 50 = 200 m^2

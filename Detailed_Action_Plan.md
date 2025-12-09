@@ -36,7 +36,7 @@
 
 ### R1-6: 결론의 정량적 서술
 *   **[문서 수정]** `Abstract` & `Conclusion`:
-    *   "Cost reduced by **XX%** and CO2 emissions by **YY%** compared to the conventional code-based design."
+    *   "Cost reduced by **XX%** and CO2 emissions by **YY%** compared to optimized objectives."
 *   **[코드]** 비교군(Conventional Design) 데이터 생성 필요 (R2-13 연계).
 
 ---
@@ -92,19 +92,17 @@
     *   3회 -> **30회** 실행 결과의 Boxplot 및 표준편차 제시.
 *   **[코드]** `scripts/batch_run_optimization.py` 실행 필요.
 
-### R2-11: 비대칭 하중 (반박)
-*   **[문서 수정]** `Response Letter`: "Intentional design to verify shape optimization efficacy."
+### R2-11: 일반 하중 조건 성능 평가 (General Loading Condition Assessment)
+*   **[평가 추가]** 일반적인 하중 조건(General Loading Conditions)에서의 알고리즘 성능 평가.
+    *   초기 실험의 편심 하중(Asymmetric) 조건 외에, 일반적인 대칭 하중($W_x \approx W_y$) 조건에서도 알고리즘이 안정적으로 수렴하고 우수한 해를 도출함을 입증.
+    *   이를 통해 제안된 프레임워크의 범용성과 견고성(Robustness)을 강조.
+*   **[문서 수정]** `Discussion`:
+    *   "The framework demonstrates robustness under general loading conditions, achieving stable convergence and optimized resource usage, proving its superiority beyond specific asymmetric scenarios."
 
 ### R2-12: 실무적 설계 한계 (Limitations)
 *   **[문서 수정]** `Discussion`:
     *   "Fixed Member Grouping"과 "Uniform Stirrup Spacing"은 최적화 효율성(Convergence)과 시공성(Constructability)을 위한 가정임을 명시.
     *   향후 연구에서 가변 그룹핑(Variable Grouping) 등을 다룰 것임을 언급.
-
-### R2-13: 비교 분석 (필수)
-*   **[문서 수정]** `4. Result Analysis`:
-    *   Pareto Front 그래프에 **"Conventional Design Point"** 추가.
-    *   최적 해와의 성능 차이(Gap)를 수치로 설명.
-*   **[코드]** `scripts/evaluate_conventional_design.py` (가칭) 작성하여 수동 설계안의 $f_1, f_2$ 계산 필요.
 
 ### R2-14: 데이터 공개
 *   **[문서 수정]** `Data Availability`: "Code and data are available at [GitHub URL]."
@@ -120,9 +118,14 @@
 ### R3-2: Hybrid 용어 (반박)
 *   **[문서 수정]** `Response Letter`: 용어의 정의(Design Variable Hybrid)를 명확히 하고 유지.
 
-### R3-3, R3-4, R3-13: 한계점 기술
-*   **[문서 수정]** `Discussion` 또는 `Limitations`:
-    *   철근 상세(Detailing), 거푸집 비용(Formwork Cost), 장기 처짐(Long-term Deflection) 등은 본 연구 범위 밖임을 명시.
+### R3-3, R3-4, R3-13: 설계 현실성 강화 (Formwork, Detailing, Long-term Deflection)
+*   **[코드 및 문서 수정]** 기존의 "한계점 기술" 소극적 대응에서 **"기능 구현 및 데이터베이스 활용"**으로 전략 수정.
+    *   **거푸집 비용 (Formwork Cost):** 비용 목적함수에 부재 표면적($A_{surf}$) 기반 거푸집 시공 비용 추가. (기존 계획 반영됨)
+    *   **철근 상세 (Reinforcement Detailing):** 데이터베이스가 단순 철근비($\rho$)가 아닌, 실제 철근 개수와 배치(Layout) 정보를 포함하고 있음을 `Methodology`에 명확히 서술.
+    *   **장기 처짐 (Long-term Deflection):** ACI 318-19 (24.2.4.1)에 따라 장기 처짐 효과 고려.
+        *   즉시 처짐($\Delta_i$)에 시간 경과 계수 $\lambda_\Delta = \frac{\xi}{1 + 50\rho'}$를 적용.
+        *   $\xi=2.0$ (5년 이상), $\rho'$는 DB의 압축 철근비 사용.
+        *   총 처짐 $\Delta_{total} = \Delta_{immediate} + \lambda_\Delta \Delta_{sustained}$ 형태로 검토 식 보완.
 
 ### R3-5, R3-6, R3-21: 서술 및 용어 오류 수정 (Editing)
 *   **[문서 수정]** 전체 원고:
