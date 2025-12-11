@@ -69,7 +69,14 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
     for k in range(FLOORS):
         for i in range(num_locations):
             abs_col_idx = k * num_locations + i; group_idx = col_map[abs_col_idx + 1]
-            rotation_flag = col_rotations[group_idx]; transf_tag = 2 if rotation_flag == 1 else 1
+            
+            # [Scenario B Support] Handle case where col_rotations is empty
+            if len(col_rotations) > 0:
+                rotation_flag = col_rotations[group_idx]
+                transf_tag = 2 if rotation_flag == 1 else 1
+            else:
+                transf_tag = 1 # Default to unrotated if no rotation genes provided
+            
             sec_idx = col_indices[group_idx]; b_c, h_c = column_sections[sec_idx]
             
             # [수정] 유효 강성 적용 (Effective Stiffness) - ACI 318
@@ -101,7 +108,7 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
             beam_elem_ids.append(elem_id_counter); elem_id_counter += 1
     return column_elem_ids, beam_elem_ids, node_map
 
-def evaluate(individual, DL, LL, Wx, Wy, Ex, Ey, h5_file, patterns_by_floor, 
+def evaluate(individual, DL, LL, h5_file, patterns_by_floor, 
              col_map, beam_map, beam_sections, column_sections, 
              beam_sections_df, column_sections_df, beam_lengths, 
              chromosome_structure, num_columns, num_beams):
@@ -485,7 +492,7 @@ def evaluate(individual, DL, LL, Wx, Wy, Ex, Ey, h5_file, patterns_by_floor,
                         disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
                         drift_x = abs(disp_upper_x - disp_lower_x) / H
                         story_drifts_x.append(drift_x)
-                        print(f"DEBUG Drift X: Floor {k}, Upper Node {master_node_upper} DispX: {disp_upper_x:.6f}, Lower Node {master_node_lower} DispX: {disp_lower_x:.6f}, Drift: {drift_x:.6f}") # DEBUG
+                        # print(f"DEBUG Drift X: Floor {k}, Upper Node {master_node_upper} DispX: {disp_upper_x:.6f}, Lower Node {master_node_lower} DispX: {disp_lower_x:.6f}, Drift: {drift_x:.6f}") # DEBUG
                 else:
                     story_drifts_x.append(0.0)
         
@@ -510,7 +517,7 @@ def evaluate(individual, DL, LL, Wx, Wy, Ex, Ey, h5_file, patterns_by_floor,
                         disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
                         drift_y = abs(disp_upper_y - disp_lower_y) / H
                         story_drifts_y.append(drift_y)
-                        print(f"DEBUG Drift Y: Floor {k}, Upper Node {master_node_upper} DispY: {disp_upper_y:.6f}, Lower Node {master_node_lower} DispY: {disp_lower_y:.6f}, Drift: {drift_y:.6f}") # DEBUG
+                        # print(f"DEBUG Drift Y: Floor {k}, Upper Node {master_node_upper} DispY: {disp_upper_y:.6f}, Lower Node {master_node_lower} DispY: {disp_lower_y:.6f}, Drift: {drift_y:.6f}") # DEBUG
                 else:
                     story_drifts_y.append(0.0)
 

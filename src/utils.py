@@ -14,10 +14,10 @@ from src.config import *
 # ===                  데이터 로드 및 처리                        ===
 # =================================================================
 
-def load_section_data():
-    """CSV 파일에서 단면 정보를 로드합니다."""
-    beam_sections_df = pd.read_csv("beam_sections_simple02.csv")
-    column_sections_df = pd.read_csv("column_sections_simple02.csv")
+def load_section_data(beam_path="beam_sections_simple02.csv", col_path="column_sections_simple02.csv"):
+    """CSV 파일에서 단면 정보를 로드합니다. (경로 지정 가능)"""
+    beam_sections_df = pd.read_csv(beam_path)
+    column_sections_df = pd.read_csv(col_path)
     
     beam_sections = [(row["b"]/1000, row["h"]/1000) for _, row in beam_sections_df.iterrows()]
     column_sections = [(row["b"]/1000, row["h"]/1000) for _, row in column_sections_df.iterrows()]
@@ -256,3 +256,94 @@ def visualize_load_patterns(column_locations, beam_connections, patterns_by_floo
     plt.savefig(save_path)
     plt.close(fig) # Close figure to prevent display
     print(f"Load pattern visualization saved to '{save_path}'")
+
+def generate_load_patterns(floors, num_beams_per_floor, column_locations=None, beam_connections=None):
+    """
+    Generates load patterns based on slab bays (Checkerboard style).
+    Identifies rectangular bays enclosed by beams and applies loads to beams supporting selected bays.
+    """
+    patterns = {}
+    if column_locations is None or beam_connections is None:
+        # Fallback to random if geometry not provided
+        all_beam_indices = list(range(num_beams_per_floor))
+        num_to_load = max(1, num_beams_per_floor // 2)
+        for k in range(1, floors + 1):
+            selected = np.random.choice(all_beam_indices, num_to_load, replace=False)
+            patterns[k] = selected.tolist()
+        return patterns
+
+    # 1. Identify Rectangular Bays
+    # A simple approach: iterate all unique X and Y intervals to find potential grid cells,
+    # then check if columns exist at 4 corners and beams exist on 4 edges.
+    
+    # Map beam connection to index for quick lookup: (min, max) -> index
+    beam_lookup = {}
+    for idx, (p1, p2) in enumerate(beam_connections):
+        beam_lookup[tuple(sorted((p1, p2)))] = idx
+
+    bays = [] # List of {'beams': [idx1, idx2, idx3, idx4], 'centroid': (cx, cy)}
+    
+    col_indices = {loc: i for i, loc in enumerate(column_locations)}
+    xs = sorted(list(set(loc[0] for loc in column_locations)))
+    ys = sorted(list(set(loc[1] for loc in column_locations)))
+    
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+            x1, x2 = xs[i], xs[i+1]
+            y1, y2 = ys[j], ys[j+1]
+            
+            # Check if 4 corners exist as columns
+            p_bl = (x1, y1); p_br = (x2, y1)
+            p_tl = (x1, y2); p_tr = (x2, y2)
+            
+            if not all(p in col_indices for p in [p_bl, p_br, p_tl, p_tr]):
+                continue
+                
+            idx_bl, idx_br = col_indices[p_bl], col_indices[p_br]
+            idx_tl, idx_tr = col_indices[p_tl], col_indices[p_tr]
+            
+            # Check if 4 enclosing beams exist
+            b_bott = tuple(sorted((idx_bl, idx_br)))
+            b_top  = tuple(sorted((idx_tl, idx_tr)))
+            b_left = tuple(sorted((idx_bl, idx_tl)))
+            b_right= tuple(sorted((idx_br, idx_tr)))
+            
+            if all(b in beam_lookup for b in [b_bott, b_top, b_left, b_right]):
+                # Valid Bay Found
+                bay_beams = [beam_lookup[b] for b in [b_bott, b_top, b_left, b_right]]
+                centroid = ((x1 + x2) / 2, (y1 + y2) / 2)
+                bays.append({'beams': bay_beams, 'centroid': centroid})
+
+    # 2. Generate Checkerboard Patterns
+    # Sort bays by X then Y to assign checkerboard indices
+    # However, bays might be irregular. We can use coordinate based parity.
+    # (i + j) % 2 == 0 vs 1
+    
+    # Assign grid index (i, j) to each bay based on centroid rank
+    unique_cx = sorted(list(set(b['centroid'][0] for b in bays)))
+    unique_cy = sorted(list(set(b['centroid'][1] for b in bays)))
+    
+    for k in range(1, floors + 1):
+        selected_beam_indices = set()
+        
+        # Define pattern type for this floor
+        # Pattern A: (i+j) even, Pattern B: (i+j) odd
+        target_parity = k % 2 
+        
+        for bay in bays:
+            cx, cy = bay['centroid']
+            i_idx = unique_cx.index(cx)
+            j_idx = unique_cy.index(cy)
+            
+            if (i_idx + j_idx) % 2 == target_parity:
+                # This bay is loaded -> All its beams take load
+                for b_idx in bay['beams']:
+                    selected_beam_indices.add(b_idx)
+        
+        # If no bays found (e.g. single frame), fallback to all beams
+        if not bays:
+             selected_beam_indices = set(range(num_beams_per_floor))
+             
+        patterns[k] = list(selected_beam_indices)
+        
+    return patterns

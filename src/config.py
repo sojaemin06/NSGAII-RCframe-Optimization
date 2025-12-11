@@ -11,31 +11,189 @@ CROSSOVER_STRATEGY = "OnePoint"  # "OnePoint", "TwoPoint", "Uniform"
 FLOORS = 4
 H = 4.0
 
-# --- 1.3. 건물 형상 정보 ---
-COLUMN_LOCATIONS = [(0, 0), (5, 0), (10, 0), (15, 0),
-                    (0, 6), (5, 6), (10, 6), (15, 6),
-                    (0, 10), (5, 10), (10, 10), (15, 10),
-                    (5, 15), (10, 15), (15, 15)]
+# --- 1.3. 건물 형상 정보 (기본값 - 4층) ---
+# [4-Story Irregular Plan (Existing)]
+COLUMN_LOCATIONS_4F = [(0, 0), (5, 0), (10, 0), (15, 0),
+                       (0, 6), (5, 6), (10, 6), (15, 6),
+                       (0, 10), (5, 10), (10, 10), (15, 10),
+                       (5, 15), (10, 15), (15, 15)]
 
-BEAM_CONNECTIONS = [(0, 1), (1, 2), (2, 3),
-                    (4, 5), (5, 6), (6, 7),
-                    (8, 9), (9, 10), (10, 11),
-                    (12, 13), (13, 14),
-                    (0, 4), (4, 8),
-                    (1, 5), (5, 9), (9, 12),
-                    (2, 6), (6, 10), (10, 13),
-                    (3, 7), (7, 11), (11, 14)]
+BEAM_CONNECTIONS_4F = [(0, 1), (1, 2), (2, 3),
+                       (4, 5), (5, 6), (6, 7),
+                       (8, 9), (9, 10), (10, 11),
+                       (12, 13), (13, 14),
+                       (0, 4), (4, 8),
+                       (1, 5), (5, 9), (9, 12),
+                       (2, 6), (6, 10), (10, 13),
+                       (3, 7), (7, 11), (11, 14)]
 
-# --- 1.4. 하중 정보 (면적당 하중 및 분담폭) ---
+BEAM_TRIBUTARY_WIDTHS_4F = [
+    3.0, 3.0, 3.0,      # Y=0
+    5.0, 5.0, 5.0,      # Y=6
+    2.0, 4.5, 4.5,      # Y=10
+    2.5, 2.5,           # Y=15
+    2.5, 2.5,           # X=0
+    5.0, 5.0, 2.5,      # X=5
+    5.0, 5.0, 5.0,      # X=10
+    2.5, 2.5, 2.5       # X=15
+]
+
+# [6-Story: 'U' Shape Plan with Irregular Spans]
+# Grid X: 0, 6, 10, 17 (Spans: 6m, 4m, 7m)
+# Grid Y: 0, 6, 11     (Spans: 6m, 5m)
+# Missing bay: Top-Middle (between X=6~10, Y=11 line)
+# Columns:
+# Y=0:  (0,0), (6,0), (10,0), (17,0)
+# Y=6:  (0,6), (6,6), (10,6), (17,6)
+# Y=11: (0,11), (6,11), (10,11), (17,11) -> But missing middle beam/slab?
+# Let's say missing the slab between (6,6)-(10,6)-(10,11)-(6,11)? No, U-shape usually means open edge.
+# Let's open the Top edge (Y=11) between X=6 and X=10.
+# So columns at (6,11) and (10,11) exist, but no beam connecting them? Or no columns?
+# Let's remove columns (6,11) and (10,11) to make a deep U-shape.
+# Final Cols:
+# Y=0: (0,0), (6,0), (10,0), (17,0)
+# Y=6: (0,6), (6,6), (10,6), (17,6)
+# Y=11: (0,11),               (17,11)
+COLUMN_LOCATIONS_6F = [
+    (0, 0), (6, 0), (10, 0), (17, 0),
+    (0, 6), (6, 6), (10, 6), (17, 6),
+    (0, 11),                 (17, 11)
+]
+# Indices:
+# 0,1,2,3
+# 4,5,6,7
+# 8,9
+BEAM_CONNECTIONS_6F = [
+    # X-Beams
+    (0, 1), (1, 2), (2, 3), # Y=0 (6m, 4m, 7m)
+    (4, 5), (5, 6), (6, 7), # Y=6 (6m, 4m, 7m)
+    # Y-Beams
+    (0, 4), (4, 8),         # X=0 (6m, 5m)
+    (1, 5),                 # X=6 (6m)
+    (2, 6),                 # X=10 (6m)
+    (3, 7), (7, 9)          # X=17 (6m, 5m)
+]
+BEAM_TRIBUTARY_WIDTHS_6F = [
+    3.0, 2.0, 3.5,      # X (Y=0)
+    6.0, 4.0, 7.0,      # X (Y=6) - Taking load from both sides approx? 
+                        # Actually Y=0 takes 6/2=3. Y=6 takes 6/2+5/2=5.5.
+                        # Simplified for demo:
+    3.0, 2.0, 3.5,      # Adjusted: 3, 2, 3.5
+    5.5, 2.0, 5.5,      # Adjusted: 5.5, 2.0(courtyard side), 5.5
+    3.0, 2.5,           # Y (X=0)
+    6.0,                # Y (X=6)
+    6.0,                # Y (X=10)
+    3.0, 2.5            # Y (X=17)
+]
+
+# [8-Story: Cruciform (+) Shape with Irregular Spans]
+# Center Core: X(5~11), Y(5~11) -> 6m x 6m
+# Left Wing: X(0~5) -> 5m span
+# Right Wing: X(11~18) -> 7m span
+# Bottom Wing: Y(0~5) -> 5m span
+# Top Wing: Y(11~18) -> 7m span
+# Coordinates:
+# Row Y=0:        (5,0),  (11,0)
+# Row Y=5: (0,5), (5,5),  (11,5), (18,5)
+# Row Y=11: (0,11),(5,11), (11,11),(18,11)
+# Row Y=18:       (5,18), (11,18)
+COLUMN_LOCATIONS_8F = [
+            (5, 0), (11, 0),
+    (0, 5), (5, 5), (11, 5), (18, 5),
+    (0, 11), (5, 11), (11, 11), (18, 11),
+            (5, 18), (11, 18)
+]
+# Indices:
+# 0,1
+# 2,3,4,5
+# 6,7,8,9
+# 10,11
+BEAM_CONNECTIONS_8F = [
+    # X-Beams
+    (0, 1),                 # Y=0 (6m)
+    (2, 3), (3, 4), (4, 5), # Y=5 (5m, 6m, 7m)
+    (6, 7), (7, 8), (8, 9), # Y=11 (5m, 6m, 7m)
+    (10, 11),               # Y=18 (6m)
+    # Y-Beams
+    (2, 6),                 # X=0 (6m)
+    (0, 3), (3, 7), (7, 10), # X=5 (5m, 6m, 7m)
+    (1, 4), (4, 8), (8, 11), # X=11 (5m, 6m, 7m)
+    (5, 9)                  # X=18 (6m)
+]
+BEAM_TRIBUTARY_WIDTHS_8F = [
+    2.5,                    # Y=0 (from 5m span/2)
+    2.5, 5.5, 3.5,          # Y=5
+    2.5, 6.5, 3.5,          # Y=11 (6m/2 + 7m/2 = 6.5)
+    3.5,                    # Y=18
+    2.5,                    # X=0
+    2.5, 6.0, 3.5,          # X=5
+    2.5, 6.0, 3.5,          # X=11
+    3.0                     # X=18
+]
+
+# Default to 4F
+COLUMN_LOCATIONS = COLUMN_LOCATIONS_4F
+BEAM_CONNECTIONS = BEAM_CONNECTIONS_4F
+BEAM_TRIBUTARY_WIDTHS = BEAM_TRIBUTARY_WIDTHS_4F
+
+# [Load Patterns - Hardcoded Checkerboard]
+# Indices based on BEAM_CONNECTIONS order in this file.
+
+# 4F (L-shape): 
+# Pattern A (Floors 1, 3): Load Bays (0,0), (10,0), (5,6), (10,10)
+# Pattern B (Floors 2, 4): Load Bays (5,0), (0,6), (10,6), (5,10)
+# Beams:
+# Row 0(Y=0): 0,1,2. Row 1(Y=6): 3,4,5. Row 2(Y=10): 6,7,8. Row 3(Y=15): 9,10
+# Col 0(X=0): 11,12. Col 1(X=5): 13,14,15. Col 2(X=10): 16,17,18. Col 3(X=15): 19,20,21
+LOAD_PATTERNS_4F = {
+    1: [0,3,11,13,  2,5,16,19,  4,7,14,17,  9,10,15,18], # Approx Checkerboard A
+    2: [1,4,13,16,  3,6,12,14,  5,8,17,20,  15,18],      # Approx Checkerboard B
+    3: [0,3,11,13,  2,5,16,19,  4,7,14,17,  9,10,15,18],
+    4: [1,4,13,16,  3,6,12,14,  5,8,17,20,  15,18]
+}
+
+# 6F (U-shape):
+# X-Beams: Y=0(0,1,2), Y=6(3,4,5). Y=11(None? No, Y=11 has no X-beams in previous def? Wait.)
+# Let's check BEAM_CONNECTIONS_6F indices:
+# 0,1,2 (Y=0). 3,4,5 (Y=6).
+# 6,7 (X=0). 8 (X=6). 9 (X=10). 10,11 (X=17).
+# Total 12 beams per floor.
+LOAD_PATTERNS_6F = {
+    # Odd Floors: Load bottom-left, top-right of U
+    1: [0,3,6,8,  2,5,9,11], 
+    # Even Floors: Load bottom-middle, arms
+    2: [1,4,8,9,  3,6], 
+    3: [0,3,6,8,  2,5,9,11],
+    4: [1,4,8,9,  3,6],
+    5: [0,3,6,8,  2,5,9,11],
+    6: [1,4,8,9,  3,6]
+}
+
+# 8F (Cruciform):
+# Indices: 
+# X-Beams: 0(Y=0), 1,2,3(Y=5), 4,5,6(Y=11), 7(Y=18)
+# Y-Beams: 8(X=0), 9,10,11(X=5), 12,13,14(X=11), 15(X=18)
+LOAD_PATTERNS_8F = {
+    # Odd: Center Core + Tips
+    1: [2,5,10,13,  0,9,  3,6,11,14,  7,14], 
+    # Even: Wings excluding tips
+    2: [1,4,9,12,  5,8,12], 
+    3: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
+    4: [1,4,9,12,  5,8,12],
+    5: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
+    6: [1,4,9,12,  5,8,12],
+    7: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
+    8: [1,4,9,12,  5,8,12]
+}
+
+# Default
+PATTERNS_BY_FLOOR = LOAD_PATTERNS_4F
 # 기존 선하중(kN/m) 대신 면적당 하중(kN/m2)을 정의하여 일관성 확보
 # 슬래브 자중(3.6) + 마감(1.4) = 5.0 kN/m2 가정
 DL_AREA_LOAD = 5.0 # kN/m2 (Dead Load including Slab Self-weight)
 LL_AREA_LOAD = 2.0 # kN/m2 (Live Load)
 
-WX_RAND = 35 # [수정] 대칭 조건 (Symmetric Loading)
-WY_RAND = 35 # [수정] 대칭 조건 (Symmetric Loading)
-EX_RAND = 40 # [수정] 대칭 조건 (Symmetric Loading)
-EY_RAND = 40 # [수정] 대칭 조건 (Symmetric Loading)
+# [REMOVED] Fixed Load Constants (WX_RAND, etc.) - Now calculated dynamically based on ASCE 7-16
 
 # 각 보별 분담 폭 (Tributary Width) [m]
 # BEAM_CONNECTIONS 리스트 순서와 일치해야 함

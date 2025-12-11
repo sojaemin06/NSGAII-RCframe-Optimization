@@ -6,7 +6,7 @@ from deap.benchmarks.tools import hypervolume as hv_indicator
 from src.config import *
 from src.structural_analysis import evaluate
 
-def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_floor, h5_file,
+def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
                         num_generations, population_size,
                         col_map, beam_map, beam_sections, column_sections, 
                         beam_sections_df, column_sections_df, beam_lengths, 
@@ -64,7 +64,7 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
     toolbox.register("individual", tools.initCycle, creator.Individual, tuple(gene_pool))
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     
-    toolbox.register("evaluate", evaluate, DL=DL, LL=LL, Wx=Wx, Wy=Wy, Ex=Ex, Ey=Ey, h5_file=h5_file, patterns_by_floor=patterns_by_floor,
+    toolbox.register("evaluate", evaluate, DL=DL, LL=LL, h5_file=h5_file, patterns_by_floor=patterns_by_floor,
                      col_map=col_map, beam_map=beam_map, beam_sections=beam_sections, column_sections=column_sections,
                      beam_sections_df=beam_sections_df, column_sections_df=column_sections_df, beam_lengths=beam_lengths,
                      chromosome_structure=chromosome_structure, num_columns=num_columns, num_beams=num_beams)
@@ -239,6 +239,6 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         record['hof_size'] = len(hof)
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        if verbose: tqdm.write(logbook.stream.splitlines()[-1])
+        # if verbose: tqdm.write(logbook.stream.splitlines()[-1])
 
     return pop, logbook, hof, hof_stats_history

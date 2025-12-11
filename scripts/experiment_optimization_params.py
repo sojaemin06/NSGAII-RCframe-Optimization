@@ -4,6 +4,7 @@ import h5py
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from tqdm import tqdm
 from src.config import *
 from src.utils import load_section_data, get_beam_lengths, calculate_fixed_scale, get_grouping_maps
@@ -16,10 +17,10 @@ from src.optimization import run_ga_optimization
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
     1: True,  # Step 1: Crossover Strategy (다시 실행)
-    2: True,  # Step 2: Tournament Size
-    3: True,  # Step 3: Crossover Probability
-    4: True,  # Step 4: Mutation Probability
-    5: True   # Step 5: Population Size
+    2: False,  # Step 2: Tournament Size
+    3: False,  # Step 3: Crossover Probability
+    4: False,  # Step 4: Mutation Probability
+    5: False   # Step 5: Population Size
 }
 
 # 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
@@ -55,6 +56,10 @@ plt.rcParams['lines.linewidth'] = 1.5
 
 def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb, num_gen, common_data, pbar_desc=""):
     """단일 실험 수행 및 로그 간소화"""
+    # [Fairness] 공정한 비교를 위해 매 실험마다 난수 시드 고정
+    random.seed(42)
+    np.random.seed(42)
+
     (beam_sections_df, column_sections_df, beam_sections, column_sections,
      h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
      num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2) = common_data
@@ -66,7 +71,7 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     
     # verbose=False로 설정하여 내부 로그 억제
     _, _, final_hof, hof_stats_history = run_ga_optimization(
-        DL=DL_AREA_LOAD, LL=LL_AREA_LOAD, Wx=WX_RAND, Wy=WY_RAND, Ex=EX_RAND, Ey=EY_RAND,
+        DL=DL_AREA_LOAD, LL=LL_AREA_LOAD,
         crossover_method=crossover, patterns_by_floor=PATTERNS_BY_FLOOR, h5_file=h5_file,
         num_generations=num_gen, population_size=pop_size,
         col_map=col_map, beam_map=beam_map, beam_sections=beam_sections, column_sections=column_sections,
@@ -75,7 +80,7 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
         fixed_min_cost=fixed_min_cost, fixed_range_cost=fixed_range_cost,
         fixed_min_co2=fixed_min_co2, fixed_range_co2=fixed_range_co2,
         tournament_size=tourn_size, cxpb=cxpb, mutpb=mutpb,
-        verbose=False # <--- 핵심: 내부 로그 끄기
+        verbose=True # <--- 핵심: 진행바 활성화 (텍스트 로그는 optimization.py에서 끔)
     )
     
     elapsed = time.time() - start_time
