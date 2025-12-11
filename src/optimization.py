@@ -13,7 +13,8 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
                         chromosome_structure, num_columns, num_beams,
                         fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2,
                         tournament_size=7, cxpb=0.9, mutpb=0.1,
-                        initial_pop=None, start_gen=0, logbook=None, hof=None, hof_stats_history=None):
+                        initial_pop=None, start_gen=0, logbook=None, hof=None, hof_stats_history=None,
+                        verbose=True):
     """
     DEAP 라이브러리를 사용하여 NSGA-II 다중목표 유전 알고리즘을 설정하고 실행하는 함수.
     """
@@ -157,9 +158,9 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         hof = tools.ParetoFront()
         hof_stats_history = []
         
-        print("\n초기 집단 평가 중...")
+        if verbose: print("\n초기 집단 평가 중...")
         eval_results = []
-        for ind in tqdm(pop, desc="Initial Population Evaluation", unit="individual"):
+        for ind in tqdm(pop, desc="Initial Population Evaluation", unit="individual", disable=not verbose):
             eval_results.append(toolbox.evaluate(ind))
         for ind, res in zip(pop, eval_results):
             ind.detailed_results = res
@@ -188,14 +189,15 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=0, nevals=len(pop), **record)
         
-        print("최적화 시작...")
-        print(logbook.stream)
+        if verbose:
+            print("최적화 시작...")
+            print(logbook.stream)
     else:
         pop = initial_pop
-        print(f"\n이전 {start_gen} 세대에서 최적화를 계속합니다...")
+        if verbose: print(f"\n이전 {start_gen} 세대에서 최적화를 계속합니다...")
 
     # --- 메인 루프 ---
-    for gen in tqdm(range(start_gen + 1, start_gen + num_generations + 1), desc="세대 진화"):
+    for gen in tqdm(range(start_gen + 1, start_gen + num_generations + 1), desc="세대 진화", disable=not verbose):
         if pop is None:
             raise ValueError(f"Error: Population became None at Gen {gen}")
             
@@ -206,7 +208,7 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         
         eval_results = []
         if invalid_ind:
-            for ind in tqdm(invalid_ind, desc=f"Gen {gen} Evaluation", unit="ind", leave=False):
+            for ind in tqdm(invalid_ind, desc=f"Gen {gen} Evaluation", unit="ind", leave=False, disable=not verbose):
                 eval_results.append(toolbox.evaluate(ind))
         for ind, res in zip(invalid_ind, eval_results):
             ind.detailed_results = res
@@ -237,6 +239,6 @@ def run_ga_optimization(DL, LL, Wx, Wy, Ex, Ey, crossover_method, patterns_by_fl
         record['hof_size'] = len(hof)
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        tqdm.write(logbook.stream.splitlines()[-1])
+        if verbose: tqdm.write(logbook.stream.splitlines()[-1])
 
     return pop, logbook, hof, hof_stats_history

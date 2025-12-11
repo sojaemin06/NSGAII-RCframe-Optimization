@@ -4,14 +4,37 @@ import h5py
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 from src.config import *
 from src.utils import load_section_data, get_beam_lengths, calculate_fixed_scale, get_grouping_maps
 from src.optimization import run_ga_optimization
 
-# --- 실험 설정 ---
-STEP1_GEN = 50     # 교배 전략 비교 (빠른 탐색)
-STEP2_GEN = 50     # 토너먼트 크기 비교
-STEP3_GEN = 50     # 교배 확률 비교
+# ==================================================================================
+# [USER CONFIGURATION] 실험 실행 제어 및 이전 결과 입력
+# ==================================================================================
+
+# 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
+RUN_STEPS = {
+    1: True,  # Step 1: Crossover Strategy (다시 실행)
+    2: True,  # Step 2: Tournament Size
+    3: True,  # Step 3: Crossover Probability
+    4: True,  # Step 4: Mutation Probability
+    5: True   # Step 5: Population Size
+}
+
+# 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
+PREV_BEST_PARAMS = {
+    'Best_Crossover': 'TwoPoint', 
+    'Best_Tournament': 3,         
+    'Best_CXPB': 0.9,             
+    'Best_MUTPB': 0.1,            
+    'Best_PopSize': 100           
+}
+
+# 3. 실험 파라미터 설정
+STEP1_GEN = 100     # 교배 전략 비교 (빠른 탐색)
+STEP2_GEN = 100     # 토너먼트 크기 비교
+STEP3_GEN = 100     # 교배 확률 비교
 STEP4_GEN = 100    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
 STEP5_GEN = 200    # 모집단 크기 비교 (최종 수렴 성능)
 
@@ -21,23 +44,27 @@ BASE_CXPB = 0.9    # 초기 기준 교배 확률
 BASE_MUTPB = 0.1   # 초기 기준 변이 확률
 
 OUTPUT_ROOT = "Results_Param_Optimization"
-os.makedirs(OUTPUT_ROOT, exist_ok=True)
 
-# 그래프 스타일 설정
+# ==================================================================================
+
+os.makedirs(OUTPUT_ROOT, exist_ok=True)
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['lines.linewidth'] = 1.5
 
-def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb, num_gen, common_data):
-    """단일 실험 수행 후 HOF 통계 및 최종 HOF 개체 리스트 반환"""
-    print(f"\n>>> Running: {exp_name} (Pop:{pop_size}, Tourn:{tourn_size}, CX:{crossover}, P_c:{cxpb}, P_m:{mutpb})")
-    
+def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb, num_gen, common_data, pbar_desc=""):
+    """단일 실험 수행 및 로그 간소화"""
     (beam_sections_df, column_sections_df, beam_sections, column_sections,
      h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
      num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2) = common_data
 
+    # 로그 출력 포맷팅
+    print(f"{pbar_desc:<50} | Pop:{pop_size:<4} Tourn:{tourn_size:<2} CX:{crossover:<8} Pc:{cxpb:<4} Pm:{mutpb:<4} ... ", end='', flush=True)
+
     start_time = time.time()
+    
+    # verbose=False로 설정하여 내부 로그 억제
     _, _, final_hof, hof_stats_history = run_ga_optimization(
         DL=DL_AREA_LOAD, LL=LL_AREA_LOAD, Wx=WX_RAND, Wy=WY_RAND, Ex=EX_RAND, Ey=EY_RAND,
         crossover_method=crossover, patterns_by_floor=PATTERNS_BY_FLOOR, h5_file=h5_file,
@@ -47,10 +74,13 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
         chromosome_structure=chromosome_structure, num_columns=num_columns, num_beams=num_beams,
         fixed_min_cost=fixed_min_cost, fixed_range_cost=fixed_range_cost,
         fixed_min_co2=fixed_min_co2, fixed_range_co2=fixed_range_co2,
-        tournament_size=tourn_size, cxpb=cxpb, mutpb=mutpb
+        tournament_size=tourn_size, cxpb=cxpb, mutpb=mutpb,
+        verbose=False # <--- 핵심: 내부 로그 끄기
     )
+    
     elapsed = time.time() - start_time
-    print(f"    Done in {elapsed:.1f}s")
+    final_hv = hof_stats_history[-1]['hypervolume'] if hof_stats_history else 0.0
+    print(f"Done ({elapsed:.1f}s) | HV: {final_hv:.4f}") # 결과 요약 출력
     
     # 메타데이터 추가
     for entry in hof_stats_history:
@@ -62,13 +92,12 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     return hof_stats_history, final_hof
 
 def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, output_dir):
-    """실험 결과 분석: HV 그래프 및 Pareto Front 비교"""
+    """실험 결과 분석 및 시각화"""
     df = pd.DataFrame(all_history_data)
     
     # 1. Hypervolume 수렴 그래프
     plt.figure(figsize=(10, 6))
     final_hvs = {}
-    
     for label, group in df.groupby(param_key):
         plt.plot(group['gen'], group['hypervolume'], marker='o', markersize=3, label=f"{label}")
         final_hvs[label] = group.iloc[-1]['hypervolume']
@@ -82,133 +111,159 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     plt.close()
     
     # 2. 최적 파라미터 선정
-    # Series나 numpy 타입 등을 안전하게 처리하기 위해 str로 변환하여 비교하거나 직접 값 사용
     best_param = max(final_hvs, key=final_hvs.get)
     worst_param = min(final_hvs, key=final_hvs.get)
-    print(f"\n[{step_name} Result]")
-    print(f"  - Best {param_key}: {best_param} (HV: {final_hvs[best_param]:.4f})")
-    print(f"  - Worst {param_key}: {worst_param} (HV: {final_hvs[worst_param]:.4f})")
-
-    # 3. Pareto Front 비교 그래프 (Best vs Worst)
-    plt.figure(figsize=(8, 7))
     
-    # Best Param Plot
-    best_hof = all_hof_data[best_param]
-    fit1_best = [ind.fitness.values[0] for ind in best_hof] # Norm Cost+CO2
-    fit2_best = [ind.fitness.values[1] for ind in best_hof] # Mean DCR
-    plt.scatter(fit2_best, fit1_best, c='blue', label=f'Best ({best_param})', alpha=0.7, s=50)
+    print(f"   -> [Result] Best: {best_param} (HV={final_hvs[best_param]:.4f}), Worst: {worst_param} (HV={final_hvs[worst_param]:.4f})")
 
-    # Worst Param Plot
-    worst_hof = all_hof_data[worst_param]
-    fit1_worst = [ind.fitness.values[0] for ind in worst_hof]
-    fit2_worst = [ind.fitness.values[1] for ind in worst_hof]
-    plt.scatter(fit2_worst, fit1_worst, c='red', label=f'Worst ({worst_param})', alpha=0.4, marker='x', s=40)
+    # 3. Pareto Front 데이터 CSV 저장
+    hof_rows = []
+    for param, inds in all_hof_data.items():
+        for ind in inds:
+            hof_rows.append({
+                'Parameter': param,
+                'Obj1_NormCostCO2': ind.fitness.values[0],
+                'Obj2_MeanDCR': ind.fitness.values[1],
+                'Cost': ind.detailed_results.get('cost', 0),
+                'CO2': ind.detailed_results.get('co2', 0),
+                'Mean_DCR': ind.detailed_results.get('mean_strength_ratio', 0)
+            })
     
-    plt.title(f'{step_name} - Pareto Front Comparison (Best vs Worst)')
+    df_hof = pd.DataFrame(hof_rows)
+    csv_path = os.path.join(output_dir, f'{step_name}_Pareto_Data.csv')
+    df_hof.to_csv(csv_path, index=False)
+    print(f"   -> [Saved] Pareto data saved to {csv_path}")
+
+    # 4. Pareto Front 비교 그래프 (모든 파라미터 표시)
+    plt.figure(figsize=(10, 8))
+    
+    params = list(all_hof_data.keys())
+    # 파라미터 개수에 맞춰 색상 생성 (viridis 컬러맵 사용)
+    colors = plt.cm.viridis(np.linspace(0, 1, len(params)))
+    
+    for param, color in zip(params, colors):
+        hof = all_hof_data[param]
+        fit1 = [ind.fitness.values[0] for ind in hof] # Cost+CO2
+        fit2 = [ind.fitness.values[1] for ind in hof] # DCR
+        
+        if param == best_param:
+            # Best Param: 빨간색 별표, 크기 키움, 최상단 표시
+            plt.scatter(fit2, fit1, c='red', label=f'{param} (Best)', s=100, marker='*', edgecolors='black', zorder=10)
+        elif param == worst_param:
+            # Worst Param: 회색 X표, 투명도 낮춤
+            plt.scatter(fit2, fit1, c='gray', label=f'{param} (Worst)', s=40, marker='x', alpha=0.5, zorder=1)
+        else:
+            # 그 외: 컬러맵 색상, 원형
+            plt.scatter(fit2, fit1, color=color, label=f'{param}', s=50, alpha=0.7, zorder=5)
+    
+    plt.title(f'{step_name} - Pareto Front Comparison (All Parameters)')
     plt.xlabel('Structural Conservatism (Mean DCR)')
     plt.ylabel('Economic & Env. Demand (Norm Cost+CO2)')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'{step_name}_Pareto_BestVsWorst.png'))
+    # 파일명 변경: BestVsWorst -> All
+    plt.savefig(os.path.join(output_dir, f'{step_name}_Pareto_All.png'))
     plt.close()
     
     return best_param
 
+def run_step_logic(step_num, step_title, param_list, param_name, current_best_params, common_data, gen_count):
+    """각 Step의 공통 실행 로직"""
+    if not RUN_STEPS[step_num]:
+        fixed_val = PREV_BEST_PARAMS[f'Best_{param_name}']
+        print(f"\n[Step {step_num}] {step_title} -> SKIPPED (Using fixed: {fixed_val})")
+        return fixed_val
+
+    print(f"\n" + "="*80)
+    print(f"[Step {step_num}] {step_title}")
+    print("="*80)
+    
+    history, hof_data = [], {}
+    
+    # 파라미터별 루프
+    for i, val in enumerate(param_list):
+        exp_name = f"{param_name}_{val}"
+        desc = f"({i+1}/{len(param_list)}) Testing {param_name}={val}"
+        
+        # 현재 Step의 파라미터(val)를 적용하고, 나머지는 고정값(current_best_params) 사용
+        # 동적으로 인자 생성
+        args = {
+            'pop_size': val if param_name == 'PopSize' else BASE_POP,
+            'tourn_size': val if param_name == 'Tournament' else current_best_params.get('Best_Tournament', BASE_TOURN),
+            'crossover': val if param_name == 'Crossover' else current_best_params.get('Best_Crossover', 'OnePoint'), # Default fallback
+            'cxpb': val if param_name == 'CXPB' else current_best_params.get('Best_CXPB', BASE_CXPB),
+            'mutpb': val if param_name == 'MUTPB' else current_best_params.get('Best_MUTPB', BASE_MUTPB)
+        }
+        
+        hist, hof = run_single_experiment(
+            exp_name, args['pop_size'], args['tourn_size'], args['crossover'], args['cxpb'], args['mutpb'], 
+            gen_count, common_data, pbar_desc=desc
+        )
+        history.extend(hist)
+        hof_data[val] = hof
+        
+    best_val = analyze_and_plot(history, hof_data, f"Step{step_num}_{param_name}", param_name, OUTPUT_ROOT)
+    return best_val
+
 def main():
-    print("### Starting Comprehensive Parameter Optimization Experiment ###")
+    print("### Parameter Optimization Experiment Started (Sequential & Independent Mode) ###")
+    print(f"Output Directory: {OUTPUT_ROOT}")
     
     # 공통 데이터 로드
     beam_sections_df, column_sections_df, beam_sections, column_sections = load_section_data()
     h5_file = h5py.File('pm_dataset_simple02.mat', 'r')
     
-    num_locations = len(COLUMN_LOCATIONS)
-    num_columns = num_locations * FLOORS
-    num_beams = len(BEAM_CONNECTIONS) * FLOORS
-    beam_lengths = get_beam_lengths(COLUMN_LOCATIONS, BEAM_CONNECTIONS)
-    
-    num_col_groups, num_beam_groups, col_map, beam_map = get_grouping_maps(
-        GROUPING_STRATEGY, num_locations, num_columns, num_beams, FLOORS, BEAM_CONNECTIONS, COLUMN_LOCATIONS
-    )
-    chromosome_structure = {'col_sec': num_col_groups, 'col_rot': num_col_groups, 'beam_sec': num_beam_groups}
-    
-    total_col_len = (len(COLUMN_LOCATIONS) * FLOORS) * H
-    total_beam_len = sum(beam_lengths) * FLOORS
-    fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = calculate_fixed_scale(
-        column_sections_df, beam_sections_df, total_col_len, total_beam_len
-    )
-    
-    common_data = (beam_sections_df, column_sections_df, beam_sections, column_sections,
-                   h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
-                   num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2)
-    
-    final_summary = {}
-
     try:
-        # --- Step 1: 교배 전략 (Crossover Strategy) ---
-        print("\n" + "="*60 + "\nStep 1: Crossover Strategy\n" + "="*60)
-        crossovers = ["OnePoint", "TwoPoint", "Uniform"]
-        history_s1, hof_s1 = [], {}
-        for cx in crossovers:
-            hist, hof = run_single_experiment(f"CX_{cx}", BASE_POP, BASE_TOURN, cx, BASE_CXPB, BASE_MUTPB, STEP1_GEN, common_data)
-            history_s1.extend(hist)
-            hof_s1[cx] = hof
-        best_cx = analyze_and_plot(history_s1, hof_s1, "Step1_Crossover", "Crossover", OUTPUT_ROOT)
-        final_summary['Best_Crossover'] = best_cx
-
-        # --- Step 2: 토너먼트 크기 (Tournament Size) ---
-        print("\n" + "="*60 + f"\nStep 2: Tournament Size (Fixed CX: {best_cx})\n" + "="*60)
-        tournaments = [2, 3, 5, 7, 9, 11]
-        history_s2, hof_s2 = [], {}
-        for t in tournaments:
-            hist, hof = run_single_experiment(f"Tourn_{t}", BASE_POP, t, best_cx, BASE_CXPB, BASE_MUTPB, STEP2_GEN, common_data)
-            history_s2.extend(hist)
-            hof_s2[t] = hof
-        best_tourn = analyze_and_plot(history_s2, hof_s2, "Step2_Tournament", "Tournament", OUTPUT_ROOT)
-        final_summary['Best_Tournament'] = best_tourn
+        num_locations = len(COLUMN_LOCATIONS)
+        num_columns = num_locations * FLOORS
+        num_beams = len(BEAM_CONNECTIONS) * FLOORS
+        beam_lengths = get_beam_lengths(COLUMN_LOCATIONS, BEAM_CONNECTIONS)
         
-        # --- Step 3: 교배 확률 (Crossover Probability) ---
-        print("\n" + "="*60 + f"\nStep 3: Crossover Prob (Fixed Tourn: {best_tourn})\n" + "="*60)
-        cx_probs = [0.7, 0.8, 0.9, 1.0]
-        history_s3, hof_s3 = [], {}
-        for cp in cx_probs:
-            hist, hof = run_single_experiment(f"CXPB_{cp}", BASE_POP, best_tourn, best_cx, cp, BASE_MUTPB, STEP3_GEN, common_data)
-            history_s3.extend(hist)
-            hof_s3[cp] = hof
-        best_cxpb = analyze_and_plot(history_s3, hof_s3, "Step3_CXPB", "CXPB", OUTPUT_ROOT)
-        final_summary['Best_CXPB'] = best_cxpb
+        num_col_groups, num_beam_groups, col_map, beam_map = get_grouping_maps(
+            GROUPING_STRATEGY, num_locations, num_columns, num_beams, FLOORS, BEAM_CONNECTIONS, COLUMN_LOCATIONS
+        )
+        chromosome_structure = {'col_sec': num_col_groups, 'col_rot': num_col_groups, 'beam_sec': num_beam_groups}
+        
+        total_col_len = (len(COLUMN_LOCATIONS) * FLOORS) * H
+        total_beam_len = sum(beam_lengths) * FLOORS
+        fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = calculate_fixed_scale(
+            column_sections_df, beam_sections_df, total_col_len, total_beam_len
+        )
+        
+        common_data = (beam_sections_df, column_sections_df, beam_sections, column_sections,
+                       h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
+                       num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2)
+        
+        # 현재까지의 최적 파라미터를 추적하는 딕셔너리 (초기값은 PREV_BEST_PARAMS로 시작)
+        current_best = PREV_BEST_PARAMS.copy()
 
-        # --- Step 4: 변이 확률 (Mutation Probability) ---
-        print("\n" + "="*60 + f"\nStep 4: Mutation Prob (Fixed CXPB: {best_cxpb})\n" + "="*60)
-        mut_probs = [0.05, 0.1, 0.2, 0.3]
-        history_s4, hof_s4 = [], {}
-        for mp in mut_probs:
-            hist, hof = run_single_experiment(f"MUTPB_{mp}", BASE_POP, best_tourn, best_cx, best_cxpb, mp, STEP4_GEN, common_data)
-            history_s4.extend(hist)
-            hof_s4[mp] = hof
-        best_mutpb = analyze_and_plot(history_s4, hof_s4, "Step4_MUTPB", "MUTPB", OUTPUT_ROOT)
-        final_summary['Best_MUTPB'] = best_mutpb
+        # --- Step 1: Crossover Strategy ---
+        best_cx = run_step_logic(1, "Crossover Strategy", ["OnePoint", "TwoPoint", "Uniform"], "Crossover", current_best, common_data, STEP1_GEN)
+        current_best['Best_Crossover'] = best_cx
 
-        # --- Step 5: 모집단 크기 (Population Size) ---
-        print("\n" + "="*60 + f"\nStep 5: Population Size (Fixed All Params)\n" + "="*60)
-        pop_sizes = list(range(100, 1001, 100))
-        history_s5, hof_s5 = [], {}
-        for pop in pop_sizes:
-            hist, hof = run_single_experiment(f"Pop_{pop}", pop, best_tourn, best_cx, best_cxpb, best_mutpb, STEP5_GEN, common_data)
-            history_s5.extend(hist)
-            hof_s5[pop] = hof
-        best_pop = analyze_and_plot(history_s5, hof_s5, "Step5_PopSize", "PopSize", OUTPUT_ROOT)
-        final_summary['Best_PopSize'] = best_pop
+        # --- Step 2: Tournament Size ---
+        best_tourn = run_step_logic(2, "Tournament Size", [2, 3, 5, 7, 9, 11], "Tournament", current_best, common_data, STEP2_GEN)
+        current_best['Best_Tournament'] = best_tourn
+        
+        # --- Step 3: Crossover Probability ---
+        best_cxpb = run_step_logic(3, "Crossover Probability", [0.7, 0.8, 0.9, 1.0], "CXPB", current_best, common_data, STEP3_GEN)
+        current_best['Best_CXPB'] = best_cxpb
 
-        # 최종 결과 저장
-        df_all = pd.DataFrame(history_s1 + history_s2 + history_s3 + history_s4 + history_s5)
-        df_all.to_csv(os.path.join(OUTPUT_ROOT, "all_optimization_steps_results.csv"), index=False)
+        # --- Step 4: Mutation Probability ---
+        best_mutpb = run_step_logic(4, "Mutation Probability", [0.05, 0.1, 0.2, 0.3], "MUTPB", current_best, common_data, STEP4_GEN)
+        current_best['Best_MUTPB'] = best_mutpb
 
-        print("\n" + "="*60)
+        # --- Step 5: Population Size ---
+        best_pop = run_step_logic(5, "Population Size", list(range(100, 1001, 100)), "PopSize", current_best, common_data, STEP5_GEN)
+        current_best['Best_PopSize'] = best_pop
+
+        # 최종 결과 출력
+        print("\n" + "="*80)
         print("### FINAL OPTIMIZATION PARAMETERS ###")
-        for k, v in final_summary.items():
+        for k, v in current_best.items():
             print(f"{k:<20} : {v}")
-        print("="*60)
+        print("="*80)
 
     finally:
         h5_file.close()
