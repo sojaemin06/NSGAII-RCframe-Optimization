@@ -220,42 +220,86 @@ def plot_Structure(title='Structure Shape', view='3D', ax=None, column_locations
         plt.title(title)
 
 def visualize_load_patterns(column_locations, beam_connections, patterns_by_floor, output_folder="."):
-    print("\n[Visualization] Generating load pattern plots...")
+    print("\n[Visualization] Generating architectural load pattern plots...")
     
     num_floors = len(patterns_by_floor)
-    ncols = min(num_floors, 4) 
+    ncols = min(num_floors, 2) 
     nrows = (num_floors - 1) // ncols + 1
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows), squeeze=False)
-    fig.suptitle('Visualization of Applied Load Patterns by Floor', fontsize=16)
+    
+    # Figure Size & Resolution increased for clarity
+    fig, axes = plt.subplots(nrows, ncols, figsize=(10 * ncols, 10 * nrows), squeeze=False, dpi=150)
+    fig.suptitle('Architectural Load Pattern Plan', fontsize=20, fontweight='bold', y=0.98)
+
+    # Pre-calculate beam lengths for annotation
+    beam_lengths = {}
+    for conn_idx, (p1_idx, p2_idx) in enumerate(beam_connections):
+        p1 = column_locations[p1_idx]
+        p2 = column_locations[p2_idx]
+        length = math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+        beam_lengths[conn_idx] = length
 
     for i, (floor_num, loaded_indices) in enumerate(patterns_by_floor.items()):
         ax = axes[i // ncols, i % ncols]
-        ax.set_title(f"Floor {floor_num} Load Pattern")
+        ax.set_title(f"Floor {floor_num} Load Pattern", fontsize=16, pad=15)
         
-        xs = [loc[0] for loc in column_locations]
-        ys = [loc[1] for loc in column_locations]
-        ax.scatter(xs, ys, c='black', s=50, zorder=2)
-
+        # 1. Draw Grid (Background)
+        ax.grid(True, which='both', linestyle=':', color='gray', alpha=0.3)
+        
+        # 2. Draw All Beams (Base) - Black lines
         for conn_idx, (p1_idx, p2_idx) in enumerate(beam_connections):
             p1, p2 = column_locations[p1_idx], column_locations[p2_idx]
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='lightgray', linewidth=2, zorder=1)
+            
+            # Draw Beam Line
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='black', linewidth=1.5, zorder=1)
+            
+            # Annotate Span Length (only for non-loaded for clarity, or smaller text)
             center_x, center_y = (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
-            ax.text(center_x, center_y, str(conn_idx), color='gray', fontsize=8, ha='center', va='center',
-                    bbox=dict(facecolor='white', alpha=0.5, edgecolor='none', boxstyle='round,pad=0.1'))
+            
+            # Calculate offset for text to avoid overlapping the line too much
+            dx, dy = p2[0] - p1[0], p2[1] - p1[1]
+            angle = math.degrees(math.atan2(dy, dx))
+            
+            # Display length text
+            ax.text(center_x, center_y, f"{beam_lengths[conn_idx]:.1f}m", 
+                    color='blue', fontsize=9, ha='center', va='center', fontweight='bold',
+                    bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=0.5), zorder=4)
 
+        # 3. Highlight Loaded Beams - Thick Red lines
         for conn_idx in loaded_indices:
             p1_idx, p2_idx = beam_connections[conn_idx]
             p1, p2 = column_locations[p1_idx], column_locations[p2_idx]
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='red', linewidth=4, zorder=3, label='Loaded Beams' if 'Loaded Beams' not in [l.get_label() for l in ax.get_lines()] else '')
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='red', linewidth=5, alpha=0.6, zorder=2, 
+                    label='Loaded Beam' if 'Loaded Beam' not in [l.get_label() for l in ax.get_lines()] else '')
 
-        ax.set_aspect('equal', adjustable='box'); ax.set_xlabel('X (m)'); ax.set_ylabel('Y (m)'); ax.grid(True, linestyle='--', alpha=0.6)
-        if i == 0: ax.legend()
+        # 4. Draw Columns - Square Markers
+        xs = [loc[0] for loc in column_locations]
+        ys = [loc[1] for loc in column_locations]
+        ax.scatter(xs, ys, c='black', marker='s', s=150, zorder=3, label='Column')
+
+        # Axis settings
+        ax.set_aspect('equal', adjustable='box')
+        ax.set_xlabel('X (m)', fontsize=12)
+        ax.set_ylabel('Y (m)', fontsize=12)
+        
+        # Set ticks to match column grid roughly
+        unique_x = sorted(list(set(xs)))
+        unique_y = sorted(list(set(ys)))
+        ax.set_xticks(unique_x)
+        ax.set_yticks(unique_y)
+        
+        if i == 0: 
+            # Custom legend
+            from matplotlib.lines import Line2D
+            custom_lines = [Line2D([0], [0], color='black', lw=2),
+                            Line2D([0], [0], color='red', lw=5, alpha=0.6),
+                            Line2D([0], [0], marker='s', color='w', markerfacecolor='black', markersize=10)]
+            ax.legend(custom_lines, ['Structure Beam', 'Loaded Beam', 'Column'], loc='upper right')
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     save_path = os.path.join(output_folder, "load_pattern_visualization.png")
     plt.savefig(save_path)
-    plt.close(fig) # Close figure to prevent display
-    print(f"Load pattern visualization saved to '{save_path}'")
+    plt.close(fig)
+    print(f"Architectural load pattern visualization saved to '{save_path}'")
 
 def generate_load_patterns(floors, num_beams_per_floor, column_locations=None, beam_connections=None):
     """

@@ -38,52 +38,50 @@ BEAM_TRIBUTARY_WIDTHS_4F = [
     2.5, 2.5, 2.5       # X=15
 ]
 
-# [6-Story: 'U' Shape Plan with Irregular Spans]
+# [6-Story: 'U' Shape Plan with Closed Wings]
 # Grid X: 0, 6, 10, 17 (Spans: 6m, 4m, 7m)
 # Grid Y: 0, 6, 11     (Spans: 6m, 5m)
-# Missing bay: Top-Middle (between X=6~10, Y=11 line)
+# Open Bay: Top-Middle (between X=6~10, Y=11 line is open)
 # Columns:
-# Y=0:  (0,0), (6,0), (10,0), (17,0)
-# Y=6:  (0,6), (6,6), (10,6), (17,6)
-# Y=11: (0,11), (6,11), (10,11), (17,11) -> But missing middle beam/slab?
-# Let's say missing the slab between (6,6)-(10,6)-(10,11)-(6,11)? No, U-shape usually means open edge.
-# Let's open the Top edge (Y=11) between X=6 and X=10.
-# So columns at (6,11) and (10,11) exist, but no beam connecting them? Or no columns?
-# Let's remove columns (6,11) and (10,11) to make a deep U-shape.
-# Final Cols:
-# Y=0: (0,0), (6,0), (10,0), (17,0)
-# Y=6: (0,6), (6,6), (10,6), (17,6)
-# Y=11: (0,11),               (17,11)
+# Y=0:  (0,0), (6,0), (10,0), (17,0)  [Indices 0,1,2,3]
+# Y=6:  (0,6), (6,6), (10,6), (17,6)  [Indices 4,5,6,7]
+# Y=11: (0,11),(6,11),(10,11),(17,11) [Indices 8,9,10,11]
 COLUMN_LOCATIONS_6F = [
     (0, 0), (6, 0), (10, 0), (17, 0),
     (0, 6), (6, 6), (10, 6), (17, 6),
-    (0, 11),                 (17, 11)
+    (0, 11), (6, 11), (10, 11), (17, 11)
 ]
-# Indices:
-# 0,1,2,3
-# 4,5,6,7
-# 8,9
+
 BEAM_CONNECTIONS_6F = [
-    # X-Beams
-    (0, 1), (1, 2), (2, 3), # Y=0 (6m, 4m, 7m)
-    (4, 5), (5, 6), (6, 7), # Y=6 (6m, 4m, 7m)
-    # Y-Beams
-    (0, 4), (4, 8),         # X=0 (6m, 5m)
-    (1, 5),                 # X=6 (6m)
-    (2, 6),                 # X=10 (6m)
-    (3, 7), (7, 9)          # X=17 (6m, 5m)
+    # X-Beams (Horizontal)
+    (0, 1), (1, 2), (2, 3),    # Y=0: 0-6, 6-10, 10-17
+    (4, 5), (5, 6), (6, 7),    # Y=6: 0-6, 6-10, 10-17
+    (8, 9), (10, 11),          # Y=11: 0-6, 10-17 (Middle 6-10 is OPEN)
+    
+    # Y-Beams (Vertical)
+    (0, 4), (4, 8),            # X=0: 0-6, 6-11
+    (1, 5), (5, 9),            # X=6: 0-6, 6-11
+    (2, 6), (6, 10),           # X=10: 0-6, 6-11
+    (3, 7), (7, 11)            # X=17: 0-6, 6-11
 ]
+
+# Total Beams = 8 (X) + 8 (Y) = 16 beams
 BEAM_TRIBUTARY_WIDTHS_6F = [
-    3.0, 2.0, 3.5,      # X (Y=0)
-    6.0, 4.0, 7.0,      # X (Y=6) - Taking load from both sides approx? 
-                        # Actually Y=0 takes 6/2=3. Y=6 takes 6/2+5/2=5.5.
-                        # Simplified for demo:
-    3.0, 2.0, 3.5,      # Adjusted: 3, 2, 3.5
-    5.5, 2.0, 5.5,      # Adjusted: 5.5, 2.0(courtyard side), 5.5
-    3.0, 2.5,           # Y (X=0)
-    6.0,                # Y (X=6)
-    6.0,                # Y (X=10)
-    3.0, 2.5            # Y (X=17)
+    # X-Beams (Y=0)
+    3.0, 3.0, 3.0,
+    # X-Beams (Y=6)
+    5.5, 2.0, 6.0,  # Middle (5,6) only takes load from bottom (2.0) as top is open
+    # X-Beams (Y=11)
+    2.5, 2.5,       # Left(0-6) and Right(10-17) wings
+    
+    # Y-Beams (X=0)
+    3.0, 3.0,
+    # Y-Beams (X=6)
+    5.0, 3.0,       # Top part (6-11) takes 3.0 (from Left 6m/2), Right is open
+    # Y-Beams (X=10)
+    5.5, 3.5,       # Top part (6-11) takes 3.5 (from Right 7m/2), Left is open
+    # Y-Beams (X=17)
+    3.5, 3.5
 ]
 
 # [8-Story: Cruciform (+) Shape with Irregular Spans]
@@ -146,10 +144,10 @@ BEAM_TRIBUTARY_WIDTHS = BEAM_TRIBUTARY_WIDTHS_4F
 # Row 0(Y=0): 0,1,2. Row 1(Y=6): 3,4,5. Row 2(Y=10): 6,7,8. Row 3(Y=15): 9,10
 # Col 0(X=0): 11,12. Col 1(X=5): 13,14,15. Col 2(X=10): 16,17,18. Col 3(X=15): 19,20,21
 LOAD_PATTERNS_4F = {
-    1: [0,3,11,13,  2,5,16,19,  4,7,14,17,  9,10,15,18], # Approx Checkerboard A
-    2: [1,4,13,16,  3,6,12,14,  5,8,17,20,  15,18],      # Approx Checkerboard B
-    3: [0,3,11,13,  2,5,16,19,  4,7,14,17,  9,10,15,18],
-    4: [1,4,13,16,  3,6,12,14,  5,8,17,20,  15,18]
+    1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 16, 17, 19, 20],
+    2: [1, 2, 4, 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+    3: [3, 4, 6, 7, 9, 12, 14, 15, 17, 18],
+    4: [1, 2, 4, 5, 7, 8, 13, 14, 16, 17, 19, 20],
 }
 
 # 6F (U-shape):
@@ -159,14 +157,12 @@ LOAD_PATTERNS_4F = {
 # 6,7 (X=0). 8 (X=6). 9 (X=10). 10,11 (X=17).
 # Total 12 beams per floor.
 LOAD_PATTERNS_6F = {
-    # Odd Floors: Load bottom-left, top-right of U
-    1: [0,3,6,8,  2,5,9,11], 
-    # Even Floors: Load bottom-middle, arms
-    2: [1,4,8,9,  3,6], 
-    3: [0,3,6,8,  2,5,9,11],
-    4: [1,4,8,9,  3,6],
-    5: [0,3,6,8,  2,5,9,11],
-    6: [1,4,8,9,  3,6]
+    1: [0, 1, 2, 3, 4, 5, 8, 10, 12, 14],
+    2: [1, 2, 4, 5, 7, 10, 12, 13, 14, 15],
+    3: [],
+    4: [0, 1, 2, 3, 4, 5, 8, 10, 12, 14],
+    5: [1, 2, 4, 5, 7, 10, 12, 13, 14, 15],
+    6: [1, 2, 4, 5, 10, 12, 14],
 }
 
 # 8F (Cruciform):
@@ -174,16 +170,14 @@ LOAD_PATTERNS_6F = {
 # X-Beams: 0(Y=0), 1,2,3(Y=5), 4,5,6(Y=11), 7(Y=18)
 # Y-Beams: 8(X=0), 9,10,11(X=5), 12,13,14(X=11), 15(X=18)
 LOAD_PATTERNS_8F = {
-    # Odd: Center Core + Tips
-    1: [2,5,10,13,  0,9,  3,6,11,14,  7,14], 
-    # Even: Wings excluding tips
-    2: [1,4,9,12,  5,8,12], 
-    3: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
-    4: [1,4,9,12,  5,8,12],
-    5: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
-    6: [1,4,9,12,  5,8,12],
-    7: [2,5,10,13,  0,9,  3,6,11,14,  7,14],
-    8: [1,4,9,12,  5,8,12]
+    1: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 15],
+    2: [0, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15],
+    3: [1, 2, 4, 5, 7, 8, 10, 11, 13, 14],
+    4: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 15],
+    5: [0, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15],
+    6: [1, 2, 4, 5, 7, 8, 10, 11, 13, 14],
+    7: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 15],
+    8: [0, 2, 3, 5, 6, 9, 10, 12, 13, 15],
 }
 
 # Default
