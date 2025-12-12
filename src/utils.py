@@ -148,6 +148,7 @@ def get_grouping_maps(strategy, num_locations, num_columns, num_beams, floors, b
             group_id = floor_group_idx * 3 + loc_type
             col_map[abs_col_idx + 1] = group_id
             
+
         for abs_beam_idx in range(num_beams):
             floor_idx, conn_idx = divmod(abs_beam_idx, len(beam_connections))
             floor_group_idx = floor_idx // floor_step

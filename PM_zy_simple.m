@@ -2,7 +2,7 @@ clc; clear all;
 rng('shuffle');
 
 
-n=100;
+n=1000;
 Column_Data=zeros(n,26);
 Column_Mdata=cell(n,1);
 
@@ -17,7 +17,7 @@ while cnt <= n
     Stirrup_size_range=[10,13];
     Stirrup_size = randsample(Stirrup_size_range,1);
     Es = 200000;
-    MainRebar_range = [19,22,25];
+    MainRebar_range = [25,29,32];
     min_rho = 0.01;
     max_rho = 0.08;
     SG_steel = 7.85; % ton/m^3
@@ -43,9 +43,9 @@ while cnt <= n
 
         Area_MainRebar = (pi * MainRebar_size^2) / 4;
         Area_StirrupRebar = (pi * Stirrup_size^2) / 4;
-        b_range = 300:50:600;
+        b_range = 600:50:1000;
         b = randsample(b_range, 1);
-        h_range = b:50:b*2;
+        h_range = b:50:b*1.5;
         h = randsample(h_range, 1);
         Ag = b * h;
         Stirrup_verticle_range = 100:50:min([MainRebar_size*16, Stirrup_size*48, b]);
@@ -98,7 +98,7 @@ while cnt <= n
     % ============================================================= %
     % ===== 2. 강축 (Z축) 방향 강도 계산 =========================== %
     % ============================================================= %
-    fck_range = [21, 27];
+    fck_range = [27, 30, 35, 40];
     fy_range = [400, 500];
     fck = randsample(fck_range,1);
     fy = randsample(fy_range,1);

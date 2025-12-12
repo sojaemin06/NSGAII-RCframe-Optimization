@@ -28,7 +28,7 @@ EXAMPLES = {
         'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
         'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
         'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
-    }
+    # },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
@@ -40,11 +40,11 @@ EXAMPLES = {
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
     #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
-    # }
+    }
 }
 
 # 실험 파라미터
-OPT_POP_SIZE = 100 
+OPT_POP_SIZE = 200 
 OPT_GENERATIONS = 0 
 OPT_CX_METHOD = cfg.CROSSOVER_STRATEGY 
 OPT_CX_PROB = cfg.CXPB 
@@ -139,12 +139,19 @@ def run_example_optimization(ex_name, ex_config):
         print(f"   -> Optimization for {ex_name} completed in {elapsed:.1f}s")
 
         # 결과 저장 및 시각화
-        valid_solutions = [ind for ind in final_hof if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0]
-        if not valid_solutions:
+        processed_valid_solutions = []
+        for i, ind in enumerate(final_hof):
+            if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0:
+                solution_data = ind.detailed_results.copy()
+                solution_data['ID'] = i + 1  # Unique ID for each solution
+                solution_data['ind_object'] = ind # Include the individual object for fitness values
+                processed_valid_solutions.append(solution_data)
+
+        if not processed_valid_solutions:
             print(f"No feasible solutions found for {ex_name}.")
 
-        save_results_to_csv(output_folder, valid_solutions, logbook, hof_stats, chromosome_structure)
-        plot_results(output_folder, valid_solutions, logbook, hof_stats, chromosome_structure,
+        save_results_to_csv(output_folder, processed_valid_solutions, logbook, hof_stats, chromosome_structure)
+        plot_results(output_folder, processed_valid_solutions, logbook, hof_stats, chromosome_structure,
                      col_map, beam_map, beam_sections, column_sections)
         
         return {'stats': hof_stats, 'hof': final_hof, 'time': elapsed, 'name': ex_name}
@@ -196,9 +203,10 @@ def main():
         axes = [axes] if not isinstance(axes, np.ndarray) else axes
     
     for i, data in enumerate(all_results):
-        hof = data['hof']
-        fit1 = [ind.fitness.values[0] for ind in hof] # Norm Cost+CO2
-        fit2 = [ind.fitness.values[1] for ind in hof] # Mean DCR
+        # hof_data는 individual 객체가 아니라 result dict의 리스트이므로 ind_object에서 fitness 값을 가져옵니다.
+        hof_solutions = [sol for sol in data['hof'] if hasattr(sol, 'detailed_results') and sol.detailed_results.get('violation') == 0.0]
+        fit1 = [sol.fitness.values[0] for sol in hof_solutions] # Norm Cost+CO2
+        fit2 = [sol.fitness.values[1] for sol in hof_solutions] # Mean DCR
         
         ax = axes[i] if len(all_results) > 1 else axes # 1개일 경우 axes 자체가 ax일수도, axes[0]일수도
         # axes가 1d array인 경우와 subplot 1개인 경우 처리 주의
@@ -222,16 +230,20 @@ def main():
     summary_list = []
     for data in all_results:
         best_hv = data['stats'][-1]['hypervolume']
-        best_ind = min(data['hof'], key=lambda x: x.fitness.values[0]) # Cost 최소 해
-        summary_list.append({
-            'Example': data['name'],
-            'Floors': EXAMPLES[data['name']]['Floors'],
-            'Time(s)': round(data['time'], 1),
-            'Final_HV': round(best_hv, 4),
-            'Best_Cost': round(best_ind.detailed_results['cost'], 0),
-            'Best_CO2': round(best_ind.detailed_results['co2'], 0),
-            'Mean_DCR': round(best_ind.detailed_results['mean_strength_ratio'], 4)
-        })
+        # 'hof'는 이제 개별 객체 리스트이므로, 여기서 직접 필터링
+        feasible_hof_individuals = [ind for ind in data['hof'] if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0]
+        best_ind = min(feasible_hof_individuals, key=lambda x: x.fitness.values[0]) if feasible_hof_individuals else None # Cost 최소 해
+
+        if best_ind:
+            summary_list.append({
+                'Example': data['name'],
+                'Floors': EXAMPLES[data['name']]['Floors'],
+                'Time(s)': round(data['time'], 1),
+                'Final_HV': round(best_hv, 4),
+                'Best_Cost': round(best_ind.detailed_results['cost'], 0),
+                'Best_CO2': round(best_ind.detailed_results['co2'], 0),
+                'Mean_DCR': round(best_ind.detailed_results['mean_strength_ratio'], 4)
+            })
     
     df_sum = pd.DataFrame(summary_list)
     df_sum.to_csv(os.path.join(OUTPUT_BASE_DIR, 'examples_summary.csv'), index=False)

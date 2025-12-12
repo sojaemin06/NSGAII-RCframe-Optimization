@@ -1,12 +1,12 @@
 clc; clear all;
 
 rng('shuffle');
-b_range=200:50:600;
-h_range=300:50:1500;
+b_range=300:100:500;
+h_range=500:50:800;
 dimension_range = [16,22];
 stirrup_range=[10,13];
 conblock = 25;
-fck_range=[21, 27];
+fck_range=[24, 27, 30];
 fy_range=[400,500];
 Es=200000;
 

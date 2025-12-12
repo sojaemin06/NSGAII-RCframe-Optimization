@@ -39,7 +39,7 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
     # 4. 최적해별 설계 변수
     design_vars_data = []
     for r in all_results:
-        ind = r['individual']
+        ind = r['ind_object']
         len_col_sec = chromosome_structure['col_sec']
         len_col_rot = chromosome_structure['col_rot']
         
@@ -95,7 +95,7 @@ def plot_results(output_folder, all_results, logbook, hof_stats_history, chromos
         return
 
     # 1. 최적 구조물 형상 (첫 번째 해 기준)
-    ind = all_results[0]['individual']
+    ind = all_results[0]['ind_object']
     len_col_sec = chromosome_structure['col_sec']
     len_col_rot = chromosome_structure['col_rot']
     col_indices = ind[:len_col_sec]

@@ -3,7 +3,7 @@ import openseespy.opensees as ops
 import pandas as pd
 import numpy as np
 import math
-from src.config import *
+import src.config as cfg # Use cfg prefix for dynamic access
 from src.utils import *
 
 def extract_local_element_forces(column_elem_ids, beam_elem_ids):
@@ -36,12 +36,12 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
     ops.model('basic', '-ndm', 3, '-ndf', 6)
     E, nu = 2.5791e7, 0.167; G = E / (2 * (1 + nu))
     
-    num_locations = len(COLUMN_LOCATIONS) # [Fix] 정의 위치 이동
+    num_locations = len(cfg.COLUMN_LOCATIONS) # [Fix] 정의 위치 이동
     
     node_map = {}; node_id_counter = 1
-    for k in range(FLOORS + 1):
-        for i, (x, y) in enumerate(COLUMN_LOCATIONS):
-            ops.node(node_id_counter, x, y, k * H)
+    for k in range(cfg.FLOORS + 1):
+        for i, (x, y) in enumerate(cfg.COLUMN_LOCATIONS):
+            ops.node(node_id_counter, x, y, k * cfg.H)
             node_map[(k, i)] = node_id_counter
             if k == 0: ops.fix(node_id_counter, 1, 1, 1, 1, 1, 1)
             node_id_counter += 1
@@ -49,7 +49,7 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
 
     # --- 강체 횡격막 (Rigid Diaphragm) 구현 (equalDOF 기반으로 변경) ---
     # 각 층별로 모든 절점의 횡방향 자유도(X, Y) 및 Z축 회전을 마스터 절점에 구속
-    for k in range(1, FLOORS + 1): # 1층부터 최상층까지
+    for k in range(1, cfg.FLOORS + 1): # 1층부터 최상층까지
         master_node_id = node_map[(k, 0)] # 각 층의 첫 번째 기둥 노드를 마스터로 설정
 
         # 슬레이브 노드들을 마스터 노드에 구속 (X, Y 방향 변위, Z축 회전)
@@ -64,9 +64,9 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
         
     column_elem_ids, beam_elem_ids = [], []; elem_id_counter = 1
     # num_locations = len(COLUMN_LOCATIONS) # [Removed] 기존 위치 삭제
-    num_columns = num_locations * FLOORS
+    num_columns = num_locations * cfg.FLOORS
     
-    for k in range(FLOORS):
+    for k in range(cfg.FLOORS):
         for i in range(num_locations):
             abs_col_idx = k * num_locations + i; group_idx = col_map[abs_col_idx + 1]
             
@@ -91,9 +91,10 @@ def build_model_for_section(col_indices, col_rotations, beam_indices, col_map, b
             n1, n2 = node_map[(k, i)], node_map[(k + 1, i)]
             ops.element('elasticBeamColumn', elem_id_counter, n1, n2, A_c, E, G, J_c, Iy_c, Iz_c, transf_tag)
             column_elem_ids.append(elem_id_counter); elem_id_counter += 1
-    for k in range(1, FLOORS + 1):
-        for i, (loc_idx1, loc_idx2) in enumerate(BEAM_CONNECTIONS):
-            abs_beam_idx = (k - 1) * len(BEAM_CONNECTIONS) + i; group_idx = beam_map[num_columns + abs_beam_idx + 1]
+    for k in range(1, cfg.FLOORS + 1):
+        for i, (loc_idx1, loc_idx2) in enumerate(cfg.BEAM_CONNECTIONS):
+            abs_beam_idx = (k - 1) * len(cfg.BEAM_CONNECTIONS) + i
+            group_idx = beam_map[num_columns + abs_beam_idx + 1]
             sec_idx = beam_indices[group_idx]; b_b, h_b = beam_sections[sec_idx]
             
             # [수정] 유효 강성 적용 (Effective Stiffness) - ACI 318
@@ -115,7 +116,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     """
     유전 알고리즘의 핵심 평가 함수.
     """
-    num_locations = len(COLUMN_LOCATIONS) # [Fix] evaluate 함수 내 변수 정의 추가
+    num_locations = len(cfg.COLUMN_LOCATIONS) # [Fix] evaluate 함수 내 변수 정의 추가
     
     len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
     col_indices = individual[:len_col_sec]
@@ -124,25 +125,26 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
 
     # 1. 자중(Self-weight) 및 고정 하중(Dead Load) 계산
     total_structure_weight = 0.0 # 총 지진 중량 W
-    story_weights = [0.0] * FLOORS # 각 층의 무게 (지진력 분배용 Wx)
-    story_heights_from_base = [(k + 1) * H for k in range(FLOORS)] # 각 층 높이 (최하층부터)
+    story_weights = [0.0] * cfg.FLOORS # 각 층의 무게 (지진력 분배용 Wx)
+    story_heights_from_base = [(k + 1) * cfg.H for k in range(cfg.FLOORS)] # 각 층 높이 (최하층부터)
 
     # 기둥 자중
     for col_idx in range(num_columns):
         floor_idx = col_idx // num_locations # 0-indexed floor for column
+
         group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
         b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
-        col_weight_per_story = b * h * H * unit_weight # 한 층 기둥의 무게
+        col_weight_per_story = b * h * cfg.H * unit_weight # 한 층 기둥의 무게
         
         total_structure_weight += col_weight_per_story
         story_weights[floor_idx] += col_weight_per_story # 일단 해당 층에 전체 할당. 나중에 층 중량 결정 시 재조정.
 
     # 보 자중
     for beam_idx in range(num_beams):
-        floor_idx = beam_idx // len(BEAM_CONNECTIONS) # 0-indexed floor for beam
+        floor_idx = beam_idx // len(cfg.BEAM_CONNECTIONS) # 0-indexed floor for beam
         group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
         b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
-        beam_len = beam_lengths[beam_idx % len(BEAM_CONNECTIONS)]
+        beam_len = beam_lengths[beam_idx % len(cfg.BEAM_CONNECTIONS)]
         beam_weight = b * h * beam_len * unit_weight # 보 자중
         
         total_structure_weight += beam_weight
@@ -150,25 +152,25 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
 
     # 슬래브 및 기타 고정하중 (면적 하중)
     # config.py의 DL_AREA_LOAD는 슬래브 자중을 포함한 면적당 고정하중이므로, 이 값을 사용
-    slab_and_superimposed_DL_total_per_floor = FLOOR_AREA * DL_AREA_LOAD
-    total_structure_weight += slab_and_superimposed_DL_total_per_floor * FLOORS
-    for floor_idx in range(FLOORS):
+    slab_and_superimposed_DL_total_per_floor = cfg.FLOOR_AREA * cfg.DL_AREA_LOAD
+    total_structure_weight += slab_and_superimposed_DL_total_per_floor * cfg.FLOORS
+    for floor_idx in range(cfg.FLOORS):
         story_weights[floor_idx] += slab_and_superimposed_DL_total_per_floor
 
     # 2. 건물 총 높이 H_n (최상층 높이)
-    H_total_structure = FLOORS * H
+    H_total_structure = cfg.FLOORS * cfg.H
 
     # 3. 고유 주기 Ta 계산 (ASCE 7-16 Eq. 12.8-7) - 이 값은 Cs 계산에만 사용됨
-    Ta = PERIOD_CT * (H_total_structure ** PERIOD_X)
+    Ta = cfg.PERIOD_CT * (H_total_structure ** cfg.PERIOD_X)
     
     # 4. 지진 응답 계수 Cs 계산 및 제한 (ASCE 7-16 12.8.1)
-    Cs_denom = R_COEFF / I_FACTOR
-    Cs_initial = SDS / Cs_denom # 초기 Cs = SDS / (R/Ie) (ASCE 7-16 Eq. 12.8-2)
+    Cs_denom = cfg.R_COEFF / cfg.I_FACTOR
+    Cs_initial = cfg.SDS / Cs_denom # 초기 Cs = SDS / (R/Ie) (ASCE 7-16 Eq. 12.8-2)
 
     # Cs 상한 (ASCE 7-16 Eq. 12.8-3)
     # Cs_upper = SD1 / (Ta * (R_COEFF / I_FACTOR))
     # T > TL (Long-period transition period) 일 경우 다른 상한 적용되나, 여기선 Ta < TL 가정
-    Cs_upper = SD1 / (Ta * Cs_denom) if Ta != 0 else float('inf') # Ta가 0이 아닐 때만 계산
+    Cs_upper = cfg.SD1 / (Ta * Cs_denom) if Ta != 0 else float('inf') # Ta가 0이 아닐 때만 계산
 
     Cs = min(Cs_initial, Cs_upper) # Cs 상한 적용
 
@@ -177,8 +179,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     Cs = max(Cs, Cs_lower_1)
 
     # 추가 하한 (ASCE 7-16 Eq. 12.8-6) - SDS >= 0.1g 일 때
-    if SDS >= 0.1:
-        Cs_lower_2 = 0.044 * SDS * I_FACTOR
+    if cfg.SDS >= 0.1:
+        Cs_lower_2 = 0.044 * cfg.SDS * cfg.I_FACTOR
         Cs = max(Cs, Cs_lower_2)
     
     # 5. 베이스 전단력 V 계산 (ASCE 7-16 Eq. 12.8-1)
@@ -206,7 +208,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         return failure_results_dict 
     
     # [Fix] num_locations 정의 위치 이동 (여기서 정의되어야 다른 코드에서 사용 가능)
-    num_locations = len(COLUMN_LOCATIONS)
+    num_locations = len(cfg.COLUMN_LOCATIONS)
 
     # --- [Modified] Deflection Check (Immediate + Long-term) ---
     # ACI 318-19 24.2.4.1: Total deflection = Delta_immediate + lambda_delta * Delta_sustained
@@ -222,7 +224,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     deflection_ratios = []
     
     for i, elem_id in enumerate(beam_elem_ids):
-        beam_len = beam_lengths[i % len(BEAM_CONNECTIONS)]
+        beam_len = beam_lengths[i % len(cfg.BEAM_CONNECTIONS)]
         group_idx = beam_map.get(num_columns + i + 1, 0)
         sec_idx = beam_indices[group_idx]
         b, h = beam_sections[sec_idx]
@@ -242,7 +244,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         # Immediate Live Load: LL
         # Sustained Load: DL + 0.5 * LL (Assumption: 50% of LL is sustained)
         
-        tributary_width = BEAM_TRIBUTARY_WIDTHS[i % len(BEAM_CONNECTIONS)]
+        tributary_width = cfg.BEAM_TRIBUTARY_WIDTHS[i % len(cfg.BEAM_CONNECTIONS)]
         w_DL = (beam_sections_df.iloc[sec_idx]['UnitWeight'] * b * h) + (DL * tributary_width) # Self-weight + Slab DL
         w_LL = LL * tributary_width
         
@@ -285,13 +287,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     actual_deflection_ratio = max(deflection_ratios) if deflection_ratios else 0.0
 
     # 6. 층별 질량 매핑
-    mass_nodes = [node_map[(k, 0)] for k in range(1, FLOORS + 1)] # 각 층의 마스터 노드
+    mass_nodes = [node_map[(k, 0)] for k in range(1, cfg.FLOORS + 1)] # 각 층의 마스터 노드
     # story_weights는 이미 계산되어 있으므로, 이를 OpenSees에 질량으로 정의
     
     # OpenSees에 질량 정의 (마스터 노드에 lump mass 집중)
     # 지진하중은 X, Y 방향으로 작용하므로, X(1), Y(2) 방향 질량만 정의
     g_accel = 9.81 # m/s^2
-    for k in range(FLOORS):
+    for k in range(cfg.FLOORS):
         node_tag = mass_nodes[k]
         m_val = story_weights[k] / g_accel # 질량 = 무게 / g
         ops.mass(node_tag, m_val, m_val, 0, 0, 0, 0) # X, Y 방향 질량만 고려 (회전 질량 무시)
@@ -301,8 +303,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     lambda_val = ops.eigen(num_eigenvalues) # 람다 = 오메가^2 (rad/s)^2
     
     # 1차 모드 주기 및 형상 추출
-    phi_1x = [(k + 1) * H for k in range(FLOORS)] # 기본값으로 높이에 비례하는 선형 모드 가정
-    phi_1y = [(k + 1) * H for k in range(FLOORS)]
+    phi_1x = [(k + 1) * cfg.H for k in range(cfg.FLOORS)] # 기본값으로 높이에 비례하는 선형 모드 가정
+    phi_1y = [(k + 1) * cfg.H for k in range(cfg.FLOORS)]
     
     if lambda_val and lambda_val[0] > 1e-9: # 람다가 유효한 값일 경우
         # omega = math.sqrt(lambda_val[0]) # 고유 진동수 (rad/s)
@@ -324,18 +326,18 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     # Cvx = (wx * phi_ix) / sum(wj * phi_ij)
     
     # X 방향 지진력 분배
-    sum_w_phi_x = sum(story_weights[f] * phi_1x[f] for f in range(FLOORS))
-    story_seismic_forces_x = [0.0] * FLOORS
+    sum_w_phi_x = sum(story_weights[f] * phi_1x[f] for f in range(cfg.FLOORS))
+    story_seismic_forces_x = [0.0] * cfg.FLOORS
     if sum_w_phi_x > 1e-9:
-        for f in range(FLOORS):
+        for f in range(cfg.FLOORS):
             Cvx_mode = (story_weights[f] * phi_1x[f]) / sum_w_phi_x
             story_seismic_forces_x[f] = Cvx_mode * base_shear_force_seismic
             
     # Y 방향 지진력 분배
-    sum_w_phi_y = sum(story_weights[f] * phi_1y[f] for f in range(FLOORS))
-    story_seismic_forces_y = [0.0] * FLOORS
+    sum_w_phi_y = sum(story_weights[f] * phi_1y[f] for f in range(cfg.FLOORS))
+    story_seismic_forces_y = [0.0] * cfg.FLOORS
     if sum_w_phi_y > 1e-9:
-        for f in range(FLOORS):
+        for f in range(cfg.FLOORS):
             Cvy_mode = (story_weights[f] * phi_1y[f]) / sum_w_phi_y
             story_seismic_forces_y[f] = Cvy_mode * base_shear_force_seismic
             
@@ -348,7 +350,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     ops.integrator('LoadControl',1.0)
     ops.algorithm('Linear')
     ops.analysis('Static')
-    for i, (combo_name, factors) in enumerate(LOAD_COMBINATIONS):
+    for i, (combo_name, factors) in enumerate(cfg.LOAD_COMBINATIONS):
         pattern_tag = i + 1
         ops.reset()
         ops.pattern('Plain', pattern_tag, 1)
@@ -360,10 +362,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
             beam_self_weight = b * h * unit_weight # kN/m (보 자중 선하중)
 
-            beam_floor = (beam_idx // len(BEAM_CONNECTIONS)) + 1
-            conn_idx = beam_idx % len(BEAM_CONNECTIONS)
+            beam_floor = (beam_idx // len(cfg.BEAM_CONNECTIONS)) + 1
+            conn_idx = beam_idx % len(cfg.BEAM_CONNECTIONS)
             
-            tributary_width = BEAM_TRIBUTARY_WIDTHS[conn_idx] # 해당 보의 분담폭 (m)
+            tributary_width = cfg.BEAM_TRIBUTARY_WIDTHS[conn_idx] # 해당 보의 분담폭 (m)
 
             # 면적 하중을 선하중으로 변환 (kN/m2 * m = kN/m)
             dl_line_load = DL * tributary_width
@@ -385,37 +387,37 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         for col_idx, eid in enumerate(column_elem_ids):
             group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
             b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
-            col_self_weight = b * h * H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
+            col_self_weight = b * h * cfg.H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
             ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
             ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
         
         # [수정] 풍하중 상세 산정 (ASCE 7-16)
         # 각 층별 높이에 따른 풍압(qz) 계산 및 하중 분배
-        story_wind_forces_x = [0.0] * FLOORS
-        story_wind_forces_y = [0.0] * FLOORS
+        story_wind_forces_x = [0.0] * cfg.FLOORS
+        story_wind_forces_y = [0.0] * cfg.FLOORS
         
         # 기준 높이 H에서의 풍압 q_h (풍하측용)
         def get_Kz(z):
             z_eff = max(z, 4.57) # 최소 높이 15ft (4.57m)
-            return 2.01 * ((z_eff / ZG) ** (2 / ALPHA))
+            return 2.01 * ((z_eff / cfg.ZG) ** (2 / cfg.ALPHA))
             
-        Kz_top = get_Kz(FLOORS * H)
-        qh = 0.000613 * Kz_top * KZT * KD * (BASIC_WIND_SPEED ** 2) # kN/m2
+        Kz_top = get_Kz(cfg.FLOORS * cfg.H)
+        qh = 0.000613 * Kz_top * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) # kN/m2
         
-        for k in range(FLOORS):
-            z_story = (k + 1) * H
+        for k in range(cfg.FLOORS):
+            z_story = (k + 1) * cfg.H
             Kz = get_Kz(z_story)
-            qz = 0.000613 * Kz * KZT * KD * (BASIC_WIND_SPEED ** 2) # kN/m2
+            qz = 0.000613 * Kz * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) # kN/m2
             
             # 풍압력 p = q * G * Cp
             # Total Force = (p_windward + p_leeward) * Area
-            p_windward = qz * G_FACTOR * CP_WINDWARD
-            p_leeward = qh * G_FACTOR * abs(CP_LEEWARD) # Leeward는 qh 기준, 흡입력이므로 절대값 더함
+            p_windward = qz * cfg.G_FACTOR * cfg.CP_WINDWARD
+            p_leeward = qh * cfg.G_FACTOR * abs(cfg.CP_LEEWARD) # Leeward는 qh 기준, 흡입력이므로 절대값 더함
             p_total = p_windward + p_leeward
             
             # 수압 면적 (층고 H * 폭)
-            A_x = BUILDING_WIDTH_Y * H # X방향 풍하중을 받는 면적 (Y축 폭)
-            A_y = BUILDING_WIDTH_X * H # Y방향 풍하중을 받는 면적 (X축 폭)
+            A_x = cfg.BUILDING_WIDTH_Y * cfg.H # X방향 풍하중을 받는 면적 (Y축 폭)
+            A_y = cfg.BUILDING_WIDTH_X * cfg.H # Y방향 풍하중을 받는 면적 (X축 폭)
             
             story_wind_forces_x[k] = p_total * A_x
             story_wind_forces_y[k] = p_total * A_y
@@ -426,7 +428,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         
         # 층별 지진력 및 풍하중 적용
         if abs(factors["Ex"]) > 1e-9 or abs(factors["Ey"]) > 1e-9 or abs(factors["Wx"]) > 1e-9 or abs(factors["Wy"]) > 1e-9:
-            for k in range(FLOORS): # 0-indexed floor
+            for k in range(cfg.FLOORS): # 0-indexed floor
                 # 지진력
                 Fx_seismic = story_seismic_forces_x[k] * factors["Ex"]
                 Fy_seismic = story_seismic_forces_y[k] * factors["Ey"]
@@ -515,7 +517,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         drift_factors_x_seismic = next((f for name, f in LOAD_COMBINATIONS if name == "ASCE-S-E1"), None) # 1.0D + 1.0L + 0.7Ex + 0.21Ey
         
         if drift_factors_x_seismic:
-            for k in range(1,FLOORS+1):
+            for k in range(1,cfg.FLOORS+1):
                 master_node_id = node_map.get((k, 0))
                 if master_node_id:
                     # 해당 층의 총 지진력에 조합계수 Ex를 곱하여 마스터 노드에 재하
@@ -525,13 +527,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                                         Fy_story_load = story_seismic_forces_y[k-1] * drift_factors_x_seismic["Ey"] # 직교효과                    ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0) # 마스터 노드에 직접 재하
 
             if ops.analyze(1) == 0:
-                for k in range(1, FLOORS + 1):
+                for k in range(1, cfg.FLOORS + 1):
                     master_node_upper = node_map.get((k, 0))
                     master_node_lower = node_map.get((k - 1, 0)) # 기초는 0층이므로 0.0 변위
                     if master_node_upper:
                         disp_upper_x = ops.nodeDisp(master_node_upper, 1)
                         disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
-                        drift_x = abs(disp_upper_x - disp_lower_x) / H
+                        drift_x = abs(disp_upper_x - disp_lower_x) / cfg.H
                         story_drifts_x.append(drift_x)
                         # print(f"DEBUG Drift X: Floor {k}, Upper Node {master_node_upper} DispX: {disp_upper_x:.6f}, Lower Node {master_node_lower} DispX: {disp_lower_x:.6f}, Drift: {drift_x:.6f}") # DEBUG
                 else:
@@ -539,10 +541,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         
         # --- Y방향 층간변위 (지진하중) ---
         ops.reset(); ops.pattern('Plain', 102, 1)
-        drift_factors_y_seismic = next((f for name, f in LOAD_COMBINATIONS if name == "ASCE-S-E5"), None) # 1.0D + 1.0L + 0.21Ex + 0.7Ey
+        drift_factors_y_seismic = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-E5"), None) # 1.0D + 1.0L + 0.21Ex + 0.7Ey
         
         if drift_factors_y_seismic:
-            for k in range(1,FLOORS+1):
+            for k in range(1,cfg.FLOORS+1):
                 master_node_id = node_map.get((k, 0))
                 if master_node_id:
                     Fx_story_load = story_seismic_forces_x[k-1] * drift_factors_y_seismic["Ex"] # 직교효과
@@ -550,13 +552,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0) # 마스터 노드에 직접 재하
 
             if ops.analyze(1) == 0:
-                for k in range(1, FLOORS + 1):
+                for k in range(1, cfg.FLOORS + 1):
                     master_node_upper = node_map.get((k, 0))
                     master_node_lower = node_map.get((k - 1, 0))
                     if master_node_upper:
                         disp_upper_y = ops.nodeDisp(master_node_upper, 2)
                         disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
-                        drift_y = abs(disp_upper_y - disp_lower_y) / H
+                        drift_y = abs(disp_upper_y - disp_lower_y) / cfg.H
                         story_drifts_y.append(drift_y)
                         # print(f"DEBUG Drift Y: Floor {k}, Upper Node {master_node_upper} DispY: {disp_upper_y:.6f}, Lower Node {master_node_lower} DispY: {disp_lower_y:.6f}, Drift: {drift_y:.6f}") # DEBUG
                 else:
@@ -572,10 +574,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         # --- X 방향 풍하중 변위 ---
         actual_wind_disp_ratio_x = float('inf')
         ops.reset(); ops.pattern('Plain', 201, 1)
-        wind_factors_x = next((f for name, f in LOAD_COMBINATIONS if name == "ASCE-S-W1"), None) # 1.0D + 0.5L + 1.0Wx
+        wind_factors_x = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-W1"), None) # 1.0D + 0.5L + 1.0Wx
         if wind_factors_x:
             # base_force_x = Wx * wind_factors_x["Wx"] # 기존
-            for k in range(1, FLOORS + 1):
+            for k in range(1, cfg.FLOORS + 1):
                 # story_force_x = base_force_x * (k / lateral_force_dist_sum) # 기존
                 master_node_id = node_map.get((k, 0))
                 if master_node_id:
@@ -584,20 +586,20 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     ops.load(master_node_id, Fx_story_load, 0, 0, 0, 0, 0)
             if ops.analyze(1) == 0:
                 disps = []
-                for k in range(1, FLOORS + 1):
+                for k in range(1, cfg.FLOORS + 1):
                     master_node_id = node_map.get((k, 0))
                     if master_node_id: disps.append(abs(ops.nodeDisp(master_node_id, 1)))
                 wind_disps_x = disps
                 if wind_disps_x:
-                    actual_wind_disp_ratio_x = wind_disps_x[-1] / ((FLOORS * H) / 400.0)
+                    actual_wind_disp_ratio_x = wind_disps_x[-1] / ((cfg.FLOORS * cfg.H) / 400.0)
         
         # --- Y 방향 풍하중 변위 ---
         actual_wind_disp_ratio_y = float('inf')
         ops.reset(); ops.pattern('Plain', 202, 1)
-        wind_factors_y = next((f for name, f in LOAD_COMBINATIONS if name == "ASCE-S-W3"), None) # 1.0D + 0.5L + 1.0Wy
+        wind_factors_y = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-W3"), None) # 1.0D + 0.5L + 1.0Wy
         if wind_factors_y:
             # base_force_y = Wy * wind_factors_y["Wy"] # 기존
-            for k in range(1, FLOORS + 1):
+            for k in range(1, cfg.FLOORS + 1):
                 # story_force_y = base_force_y * (k / lateral_force_dist_sum) # 기존
                 master_node_id = node_map.get((k, 0))
                 if master_node_id:
@@ -606,12 +608,12 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     ops.load(master_node_id, 0, Fy_story_load, 0, 0, 0, 0)
             if ops.analyze(1) == 0:
                 disps = []
-                for k in range(1, FLOORS + 1):
+                for k in range(1, cfg.FLOORS + 1):
                     master_node_id = node_map.get((k, 0))
                     if master_node_id: disps.append(abs(ops.nodeDisp(master_node_id, 2)))
                 wind_disps_y = disps
                 if wind_disps_y:
-                    actual_wind_disp_ratio_y = wind_disps_y[-1] / ((FLOORS * H) / 400.0)
+                    actual_wind_disp_ratio_y = wind_disps_y[-1] / ((cfg.FLOORS * cfg.H) / 400.0)
         actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
 
     # --- SCWB (Strong Column - Weak Beam) Check ---
@@ -619,18 +621,18 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     scwb_ratios = []
     
     # 1. Map beams to nodes to sum beam capacities at each joint
-    # node_beams_x/y keys: (floor_idx (1..FLOORS), loc_idx (0..num_locations-1))
+    # node_beams_x/y keys: (floor_idx (1..cfg.FLOORS), loc_idx (0..num_locations-1))
     node_beams_x = {} 
     node_beams_y = {}
     
-    for beam_idx, (u, v) in enumerate(BEAM_CONNECTIONS):
+    for beam_idx, (u, v) in enumerate(cfg.BEAM_CONNECTIONS):
         # Determine beam orientation
-        ux, uy = COLUMN_LOCATIONS[u]
-        vx, vy = COLUMN_LOCATIONS[v]
+        ux, uy = cfg.COLUMN_LOCATIONS[u]
+        vx, vy = cfg.COLUMN_LOCATIONS[v]
         is_x_beam = abs(uy - vy) < 1e-4 # Same Y-coord -> Beam is along X
         
-        for k in range(1, FLOORS + 1):
-            abs_beam_idx = (k - 1) * len(BEAM_CONNECTIONS) + beam_idx
+        for k in range(1, cfg.FLOORS + 1):
+            abs_beam_idx = (k - 1) * len(cfg.BEAM_CONNECTIONS) + beam_idx
             group_idx = beam_map[num_columns + abs_beam_idx + 1]
             sec_idx = beam_indices[group_idx]
             
@@ -648,7 +650,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     node_beams_y[node_key].append(mn_beam)
 
     # 2. Iterate all joints to check SCWB
-    for k in range(1, FLOORS + 1):
+    for k in range(1, cfg.FLOORS + 1):
         for i in range(num_locations):
             sum_mb_x = sum(node_beams_x.get((k, i), []))
             sum_mb_y = sum(node_beams_y.get((k, i), []))
@@ -658,7 +660,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             # Identify columns framing into this joint
             cols_to_check = []
             if k >= 1: cols_to_check.append( (k-1) * num_locations + i ) # Column Below
-            if k < FLOORS: cols_to_check.append( k * num_locations + i ) # Column Above
+            if k < cfg.FLOORS: cols_to_check.append( k * num_locations + i ) # Column Above
             
             sum_mc_for_x_beams = 0.0 # Resisting Moment against X-Beams (needs M about Global Y)
             sum_mc_for_y_beams = 0.0 # Resisting Moment against Y-Beams (needs M about Global X)
@@ -700,15 +702,15 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     for i in range(num_columns):
         group_idx = col_map[i + 1]; sec_idx = col_indices[group_idx]
         # 콘크리트 및 철근 비용
-        total_cost += column_sections_df.iloc[sec_idx]['Cost'] * H
-        total_co2 += column_sections_df.iloc[sec_idx]['CO2'] * H
+        total_cost += column_sections_df.iloc[sec_idx]['Cost'] * cfg.H
+        total_co2 += column_sections_df.iloc[sec_idx]['CO2'] * cfg.H
         # 거푸집 비용 (기둥)
         b_c, h_c = column_sections[sec_idx]
-        column_formwork_area = 2 * (b_c + h_c) * H
-        total_cost += column_formwork_area * FORMWORK_UNIT_COST
-    for k in range(FLOORS):
-        for i in range(len(BEAM_CONNECTIONS)):
-            abs_beam_idx = k * len(BEAM_CONNECTIONS) + i; group_idx = beam_map[num_columns + abs_beam_idx + 1]
+        column_formwork_area = 2 * (b_c + h_c) * cfg.H
+        total_cost += column_formwork_area * cfg.FORMWORK_UNIT_COST
+    for k in range(cfg.FLOORS):
+        for i in range(len(cfg.BEAM_CONNECTIONS)):
+            abs_beam_idx = k * len(cfg.BEAM_CONNECTIONS) + i; group_idx = beam_map[num_columns + abs_beam_idx + 1]
             sec_idx = beam_indices[group_idx]
             # 콘크리트 및 철근 비용
             total_cost += beam_sections_df.iloc[sec_idx]['Cost'] * beam_lengths[i]
@@ -716,7 +718,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             # 거푸집 비용 (보)
             b_b, h_b = beam_sections[sec_idx]
             beam_formwork_area = 2 * (b_b + h_b) * beam_lengths[i] # 상부 슬래브 접면 제외
-            total_cost += beam_formwork_area * FORMWORK_UNIT_COST
+            total_cost += beam_formwork_area * cfg.FORMWORK_UNIT_COST
 
     max_allowable_ratios = {
         'strength': 2.0, 'drift': 2.5, 'wind_disp': 3.0, 'deflection': 2.0, 'hierarchy': 1.2
