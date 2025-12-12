@@ -11,9 +11,10 @@
 - [x] **강체 횡격막 (Rigid Diaphragm):** `ops.equalDOF`를 사용하여 층별 자유도(1, 2, 6) 구속 구현.
 - [x] **P-Delta 효과 (P-Delta Effect):** `geomTransf('PDelta', ...)` 적용 확인.
 - [x] **유효 강성 (Effective Stiffness):** ACI 318 기준 적용 (Column 0.7, Beam 0.35) 확인.
-- [x] **지진 하중 현실화 (Seismic Load):** ELF(등가정적해석법) 기반 동적 하중 산정 구현 완료. 고정 상수(`_RAND`) 제거됨.
+- [x] **지진 하중 현실화 (Seismic Load):** ELF 기반 등가정적해석을 수행하되, **1차 모드 형상(Eigenvector)에 비례한 하중 분배**를 적용하여 비정형성을 반영.
 - [x] **풍하중 (Wind Load):** ASCE 7-16 기준(V=30m/s, 노출 B) 적용 확인.
 - [x] **장기 처짐 (Long-term Deflection):** ACI 318 기준 $\lambda_\Delta$ 계수 적용 완료.
+- [x] **강한 기둥-약한 보 (SCWB):** 모든 접합부에서 $\sum M_{nc} \ge 1.2 \sum M_{nb}$ 조건 검토 로직 구현 완료.
 
 ### 1.2. 평가 모듈 및 비용 모델 업데이트 (R3-3, R3-4, R3-13)
 - [x] **거푸집 비용 (Formwork Cost):** 기둥 및 보의 표면적 기반 비용 산정 로직 추가 완료.

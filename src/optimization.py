@@ -239,6 +239,6 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         record['hof_size'] = len(hof)
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        # if verbose: tqdm.write(logbook.stream.splitlines()[-1])
+        if verbose: tqdm.write(logbook.stream.splitlines()[-1])
 
     return pop, logbook, hof, hof_stats_history

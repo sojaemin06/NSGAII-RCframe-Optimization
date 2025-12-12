@@ -116,7 +116,73 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     유전 알고리즘의 핵심 평가 함수.
     """
     num_locations = len(COLUMN_LOCATIONS) # [Fix] evaluate 함수 내 변수 정의 추가
-    lateral_force_dist_sum = sum(range(1, FLOORS + 1)) # [Fix] lateral_force_dist_sum 정의 추가
+    
+    len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
+    col_indices = individual[:len_col_sec]
+    col_rotations = individual[len_col_sec : len_col_sec + len_col_rot]
+    beam_indices = individual[len_col_sec + len_col_rot :]
+
+    # 1. 자중(Self-weight) 및 고정 하중(Dead Load) 계산
+    total_structure_weight = 0.0 # 총 지진 중량 W
+    story_weights = [0.0] * FLOORS # 각 층의 무게 (지진력 분배용 Wx)
+    story_heights_from_base = [(k + 1) * H for k in range(FLOORS)] # 각 층 높이 (최하층부터)
+
+    # 기둥 자중
+    for col_idx in range(num_columns):
+        floor_idx = col_idx // num_locations # 0-indexed floor for column
+        group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
+        b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
+        col_weight_per_story = b * h * H * unit_weight # 한 층 기둥의 무게
+        
+        total_structure_weight += col_weight_per_story
+        story_weights[floor_idx] += col_weight_per_story # 일단 해당 층에 전체 할당. 나중에 층 중량 결정 시 재조정.
+
+    # 보 자중
+    for beam_idx in range(num_beams):
+        floor_idx = beam_idx // len(BEAM_CONNECTIONS) # 0-indexed floor for beam
+        group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
+        b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
+        beam_len = beam_lengths[beam_idx % len(BEAM_CONNECTIONS)]
+        beam_weight = b * h * beam_len * unit_weight # 보 자중
+        
+        total_structure_weight += beam_weight
+        story_weights[floor_idx] += beam_weight
+
+    # 슬래브 및 기타 고정하중 (면적 하중)
+    # config.py의 DL_AREA_LOAD는 슬래브 자중을 포함한 면적당 고정하중이므로, 이 값을 사용
+    slab_and_superimposed_DL_total_per_floor = FLOOR_AREA * DL_AREA_LOAD
+    total_structure_weight += slab_and_superimposed_DL_total_per_floor * FLOORS
+    for floor_idx in range(FLOORS):
+        story_weights[floor_idx] += slab_and_superimposed_DL_total_per_floor
+
+    # 2. 건물 총 높이 H_n (최상층 높이)
+    H_total_structure = FLOORS * H
+
+    # 3. 고유 주기 Ta 계산 (ASCE 7-16 Eq. 12.8-7) - 이 값은 Cs 계산에만 사용됨
+    Ta = PERIOD_CT * (H_total_structure ** PERIOD_X)
+    
+    # 4. 지진 응답 계수 Cs 계산 및 제한 (ASCE 7-16 12.8.1)
+    Cs_denom = R_COEFF / I_FACTOR
+    Cs_initial = SDS / Cs_denom # 초기 Cs = SDS / (R/Ie) (ASCE 7-16 Eq. 12.8-2)
+
+    # Cs 상한 (ASCE 7-16 Eq. 12.8-3)
+    # Cs_upper = SD1 / (Ta * (R_COEFF / I_FACTOR))
+    # T > TL (Long-period transition period) 일 경우 다른 상한 적용되나, 여기선 Ta < TL 가정
+    Cs_upper = SD1 / (Ta * Cs_denom) if Ta != 0 else float('inf') # Ta가 0이 아닐 때만 계산
+
+    Cs = min(Cs_initial, Cs_upper) # Cs 상한 적용
+
+    # Cs 하한 (ASCE 7-16 Eq. 12.8-5)
+    Cs_lower_1 = 0.01
+    Cs = max(Cs, Cs_lower_1)
+
+    # 추가 하한 (ASCE 7-16 Eq. 12.8-6) - SDS >= 0.1g 일 때
+    if SDS >= 0.1:
+        Cs_lower_2 = 0.044 * SDS * I_FACTOR
+        Cs = max(Cs, Cs_lower_2)
+    
+    # 5. 베이스 전단력 V 계산 (ASCE 7-16 Eq. 12.8-1)
+    base_shear_force_seismic = Cs * total_structure_weight
 
     failure_results_dict = {
         "cost": float('inf'), "co2": float('inf'),
@@ -127,18 +193,20 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
         "forces_df": pd.DataFrame(), "violation": float('inf'), "absolute_margins": {}
     }
+    len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
+    col_indices = individual[:len_col_sec]
+    col_rotations = individual[len_col_sec : len_col_sec + len_col_rot]
+    beam_indices = individual[len_col_sec + len_col_rot :]
+
     try:
-        len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
-        col_indices = individual[:len_col_sec]
-        col_rotations = individual[len_col_sec : len_col_sec + len_col_rot]
-        beam_indices = individual[len_col_sec + len_col_rot :]
         column_elem_ids, beam_elem_ids, node_map = build_model_for_section(col_indices, col_rotations, beam_indices, col_map, beam_map, beam_sections, column_sections)
         print("DEBUG: Model built successfully.")
     except Exception as e:
         print(f"DEBUG: Error building model: {e}")
         return failure_results_dict 
     
-    # ... (previous code) ...
+    # [Fix] num_locations 정의 위치 이동 (여기서 정의되어야 다른 코드에서 사용 가능)
+    num_locations = len(COLUMN_LOCATIONS)
 
     # --- [Modified] Deflection Check (Immediate + Long-term) ---
     # ACI 318-19 24.2.4.1: Total deflection = Delta_immediate + lambda_delta * Delta_sustained
@@ -216,86 +284,60 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
 
     actual_deflection_ratio = max(deflection_ratios) if deflection_ratios else 0.0
 
-    # 1. 자중(Self-weight) 및 고정 하중(Dead Load) 계산
-    total_structure_weight = 0.0 # 총 지진 중량 W
-    story_weights = [0.0] * FLOORS # 각 층의 무게 (지진력 분배용 Wx) [Fix] FLOORS 수만큼 초기화
-    story_heights_from_base = [(k + 1) * H for k in range(FLOORS)] # 각 층 높이 (최하층부터)
+    # 6. 층별 질량 매핑
+    mass_nodes = [node_map[(k, 0)] for k in range(1, FLOORS + 1)] # 각 층의 마스터 노드
+    # story_weights는 이미 계산되어 있으므로, 이를 OpenSees에 질량으로 정의
+    
+    # OpenSees에 질량 정의 (마스터 노드에 lump mass 집중)
+    # 지진하중은 X, Y 방향으로 작용하므로, X(1), Y(2) 방향 질량만 정의
+    g_accel = 9.81 # m/s^2
+    for k in range(FLOORS):
+        node_tag = mass_nodes[k]
+        m_val = story_weights[k] / g_accel # 질량 = 무게 / g
+        ops.mass(node_tag, m_val, m_val, 0, 0, 0, 0) # X, Y 방향 질량만 고려 (회전 질량 무시)
 
-    # 기둥 자중
-    for col_idx in range(num_columns):
-        floor_idx = col_idx // num_locations # 0-indexed floor for column
-        group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
-        b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
-        col_weight_per_story = b * h * H * unit_weight # 한 층 기둥의 무게
+    # 고유치 해석 (Eigenvalue Analysis) 수행
+    num_eigenvalues = 1 # 1차 모드만 필요
+    lambda_val = ops.eigen(num_eigenvalues) # 람다 = 오메가^2 (rad/s)^2
+    
+    # 1차 모드 주기 및 형상 추출
+    phi_1x = [(k + 1) * H for k in range(FLOORS)] # 기본값으로 높이에 비례하는 선형 모드 가정
+    phi_1y = [(k + 1) * H for k in range(FLOORS)]
+    
+    if lambda_val and lambda_val[0] > 1e-9: # 람다가 유효한 값일 경우
+        # omega = math.sqrt(lambda_val[0]) # 고유 진동수 (rad/s)
+        # T1 = (2 * math.pi) / omega # 1차 고유 주기 (초) (여기서 계산된 T1은 Cs 계산에는 사용되지 않음)
         
-        total_structure_weight += col_weight_per_story
-        story_weights[floor_idx] += col_weight_per_story # 일단 해당 층에 전체 할당. 나중에 층 중량 결정 시 재조정.
+        # 1차 모드 형상 (X, Y 방향 변위 성분) 추출
+        try:
+            phi_1x = [ops.nodeEigenvector(node_tag, 1, 1) for node_tag in mass_nodes] # mode 1, dof 1 (X)
+            phi_1y = [ops.nodeEigenvector(node_tag, 1, 2) for node_tag in mass_nodes] # mode 1, dof 2 (Y)
+        except Exception as e:
+            print(f"DEBUG: Failed to get eigenvector: {e}. Using linear approximation for mode shapes.")
+            # 실패 시 선형 근사 유지 (초기값 그대로)
+    else:
+        print(f"DEBUG: Eigenvalue analysis failed or invalid. Using linear approximation for mode shapes.")
+        # 실패 시 선형 근사 유지 (초기값 그대로)
 
-    # 보 자중
-    for beam_idx in range(num_beams):
-        floor_idx = beam_idx // len(BEAM_CONNECTIONS) # 0-indexed floor for beam
-        group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
-        b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
-        beam_len = beam_lengths[beam_idx % len(BEAM_CONNECTIONS)]
-        beam_weight = b * h * beam_len * unit_weight # 보 자중
-        
-        total_structure_weight += beam_weight
-        story_weights[floor_idx] += beam_weight
-
-    # 슬래브 및 기타 고정하중 (면적 하중)
-    # config.py의 DL_AREA_LOAD는 슬래브 자중을 포함한 면적당 고정하중이므로, 이 값을 사용
-    slab_and_superimposed_DL_total_per_floor = FLOOR_AREA * DL_AREA_LOAD
-    total_structure_weight += slab_and_superimposed_DL_total_per_floor * FLOORS
-    for floor_idx in range(FLOORS):
-        story_weights[floor_idx] += slab_and_superimposed_DL_total_per_floor
-
-
-    # 2. 건물 총 높이 H_n (최상층 높이)
-    H_total_structure = FLOORS * H
-
-    # 3. 고유 주기 Ta 계산 (ASCE 7-16 Eq. 12.8-7)
-    Ta = PERIOD_CT * (H_total_structure ** PERIOD_X)
+    # 층별 지진력 분배 (1차 모드 형상 기반)
+    # Fx = (Cvx * V)
+    # Cvx = (wx * phi_ix) / sum(wj * phi_ij)
     
-    # 4. 지진 응답 계수 Cs 계산 및 제한 (ASCE 7-16 12.8.1)
-    Cs_denom = R_COEFF / I_FACTOR
-    Cs_initial = SDS / Cs_denom # 초기 Cs = SDS / (R/Ie) (ASCE 7-16 Eq. 12.8-2)
-
-    # Cs 상한 (ASCE 7-16 Eq. 12.8-3)
-    # Cs_upper = SD1 / (Ta * (R_COEFF / I_FACTOR))
-    # T > TL (Long-period transition period) 일 경우 다른 상한 적용되나, 여기선 Ta < TL 가정
-    Cs_upper = SD1 / (Ta * Cs_denom) if Ta != 0 else float('inf') # Ta가 0이 아닐 때만 계산
-
-    Cs = min(Cs_initial, Cs_upper) # Cs 상한 적용
-
-    # Cs 하한 (ASCE 7-16 Eq. 12.8-5)
-    Cs_lower_1 = 0.01
-    Cs = max(Cs, Cs_lower_1)
-
-    # 추가 하한 (ASCE 7-16 Eq. 12.8-6) - SDS >= 0.1g 일 때
-    if SDS >= 0.1:
-        Cs_lower_2 = 0.044 * SDS * I_FACTOR
-        Cs = max(Cs, Cs_lower_2)
-    
-    # 5. 베이스 전단력 V 계산 (ASCE 7-16 Eq. 12.8-1)
-    base_shear_force_seismic = Cs * total_structure_weight
-    
-    # 6. 층별 지진력 분배 (ASCE 7-16 12.8.3)
-    # 층별 분포 지수 k 결정 (ASCE 7-16 12.8.3.2)
-    k_exponent = 1.0
-    if Ta <= 0.5:
-        k_exponent = 1.0
-    elif Ta >= 2.5:
-        k_exponent = 2.0
-    else: # 0.5 < Ta < 2.5, 선형 보간
-        k_exponent = 1.0 + (Ta - 0.5) / 2.0
-
-    sum_w_h_k = sum(story_weights[f] * (story_heights_from_base[f] ** k_exponent) for f in range(FLOORS))
-    
-    story_seismic_forces = [0.0] * FLOORS
-    if sum_w_h_k > 1e-9: # 0으로 나누는 것 방지
+    # X 방향 지진력 분배
+    sum_w_phi_x = sum(story_weights[f] * phi_1x[f] for f in range(FLOORS))
+    story_seismic_forces_x = [0.0] * FLOORS
+    if sum_w_phi_x > 1e-9:
         for f in range(FLOORS):
-            Cvx = (story_weights[f] * (story_heights_from_base[f] ** k_exponent)) / sum_w_h_k
-            story_seismic_forces[f] = Cvx * base_shear_force_seismic
+            Cvx_mode = (story_weights[f] * phi_1x[f]) / sum_w_phi_x
+            story_seismic_forces_x[f] = Cvx_mode * base_shear_force_seismic
+            
+    # Y 방향 지진력 분배
+    sum_w_phi_y = sum(story_weights[f] * phi_1y[f] for f in range(FLOORS))
+    story_seismic_forces_y = [0.0] * FLOORS
+    if sum_w_phi_y > 1e-9:
+        for f in range(FLOORS):
+            Cvy_mode = (story_weights[f] * phi_1y[f]) / sum_w_phi_y
+            story_seismic_forces_y[f] = Cvy_mode * base_shear_force_seismic
             
     # OpenSees 해석 부분 (기존 코드 유지)
     all_max_combo_forces, analysis_ok = [], True
@@ -386,8 +428,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         if abs(factors["Ex"]) > 1e-9 or abs(factors["Ey"]) > 1e-9 or abs(factors["Wx"]) > 1e-9 or abs(factors["Wy"]) > 1e-9:
             for k in range(FLOORS): # 0-indexed floor
                 # 지진력
-                Fx_seismic = story_seismic_forces[k] * factors["Ex"]
-                Fy_seismic = story_seismic_forces[k] * factors["Ey"]
+                Fx_seismic = story_seismic_forces_x[k] * factors["Ex"]
+                Fy_seismic = story_seismic_forces_y[k] * factors["Ey"]
                 
                 # 풍하중
                 Fx_wind = story_wind_forces_x[k] * factors["Wx"]
@@ -479,9 +521,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     # 해당 층의 총 지진력에 조합계수 Ex를 곱하여 마스터 노드에 재하
                     # ASCE-S-E1은 0.7Ex 이므로, story_seismic_forces[k-1]에 0.7을 곱함.
                     # story_seismic_forces는 이미 각 층에 분배된 지진력의 총합이므로, nodal_load_x로 나눌 필요 없음
-                    Fx_story_load = story_seismic_forces[k-1] * drift_factors_x_seismic["Ex"] 
-                    Fy_story_load = story_seismic_forces[k-1] * drift_factors_x_seismic["Ey"] # 직교효과
-                    ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0) # 마스터 노드에 직접 재하
+                                        Fx_story_load = story_seismic_forces_x[k-1] * drift_factors_x_seismic["Ex"]
+                                        Fy_story_load = story_seismic_forces_y[k-1] * drift_factors_x_seismic["Ey"] # 직교효과                    ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0) # 마스터 노드에 직접 재하
 
             if ops.analyze(1) == 0:
                 for k in range(1, FLOORS + 1):
@@ -504,8 +545,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             for k in range(1,FLOORS+1):
                 master_node_id = node_map.get((k, 0))
                 if master_node_id:
-                    Fx_story_load = story_seismic_forces[k-1] * drift_factors_y_seismic["Ex"] # 직교효과
-                    Fy_story_load = story_seismic_forces[k-1] * drift_factors_y_seismic["Ey"] # 0-indexed story_seismic_forces
+                    Fx_story_load = story_seismic_forces_x[k-1] * drift_factors_y_seismic["Ex"] # 직교효과
+                    Fy_story_load = story_seismic_forces_y[k-1] * drift_factors_y_seismic["Ey"] # 0-indexed story_seismic_forces
                     ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0) # 마스터 노드에 직접 재하
 
             if ops.analyze(1) == 0:
@@ -573,17 +614,87 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     actual_wind_disp_ratio_y = wind_disps_y[-1] / ((FLOORS * H) / 400.0)
         actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
 
-    hierarchy_ratios = [1.0]
-    if GROUPING_STRATEGY != "Uniform":
-        for k in range(FLOORS - 1): 
-            for i in range(num_locations):
-                abs_col_idx_lower = k * num_locations + i; group_idx_lower = col_map[abs_col_idx_lower + 1]; sec_idx_lower = col_indices[group_idx_lower]; rot_lower = col_rotations[group_idx_lower]
-                b_lower, h_lower = column_sections[sec_idx_lower]; dim_x_lower, dim_y_lower = (b_lower, h_lower) if rot_lower == 0 else (h_lower, b_lower)
-                abs_col_idx_upper = (k + 1) * num_locations + i; group_idx_upper = col_map[abs_col_idx_upper + 1]; sec_idx_upper = col_indices[group_idx_upper]; rot_upper = col_rotations[group_idx_upper]
-                b_upper, h_upper = column_sections[sec_idx_upper]; dim_x_upper, dim_y_upper = (b_upper, h_upper) if rot_upper == 0 else (h_upper, b_upper)
-                ratio_x = dim_x_upper / dim_x_lower if dim_x_lower > 0 else 0.0; ratio_y = dim_y_upper / dim_y_lower if dim_y_lower > 0 else 0.0
-                hierarchy_ratios.append(max(ratio_x, ratio_y))
-    actual_hierarchy_ratio = max(hierarchy_ratios)
+    # --- SCWB (Strong Column - Weak Beam) Check ---
+    # Requirement: sum(M_nc) >= 1.2 * sum(M_nb) at every joint
+    scwb_ratios = []
+    
+    # 1. Map beams to nodes to sum beam capacities at each joint
+    # node_beams_x/y keys: (floor_idx (1..FLOORS), loc_idx (0..num_locations-1))
+    node_beams_x = {} 
+    node_beams_y = {}
+    
+    for beam_idx, (u, v) in enumerate(BEAM_CONNECTIONS):
+        # Determine beam orientation
+        ux, uy = COLUMN_LOCATIONS[u]
+        vx, vy = COLUMN_LOCATIONS[v]
+        is_x_beam = abs(uy - vy) < 1e-4 # Same Y-coord -> Beam is along X
+        
+        for k in range(1, FLOORS + 1):
+            abs_beam_idx = (k - 1) * len(BEAM_CONNECTIONS) + beam_idx
+            group_idx = beam_map[num_columns + abs_beam_idx + 1]
+            sec_idx = beam_indices[group_idx]
+            
+            # Beam Nominal Moment Capacity (Mn_z)
+            mn_beam = beam_sections_df.iloc[sec_idx]['PiM']
+            
+            # Add to both end nodes
+            for node_idx in [u, v]:
+                node_key = (k, node_idx)
+                if is_x_beam:
+                    if node_key not in node_beams_x: node_beams_x[node_key] = []
+                    node_beams_x[node_key].append(mn_beam)
+                else:
+                    if node_key not in node_beams_y: node_beams_y[node_key] = []
+                    node_beams_y[node_key].append(mn_beam)
+
+    # 2. Iterate all joints to check SCWB
+    for k in range(1, FLOORS + 1):
+        for i in range(num_locations):
+            sum_mb_x = sum(node_beams_x.get((k, i), []))
+            sum_mb_y = sum(node_beams_y.get((k, i), []))
+            
+            if sum_mb_x == 0 and sum_mb_y == 0: continue
+            
+            # Identify columns framing into this joint
+            cols_to_check = []
+            if k >= 1: cols_to_check.append( (k-1) * num_locations + i ) # Column Below
+            if k < FLOORS: cols_to_check.append( k * num_locations + i ) # Column Above
+            
+            sum_mc_for_x_beams = 0.0 # Resisting Moment against X-Beams (needs M about Global Y)
+            sum_mc_for_y_beams = 0.0 # Resisting Moment against Y-Beams (needs M about Global X)
+            
+            for c_idx in cols_to_check:
+                group_idx = col_map[c_idx + 1]
+                sec_idx = col_indices[group_idx]
+                rot = col_rotations[group_idx] if len(col_rotations) > 0 else 0
+                
+                # Get Column Capacity at P=0 (Pure Bending) for conservatism
+                pm_df = load_pm_data_for_column(h5_file, sec_idx)
+                pn0_z, mn0_z = get_pm_capacity_from_df(0, pm_df, axis='z') # Strong Axis Capacity
+                pn0_y, mn0_y = get_pm_capacity_from_df(0, pm_df, axis='y') # Weak Axis Capacity
+                
+                # Orientation Mapping:
+                # Rot 0: Local z // Global X, Local y // Global Y
+                #   -> X-Beam (Global Y moment) resisted by Mn_y (Weak)
+                #   -> Y-Beam (Global X moment) resisted by Mn_z (Strong)
+                # Rot 1: Local z // Global Y, Local y // Global X
+                #   -> X-Beam (Global Y moment) resisted by Mn_z (Strong)
+                #   -> Y-Beam (Global X moment) resisted by Mn_y (Weak)
+                
+                if rot == 0:
+                    sum_mc_for_x_beams += mn0_y
+                    sum_mc_for_y_beams += mn0_z
+                else:
+                    sum_mc_for_x_beams += mn0_z
+                    sum_mc_for_y_beams += mn0_y
+            
+            # Calculate DCR: Demand (1.2*Beam) / Capacity (Col)
+            if sum_mb_x > 0:
+                scwb_ratios.append( (1.2 * sum_mb_x) / (sum_mc_for_x_beams + 1e-9) )
+            if sum_mb_y > 0:
+                scwb_ratios.append( (1.2 * sum_mb_y) / (sum_mc_for_y_beams + 1e-9) )
+    
+    actual_hierarchy_ratio = max(scwb_ratios) if scwb_ratios else 0.0
 
     total_cost, total_co2 = 0, 0
     for i in range(num_columns):

@@ -90,6 +90,10 @@ def plot_results(output_folder, all_results, logbook, hof_stats_history, chromos
                  col_map, beam_map, beam_sections, column_sections):
     """최적화 결과 그래프를 생성하고 저장합니다."""
     
+    if not all_results:
+        print("No valid results to plot.")
+        return
+
     # 1. 최적 구조물 형상 (첫 번째 해 기준)
     ind = all_results[0]['individual']
     len_col_sec = chromosome_structure['col_sec']

@@ -80,8 +80,9 @@
 *   **[문서 수정]** `4.1 Target Structure`:
     *   지진 하중 산정 근거(설계 스펙트럼 등) 명시.
     *   하중 값 수정 (40kN -> **600kN**).
-    *   **근거:** 건물 총 중량 $W \approx 12,500 \text{ kN}$ (보+기둥+슬래브 하중 포함 추정치) 및 지진 응답 계수 $C_s \approx 0.048$ (약진 지역/중간 모멘트 골조 가정) 적용 시, 베이스 전단력 $V = C_s W \approx 600 \text{ kN}$. 이를 등가정적해석법(ELF)에 따라 층별로 역삼각형 분포로 재하함.
-*   **[코드]** `scripts/experiment_high_load.py` 실행하여 **600kN** 조건에서도 해가 수렴하는지 검증 필수.
+    *   **근거:** 건물 총 중량 $W \approx 12,500 \text{ kN}$ (보+기둥+슬래브 하중 포함 추정치) 및 지진 응답 계수 $C_s \approx 0.048$ (약진 지역/중간 모멘트 골조 가정) 적용 시, 베이스 전단력 $V = C_s W \approx 600 \text{ kN}$. 
+    *   **분포 방식 고도화:** 기존 역삼각형 분포(ELF) 대신, 8층 비정형 예제의 동적 특성을 반영하기 위해 **OpenSees 고유치 해석(Eigenvalue Analysis)을 통한 1차 모드 형상 기반 분포($F_x \propto m \phi_1$)**를 적용하여 정밀도 향상.
+*   **[코드]** `src/structural_analysis.py`: `ops.eigen(1)`을 활용한 하중 분배 로직 구현 완료.
 
 ### R2-9: 예제 층수 오류 수정
 *   **[문서 수정]** `4. Numerical Example`:
@@ -99,9 +100,10 @@
 *   **[문서 수정]** `Discussion`:
     *   "The framework demonstrates robustness under general loading conditions, achieving stable convergence and optimized resource usage, proving its superiority beyond specific asymmetric scenarios."
 
-### R2-12: 실무적 설계 한계 (Limitations)
-*   **[문서 수정]** `Discussion`:
-    *   "Fixed Member Grouping"과 "Uniform Stirrup Spacing"은 최적화 효율성(Convergence)과 시공성(Constructability)을 위한 가정임을 명시.
+### R2-12: 실무적 설계 한계 (Limitations) & SCWB 구현
+*   **[코드 및 문서 수정]**
+    *   "Fixed Member Grouping" 등은 한계로 남겨두되, **내진 설계 핵심 조건인 SCWB(강한 기둥-약한 보)는 직접 구현**하여 한계를 극복.
+    *   **SCWB 구현:** 모든 기둥-보 접합부(Joint)에서 $\sum M_{nc} \ge 1.2 \sum M_{nb}$ 조건을 검토하는 로직 추가. (기둥 강도는 $P=0$ 기준 보수적 평가)
     *   향후 연구에서 가변 그룹핑(Variable Grouping) 등을 다룰 것임을 언급.
 
 ### R2-14: 데이터 공개

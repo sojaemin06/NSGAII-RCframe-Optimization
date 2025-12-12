@@ -172,17 +172,57 @@ def load_pm_data_for_column(h5_file, column_index):
 def get_pm_capacity_from_df(slope, pm_df, axis='z'):
     if pm_df.empty: return 0.0, 0.0
     moment_col, axial_col = (f'Alpha_PI_Mnb_{axis}', f'Alpha_PI_Pnb_{axis}')
-    design_m, design_p = pm_df[moment_col].values, pm_df[axial_col].values
+    
+    # Extract arrays
+    design_m = pm_df[moment_col].values
+    design_p = pm_df[axial_col].values
+    
+    # Calculate slopes (P/M)
+    # Use small epsilon for M to avoid div by zero, resulting in Inf slope for pure compression
     curve_slopes = abs(design_p) / (abs(design_m) + 1e-9)
+    
+    # Sort by slope Descending (Infinity -> 0)
+    # This ensures the loop condition (slopes[i] >= slope >= slopes[i+1]) works correctly
+    sorted_indices = np.argsort(curve_slopes)[::-1]
+    design_m = design_m[sorted_indices]
+    design_p = design_p[sorted_indices]
+    curve_slopes = curve_slopes[sorted_indices]
+    
+    # 1. Check if slope is larger than max slope (Pure Compression region)
+    if slope >= curve_slopes[0]:
+        return design_p[0], design_m[0]
+        
+    # 2. Check if slope is smaller than min slope (Pure Bending region)
+    if slope <= curve_slopes[-1]:
+        return design_p[-1], design_m[-1]
+
+    # 3. Interpolate
     for i in range(len(curve_slopes) - 1):
         if curve_slopes[i] >= slope >= curve_slopes[i+1]:
             m1, p1, m2, p2 = design_m[i], design_p[i], design_m[i+1], design_p[i+1]
-            if abs(m2 - m1) < 1e-9: continue
-            a1 = (p2 - p1) / (m2 - m1); b1 = p1 - a1 * m1
-            if abs(a1 - slope) < 1e-9: continue
-            Mn = -b1 / (a1 - slope)
+            
+            # Avoid division by zero if points are identical
+            if abs(m2 - m1) < 1e-9: 
+                return p1, m1
+                
+            # Linear Interpolation on P-M diagram
+            # Line eq: P - p1 = a * (M - m1)  => P = a*M + b
+            a1 = (p2 - p1) / (m2 - m1)
+            b1 = p1 - a1 * m1
+            
+            # Intersection with P = slope * M
+            # slope * M = a1 * M + b1  => M * (slope - a1) = b1
+            if abs(a1 - slope) < 1e-9: # Parallel lines (should unlikely happen if logic is correct)
+                return p1, m1
+                
+            Mn = b1 / (slope - a1)
             Pn = slope * Mn
-            return Pn, Mn
+            
+            # Additional safety: ensure Pn, Mn are positive/consistent with demand sign if needed
+            # But here capacity is usually positive magnitude.
+            return abs(Pn), abs(Mn)
+            
+    # Fallback (should be covered by edge checks)
     return 0.0, 0.0
 
 def get_precalculated_strength(element_type, index, col_df, beam_df):

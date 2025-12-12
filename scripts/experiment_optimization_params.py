@@ -1,4 +1,11 @@
+import sys
 import os
+
+# Add the project root to sys.path
+script_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+sys.path.insert(0, project_root)
+
 import time
 import h5py
 import pandas as pd
@@ -33,11 +40,11 @@ PREV_BEST_PARAMS = {
 }
 
 # 3. 실험 파라미터 설정
-STEP1_GEN = 100     # 교배 전략 비교 (빠른 탐색)
-STEP2_GEN = 100     # 토너먼트 크기 비교
-STEP3_GEN = 100     # 교배 확률 비교
-STEP4_GEN = 100    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
-STEP5_GEN = 200    # 모집단 크기 비교 (최종 수렴 성능)
+STEP1_GEN = 5     # 교배 전략 비교 (빠른 탐색)
+STEP2_GEN = 5     # 토너먼트 크기 비교
+STEP3_GEN = 5     # 교배 확률 비교
+STEP4_GEN = 5    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
+STEP5_GEN = 5    # 모집단 크기 비교 (최종 수렴 성능)
 
 BASE_POP = 100     # 초기 기준 모집단
 BASE_TOURN = 3     # 초기 기준 토너먼트

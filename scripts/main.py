@@ -1,5 +1,12 @@
-import time
+import sys
 import os
+
+# Add the project root to sys.path
+script_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+sys.path.insert(0, project_root)
+
+import time
 import h5py
 import pandas as pd
 import numpy as np
@@ -21,24 +28,24 @@ EXAMPLES = {
         'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
         'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
         'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
-    },
-    'Example_2_6Story': {
-        'Floors': 6,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
-    },
-    'Example_3_8Story': {
-        'Floors': 8,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
     }
+    # 'Example_2_6Story': {
+    #     'Floors': 6,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
+    # },
+    # 'Example_3_8Story': {
+    #     'Floors': 8,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
+    # }
 }
 
 # 실험 파라미터
-OPT_POP_SIZE = cfg.POPULATION_SIZE 
-OPT_GENERATIONS = cfg.NUM_GENERATIONS 
+OPT_POP_SIZE = 100 
+OPT_GENERATIONS = 0 
 OPT_CX_METHOD = cfg.CROSSOVER_STRATEGY 
 OPT_CX_PROB = cfg.CXPB 
 OPT_MUT_PROB = cfg.MUTPB 
@@ -184,16 +191,29 @@ def main():
     # 2. Pareto Front Comparison (Subplots)
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
+    # 만약 예제가 1개라면 axes는 배열이 아닐 수 있음. 리스트로 변환
+    if len(all_results) == 1:
+        axes = [axes] if not isinstance(axes, np.ndarray) else axes
+    
     for i, data in enumerate(all_results):
         hof = data['hof']
         fit1 = [ind.fitness.values[0] for ind in hof] # Norm Cost+CO2
         fit2 = [ind.fitness.values[1] for ind in hof] # Mean DCR
         
-        axes[i].scatter(fit2, fit1, c='blue', alpha=0.7)
-        axes[i].set_title(data['name'])
-        axes[i].set_xlabel('Mean DCR')
-        axes[i].set_ylabel('Norm Cost+CO2')
-        axes[i].grid(True)
+        ax = axes[i] if len(all_results) > 1 else axes # 1개일 경우 axes 자체가 ax일수도, axes[0]일수도
+        # axes가 1d array인 경우와 subplot 1개인 경우 처리 주의
+        # plt.subplots(1, 3) -> axes shape (3,)
+        # plt.subplots(1, 1) -> ax object (not array) unless squeeze=False
+        
+        # 여기서 간단히 처리:
+        if isinstance(axes, np.ndarray):
+            ax = axes.flatten()[i]
+        
+        ax.scatter(fit2, fit1, c='blue', alpha=0.7)
+        ax.set_title(data['name'])
+        ax.set_xlabel('Mean DCR')
+        ax.set_ylabel('Norm Cost+CO2')
+        ax.grid(True)
         
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_BASE_DIR, 'Examples_Pareto_Comparison.png'))
