@@ -23,28 +23,29 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: True,  # Step 1: Crossover Strategy (다시 실행)
+    1: False,  # Step 1: Crossover Strategy (다시 실행)
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
     4: False,  # Step 4: Mutation Probability
+    '4_High': True, # Step 4: Mutation Probability (확장 실험)
     5: False   # Step 5: Population Size
 }
 
 # 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
 PREV_BEST_PARAMS = {
-    'Best_Crossover': 'TwoPoint', 
+    'Best_Crossover': 'OnePoint', 
     'Best_Tournament': 3,         
-    'Best_CXPB': 0.9,             
-    'Best_MUTPB': 0.1,            
+    'Best_CXPB': 1.0,             
+    'Best_MUTPB': 0.3,            
     'Best_PopSize': 100           
 }
 
 # 3. 실험 파라미터 설정
-STEP1_GEN = 5     # 교배 전략 비교 (빠른 탐색)
-STEP2_GEN = 5     # 토너먼트 크기 비교
-STEP3_GEN = 5     # 교배 확률 비교
-STEP4_GEN = 5    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
-STEP5_GEN = 5    # 모집단 크기 비교 (최종 수렴 성능)
+STEP1_GEN = 100     # 교배 전략 비교 (빠른 탐색)
+STEP2_GEN = 100     # 토너먼트 크기 비교
+STEP3_GEN = 100     # 교배 확률 비교
+STEP4_GEN = 100    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
+STEP5_GEN = 100    # 모집단 크기 비교 (최종 수렴 성능)
 
 BASE_POP = 100     # 초기 기준 모집단
 BASE_TOURN = 3     # 초기 기준 토너먼트
@@ -138,7 +139,8 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
                 'Obj2_MeanDCR': ind.fitness.values[1],
                 'Cost': ind.detailed_results.get('cost', 0),
                 'CO2': ind.detailed_results.get('co2', 0),
-                'Mean_DCR': ind.detailed_results.get('mean_strength_ratio', 0)
+                'Mean_DCR': ind.detailed_results.get('mean_strength_ratio', 0),
+                'Hypervolume': final_hvs.get(param, 0.0)
             })
     
     df_hof = pd.DataFrame(hof_rows)
@@ -263,7 +265,7 @@ def main():
         current_best['Best_CXPB'] = best_cxpb
 
         # --- Step 4: Mutation Probability ---
-        best_mutpb = run_step_logic(4, "Mutation Probability", [0.05, 0.1, 0.2, 0.3], "MUTPB", current_best, common_data, STEP4_GEN)
+        best_mutpb = run_step_logic(4, "Mutation Probability", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6], "MUTPB", current_best, common_data, STEP4_GEN)
         current_best['Best_MUTPB'] = best_mutpb
 
         # --- Step 5: Population Size ---
