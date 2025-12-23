@@ -499,7 +499,17 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                 strengths, pm_df = get_precalculated_strength(elem_type, sec_idx, column_sections_df, beam_sections_df), load_pm_data_for_column(h5_file, sec_idx)
                 pn_z, mn_z = get_pm_capacity_from_df(p/(mz+1e-9), pm_df, axis='z')
                 pn_y, mn_y = get_pm_capacity_from_df(p/(my+1e-9), pm_df, axis='y')
-                ratios = [p/(pn_z+1e-9), p/(pn_y+1e-9), vy/(strengths['Vn_y']+1e-9), vz/(strengths['Vn_z']+1e-9), my/(mn_y+1e-9), mz/(mn_z+1e-9)]
+                
+                # [Biaxial Check] PCA Load Contour Method (alpha approx 1.5)
+                dcr_z = mz / (mn_z + 1e-9)
+                dcr_y = my / (mn_y + 1e-9)
+                dcr_biaxial = (dcr_z ** 1.5) + (dcr_y ** 1.5)
+                
+                ratios = [
+                    p/(pn_z+1e-9), p/(pn_y+1e-9), 
+                    vy/(strengths['Vn_y']+1e-9), vz/(strengths['Vn_z']+1e-9), 
+                    dcr_z, dcr_y, dcr_biaxial # Include biaxial check
+                ]
             else:
                 abs_beam_idx = beam_elem_ids.index(elem_id); group_idx = beam_map[num_columns + abs_beam_idx + 1]; sec_idx = beam_indices[group_idx]
                 strengths = get_precalculated_strength(elem_type, sec_idx, column_sections_df, beam_sections_df)
