@@ -23,11 +23,10 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: False,  # Step 1: Crossover Strategy (다시 실행)
+    1: False,  # Step 1: Crossover Strategy
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
-    4: False,  # Step 4: Mutation Probability
-    '4_High': True, # Step 4: Mutation Probability (확장 실험)
+    4: True,   # Step 4: Mutation Probability (추가 실험)
     5: False   # Step 5: Population Size
 }
 
@@ -36,7 +35,7 @@ PREV_BEST_PARAMS = {
     'Best_Crossover': 'OnePoint', 
     'Best_Tournament': 3,         
     'Best_CXPB': 1.0,             
-    'Best_MUTPB': 0.3,            
+    'Best_MUTPB': 0.5,            
     'Best_PopSize': 100           
 }
 
@@ -105,17 +104,17 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     return hof_stats_history, final_hof
 
 def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, output_dir):
-    """실험 결과 분석 및 시각화"""
+    """실험 결과 분석 및 시각화 (기존 CSV 병합 기능 추가)"""
     df = pd.DataFrame(all_history_data)
     
-    # 1. Hypervolume 수렴 그래프
+    # 1. Hypervolume 수렴 그래프 (현재 실행된 실험만 표시)
     plt.figure(figsize=(10, 6))
     final_hvs = {}
     for label, group in df.groupby(param_key):
         plt.plot(group['gen'], group['hypervolume'], marker='o', markersize=3, label=f"{label}")
         final_hvs[label] = group.iloc[-1]['hypervolume']
     
-    plt.title(f'{step_name} - Hypervolume Convergence')
+    plt.title(f'{step_name} - Hypervolume Convergence (Current Run)')
     plt.xlabel('Generation')
     plt.ylabel('Hypervolume')
     plt.legend(title=param_key)
@@ -123,17 +122,11 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     plt.savefig(os.path.join(output_dir, f'{step_name}_HV.png'))
     plt.close()
     
-    # 2. 최적 파라미터 선정
-    best_param = max(final_hvs, key=final_hvs.get)
-    worst_param = min(final_hvs, key=final_hvs.get)
-    
-    print(f"   -> [Result] Best: {best_param} (HV={final_hvs[best_param]:.4f}), Worst: {worst_param} (HV={final_hvs[worst_param]:.4f})")
-
-    # 3. Pareto Front 데이터 CSV 저장
-    hof_rows = []
+    # 3. Pareto Front 데이터 처리 및 병합
+    new_hof_rows = []
     for param, inds in all_hof_data.items():
         for ind in inds:
-            hof_rows.append({
+            new_hof_rows.append({
                 'Parameter': param,
                 'Obj1_NormCostCO2': ind.fitness.values[0],
                 'Obj2_MeanDCR': ind.fitness.values[1],
@@ -143,32 +136,67 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
                 'Hypervolume': final_hvs.get(param, 0.0)
             })
     
-    df_hof = pd.DataFrame(hof_rows)
+    df_new = pd.DataFrame(new_hof_rows)
     csv_path = os.path.join(output_dir, f'{step_name}_Pareto_Data.csv')
-    df_hof.to_csv(csv_path, index=False)
-    print(f"   -> [Saved] Pareto data saved to {csv_path}")
+    
+    # 기존 파일이 있으면 병합
+    if os.path.exists(csv_path):
+        print(f"   -> Found existing data at {csv_path}. Merging and updating...")
+        df_old = pd.read_csv(csv_path)
+        # 현재 실험한 파라미터들은 기존 데이터에서 제거 (최신 결과로 대체)
+        # df_new에 있는 파라미터 목록 추출
+        current_params = df_new['Parameter'].unique()
+        df_old = df_old[~df_old['Parameter'].isin(current_params)]
+        
+        df_combined = pd.concat([df_old, df_new], ignore_index=True)
+    else:
+        df_combined = df_new
 
-    # 4. Pareto Front 비교 그래프 (모든 파라미터 표시)
+    # 저장
+    df_combined.to_csv(csv_path, index=False)
+    print(f"   -> [Saved] Combined Pareto data saved to {csv_path}")
+
+    # 4. Pareto Front 비교 그래프 (병합된 데이터 사용)
     plt.figure(figsize=(10, 8))
     
-    params = list(all_hof_data.keys())
-    # 파라미터 개수에 맞춰 색상 생성 (viridis 컬러맵 사용)
-    colors = plt.cm.viridis(np.linspace(0, 1, len(params)))
+    # 병합된 데이터에서 파라미터 목록 추출 및 정렬
+    all_params = sorted(df_combined['Parameter'].unique())
     
-    for param, color in zip(params, colors):
-        hof = all_hof_data[param]
-        fit1 = [ind.fitness.values[0] for ind in hof] # Cost+CO2
-        fit2 = [ind.fitness.values[1] for ind in hof] # DCR
+    # Best/Worst 재산정 (병합된 데이터 기준)
+    # 각 파라미터별 평균 HV 또는 최대 HV를 기준으로 할 수 있으나, 여기서는 CSV에 저장된 Hypervolume 컬럼 사용
+    # 주의: Hypervolume은 해당 파라미터 실험의 최종 세대 HV임.
+    # 병합된 데이터에서 파라미터별로 첫 번째 행의 HV를 가져오면 됨 (같은 파라미터면 HV 같음)
+    param_hvs = {}
+    for p in all_params:
+        rows = df_combined[df_combined['Parameter'] == p]
+        if not rows.empty:
+            param_hvs[p] = rows.iloc[0]['Hypervolume']
+            
+    best_param = max(param_hvs, key=param_hvs.get)
+    worst_param = min(param_hvs, key=param_hvs.get)
+    
+    print(f"   -> [Result (Combined)] Best: {best_param} (HV={param_hvs[best_param]:.4f}), Worst: {worst_param}")
+
+    # 파라미터 개수에 맞춰 색상 생성 (viridis 컬러맵 사용)
+    colors = plt.cm.viridis(np.linspace(0, 1, len(all_params)))
+    
+    for param, color in zip(all_params, colors):
+        subset = df_combined[df_combined['Parameter'] == param]
+        fit1 = subset['Obj1_NormCostCO2']
+        fit2 = subset['Obj2_MeanDCR']
+        
+        # 라벨 생성 (HV 포함)
+        label_str = f"{param}"
         
         if param == best_param:
             # Best Param: 빨간색 별표, 크기 키움, 최상단 표시
-            plt.scatter(fit2, fit1, c='red', label=f'{param} (Best)', s=100, marker='*', edgecolors='black', zorder=10)
+            plt.scatter(fit2, fit1, c='red', label=f'{label_str} (Best)', s=100, marker='*', edgecolors='black', zorder=10)
         elif param == worst_param:
             # Worst Param: 회색 X표, 투명도 낮춤
-            plt.scatter(fit2, fit1, c='gray', label=f'{param} (Worst)', s=40, marker='x', alpha=0.5, zorder=1)
+            plt.scatter(fit2, fit1, c='gray', label=f'{label_str} (Worst)', s=40, marker='x', alpha=0.5, zorder=1)
         else:
             # 그 외: 컬러맵 색상, 원형
-            plt.scatter(fit2, fit1, color=color, label=f'{param}', s=50, alpha=0.7, zorder=5)
+            plt.scatter(fit2, fit1, color=color, label=label_str, s=50, alpha=0.7, zorder=5)
     
     plt.title(f'{step_name} - Pareto Front Comparison (All Parameters)')
     plt.xlabel('Structural Conservatism (Mean DCR)')
@@ -176,7 +204,6 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    # 파일명 변경: BestVsWorst -> All
     plt.savefig(os.path.join(output_dir, f'{step_name}_Pareto_All.png'))
     plt.close()
     
@@ -265,7 +292,8 @@ def main():
         current_best['Best_CXPB'] = best_cxpb
 
         # --- Step 4: Mutation Probability ---
-        best_mutpb = run_step_logic(4, "Mutation Probability", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6], "MUTPB", current_best, common_data, STEP4_GEN)
+        # [변경] 추가 실험 (0.7 ~ 1.0)
+        best_mutpb = run_step_logic(4, "Mutation Probability", [0.7, 0.8, 0.9, 1.0], "MUTPB", current_best, common_data, STEP4_GEN)
         current_best['Best_MUTPB'] = best_mutpb
 
         # --- Step 5: Population Size ---
