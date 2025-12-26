@@ -45,7 +45,7 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
             norm_co2 = max(0.0, min(1.0, (res['co2'] - fixed_min_co2) / fixed_range_co2))
             
             obj1 = norm_cost + norm_co2
-            obj2 = res['mean_strength_ratio']
+            obj2 = res['max_drift_ratio']
 
             ind.fitness.values = (obj1, obj2 if obj2 > 0 else float('inf'))
 
@@ -57,11 +57,27 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
 
     toolbox = base.Toolbox()
     num_col_opts, num_beam_opts = len(column_sections), len(beam_sections)
-    gene_pool = [lambda: random.randint(0, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
-    gene_pool.extend(lambda: random.randint(0, 1) for _ in range(chromosome_structure['col_rot']))
-    gene_pool.extend(lambda: random.randint(0, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec']))
+    
+    def init_individual():
+        # [Strategy] Seeded Initialization for N_types Constraint
+        # Instead of random sampling from entire DB, pick a small subset (pool) first.
+        # This ensures initial population has low N_types violation.
+        
+        # 1. Select a random pool of section IDs (e.g., 5~10 types)
+        pool_size_col = random.randint(5, 10)
+        pool_size_beam = random.randint(5, 10)
+        
+        col_pool = [random.randint(0, num_col_opts - 1) for _ in range(pool_size_col)]
+        beam_pool = [random.randint(0, num_beam_opts - 1) for _ in range(pool_size_beam)]
+        
+        # 2. Assign genes from this pool
+        col_genes = [random.choice(col_pool) for _ in range(chromosome_structure['col_sec'])]
+        rot_genes = [random.randint(0, 1) for _ in range(chromosome_structure['col_rot'])]
+        beam_genes = [random.choice(beam_pool) for _ in range(chromosome_structure['beam_sec'])]
+        
+        return creator.Individual(col_genes + rot_genes + beam_genes)
 
-    toolbox.register("individual", tools.initCycle, creator.Individual, tuple(gene_pool))
+    toolbox.register("individual", init_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     
     toolbox.register("evaluate", evaluate, DL=DL, LL=LL, h5_file=h5_file, patterns_by_floor=patterns_by_floor,
@@ -103,12 +119,22 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     
     def get_best_invalid_margins(population):
         if not population: return "N/A"
-        valid_for_check = [ind for ind in population if hasattr(ind, 'detailed_results') and 'violation' in ind.detailed_results]
-        if not valid_for_check: return "No detailed results"
-        best_ind = min(valid_for_check, key=lambda ind: ind.detailed_results['violation'])
-        margins = best_ind.detailed_results.get('absolute_margins')
+        # Find best individual based on violation score (closest to feasible)
+        # If feasible exists, it will show 0.00 for all.
+        # If not, show margins of the "least violated" individual.
+        best_ind = min(population, key=lambda ind: ind.detailed_results.get('violation', float('inf')))
+        margins = best_ind.detailed_results.get('absolute_margins', {})
+        
         if not margins: return "Margins N/A"
-        margin_str = (f"S:{margins.get('strength', 0):.2f} D:{margins.get('drift', 0):.2f} W:{margins.get('wind_disp', 0):.2f} F:{margins.get('deflection', 0):.2f} H:{margins.get('hierarchy', 0):.2f}")
+        
+        # S:Strength, D:Drift, W:Wind, F:Defl, H:SCWB, C:ColSize, N:N_types
+        margin_str = (f"S:{margins.get('strength', 0):.2f} "
+                      f"D:{margins.get('drift', 0):.2f} "
+                      f"W:{margins.get('wind_disp', 0):.2f} "
+                      f"F:{margins.get('deflection', 0):.2f} "
+                      f"H:{margins.get('hierarchy', 0):.2f} "
+                      f"C:{margins.get('col_size', 0):.2f} "
+                      f"N:{margins.get('N_types', 0):.2f}")
         return margin_str
 
     def calculate_valid_stat(pop, key, stat_func, default_val=0.0):
@@ -128,8 +154,8 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     value_stats = tools.Statistics()
     value_stats.register("avg_cost", lambda pop: calculate_valid_stat(pop, 'cost', np.mean))
     value_stats.register("min_cost", lambda pop: calculate_valid_stat(pop, 'cost', np.min))
-    value_stats.register("avg_dcr", lambda pop: calculate_valid_stat(pop, 'mean_strength_ratio', np.mean))
-    value_stats.register("min_dcr", lambda pop: calculate_valid_stat(pop, 'mean_strength_ratio', np.min))
+    value_stats.register("avg_drift", lambda pop: calculate_valid_stat(pop, 'max_drift_ratio', np.mean))
+    value_stats.register("min_drift", lambda pop: calculate_valid_stat(pop, 'max_drift_ratio', np.min))
 
     # Hypervolume Statistic
     HV_REFERENCE_POINT = [2.5, 2.5]
@@ -147,7 +173,7 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     
     hof_value_stats = tools.Statistics()
     hof_value_stats.register("hof_min_cost", lambda h: calculate_valid_stat(h, 'cost', np.min))
-    hof_value_stats.register("hof_min_dcr", lambda h: calculate_valid_stat(h, 'mean_strength_ratio', np.min))
+    hof_value_stats.register("hof_min_drift", lambda h: calculate_valid_stat(h, 'max_drift_ratio', np.min))
 
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + fitness_stats.fields + ['sep1'] + health_stats.fields + ['sep2'] + value_stats.fields + ['sep3'] + margin_stats.fields + ['sep4', 'hof_size'] + ['sep5'] + hof_value_stats.fields

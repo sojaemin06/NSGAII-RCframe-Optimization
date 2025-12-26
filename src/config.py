@@ -4,7 +4,7 @@
 # =================================================================
 
 # --- 1.1. 그룹핑 및 교배 전략 선택 ---
-GROUPING_STRATEGY = "Hybrid"
+GROUPING_STRATEGY = "Individual" # "Hybrid", "Individual", "ByFloor", "Uniform"
 CROSSOVER_STRATEGY = "OnePoint"  # "OnePoint", "TwoPoint", "Uniform"
 
 # --- 1.2. 건물 기본 정보 ---
@@ -185,7 +185,15 @@ PATTERNS_BY_FLOOR = LOAD_PATTERNS_4F
 # 기존 선하중(kN/m) 대신 면적당 하중(kN/m2)을 정의하여 일관성 확보
 # 슬래브 자중(3.6) + 마감(1.4) = 5.0 kN/m2 가정
 DL_AREA_LOAD = 5.0 # kN/m2 (Dead Load including Slab Self-weight)
-LL_AREA_LOAD = 2.0 # kN/m2 (Live Load)
+
+# [수정] 층별 활하중 차등 적용 (용도 변화 모사)
+# 1-2층: 로비/상업 (5.0), 3-5층: 사무실 (3.0), 6층 이상: 주거/회의 (2.0)
+LL_AREA_LOAD = {
+    1: 5.0, 2: 5.0, 
+    3: 3.0, 4: 3.0, 5: 3.0,
+    6: 2.0, 7: 2.0, 8: 2.0,
+    'default': 2.0
+}
 
 # [REMOVED] Fixed Load Constants (WX_RAND, etc.) - Now calculated dynamically based on ASCE 7-16
 

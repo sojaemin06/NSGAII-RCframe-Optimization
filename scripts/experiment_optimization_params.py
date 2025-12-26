@@ -23,10 +23,10 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: False,  # Step 1: Crossover Strategy
+    1: True,   # Step 1: Crossover Strategy (현재 실행)
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
-    4: True,   # Step 4: Mutation Probability (추가 실험)
+    4: False,  # Step 4: Mutation Probability
     5: False   # Step 5: Population Size
 }
 
@@ -34,22 +34,22 @@ RUN_STEPS = {
 PREV_BEST_PARAMS = {
     'Best_Crossover': 'OnePoint', 
     'Best_Tournament': 3,         
-    'Best_CXPB': 1.0,             
-    'Best_MUTPB': 0.5,            
+    'Best_CXPB': 0.9,             
+    'Best_MUTPB': 0.1,            
     'Best_PopSize': 100           
 }
 
 # 3. 실험 파라미터 설정
-STEP1_GEN = 100     # 교배 전략 비교 (빠른 탐색)
-STEP2_GEN = 100     # 토너먼트 크기 비교
-STEP3_GEN = 100     # 교배 확률 비교
-STEP4_GEN = 100    # 변이 확률 비교 (다양성 중요하므로 조금 더 길게)
-STEP5_GEN = 100    # 모집단 크기 비교 (최종 수렴 성능)
+STEP1_GEN = 50     # 교배 전략 비교 (빠른 탐색)
+STEP2_GEN = 50     # 토너먼트 크기 비교
+STEP3_GEN = 50     # 교배 확률 비교
+STEP4_GEN = 50     # 변이 확률 비교
+STEP5_GEN = 80     # 모집단 크기 비교 (조금 더 길게)
 
 BASE_POP = 100     # 초기 기준 모집단
-BASE_TOURN = 3     # 초기 기준 토너먼트
-BASE_CXPB = 0.9    # 초기 기준 교배 확률
-BASE_MUTPB = 0.1   # 초기 기준 변이 확률
+BASE_TOURN = 3     
+BASE_CXPB = 0.9    
+BASE_MUTPB = 0.1   
 
 OUTPUT_ROOT = "Results_Param_Optimization"
 
@@ -129,10 +129,10 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
             new_hof_rows.append({
                 'Parameter': param,
                 'Obj1_NormCostCO2': ind.fitness.values[0],
-                'Obj2_MeanDCR': ind.fitness.values[1],
+                'Obj2_MaxDrift': ind.fitness.values[1], # Changed MeanDCR -> MaxDrift
                 'Cost': ind.detailed_results.get('cost', 0),
                 'CO2': ind.detailed_results.get('co2', 0),
-                'Mean_DCR': ind.detailed_results.get('mean_strength_ratio', 0),
+                'Max_Drift': ind.detailed_results.get('max_drift_ratio', 0), # Changed Key
                 'Hypervolume': final_hvs.get(param, 0.0)
             })
     
@@ -163,9 +163,6 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     all_params = sorted(df_combined['Parameter'].unique())
     
     # Best/Worst 재산정 (병합된 데이터 기준)
-    # 각 파라미터별 평균 HV 또는 최대 HV를 기준으로 할 수 있으나, 여기서는 CSV에 저장된 Hypervolume 컬럼 사용
-    # 주의: Hypervolume은 해당 파라미터 실험의 최종 세대 HV임.
-    # 병합된 데이터에서 파라미터별로 첫 번째 행의 HV를 가져오면 됨 (같은 파라미터면 HV 같음)
     param_hvs = {}
     for p in all_params:
         rows = df_combined[df_combined['Parameter'] == p]
@@ -183,7 +180,7 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     for param, color in zip(all_params, colors):
         subset = df_combined[df_combined['Parameter'] == param]
         fit1 = subset['Obj1_NormCostCO2']
-        fit2 = subset['Obj2_MeanDCR']
+        fit2 = subset['Obj2_MaxDrift'] # Changed Key
         
         # 라벨 생성 (HV 포함)
         label_str = f"{param}"
@@ -199,7 +196,7 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
             plt.scatter(fit2, fit1, color=color, label=label_str, s=50, alpha=0.7, zorder=5)
     
     plt.title(f'{step_name} - Pareto Front Comparison (All Parameters)')
-    plt.xlabel('Structural Conservatism (Mean DCR)')
+    plt.xlabel('Resilience (Max Drift Ratio)') # Label Update
     plt.ylabel('Economic & Env. Demand (Norm Cost+CO2)')
     plt.legend()
     plt.grid(True)
@@ -256,13 +253,16 @@ def main():
     h5_file = h5py.File('pm_dataset_simple02.mat', 'r')
     
     try:
+        # [수정] 강제 그룹핑 전략 설정 (Individual)
+        forced_grouping_strategy = "Individual"
+        
         num_locations = len(COLUMN_LOCATIONS)
         num_columns = num_locations * FLOORS
         num_beams = len(BEAM_CONNECTIONS) * FLOORS
         beam_lengths = get_beam_lengths(COLUMN_LOCATIONS, BEAM_CONNECTIONS)
         
         num_col_groups, num_beam_groups, col_map, beam_map = get_grouping_maps(
-            GROUPING_STRATEGY, num_locations, num_columns, num_beams, FLOORS, BEAM_CONNECTIONS, COLUMN_LOCATIONS
+            forced_grouping_strategy, num_locations, num_columns, num_beams, FLOORS, BEAM_CONNECTIONS, COLUMN_LOCATIONS
         )
         chromosome_structure = {'col_sec': num_col_groups, 'col_rot': num_col_groups, 'beam_sec': num_beam_groups}
         

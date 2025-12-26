@@ -10,6 +10,9 @@ from src.structural_analysis import build_model_for_section
 
 def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, chromosome_structure):
     """최적화 결과를 CSV 파일로 저장합니다."""
+
+    # [수정] 상세 정보 조회를 위해 전체 섹션 데이터프레임 로드
+    beam_sections_df_full, column_sections_df_full, _, _ = load_section_data()
     
     # 1. 파레토 최적해 요약
     summary_data_list = []
@@ -19,9 +22,11 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
             'ID': r['ID'],
             'Cost': r['cost'],
             'CO2': r['co2'],
-            'Mean_DCR': r['mean_strength_ratio'],
-            'Fit1(NormCost+CO2)': ind_obj.fitness.values[0],
-            'Fit2(Mean_DCR)': ind_obj.fitness.values[1]
+            'Max_Drift_Ratio': r.get('max_drift_ratio', -1),
+            'Mean_DCR': r.get('mean_strength_ratio', -1),
+            'Fit1(CostCO2)': ind_obj.fitness.values[0],
+            'Fit2(MaxDrift)': ind_obj.fitness.values[1],
+            'N_types': r.get('N_types', -1)
         })
     summary_df = pd.DataFrame(summary_data_list)
     summary_df.to_csv(os.path.join(output_folder, "pareto_summary.csv"), index=False)
@@ -36,25 +41,53 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
         hof_df = pd.DataFrame(hof_stats_history)
         hof_df.to_csv(os.path.join(output_folder, "hof_convergence.csv"), index=False)
 
-    # 4. 최적해별 설계 변수
+    # 4. 최적해별 설계 변수 (상세 정보 포함)
     design_vars_data = []
+    # 상세 정보로 추가할 컬럼 리스트
+    detail_cols_col = ['h', 'b', 'fck', 'fy', 'required_rebar', 'MainRebar_size', 'Stirrup_size', 'Stirrup_verticle_size']
+    detail_cols_beam = ['h', 'b', 'fck', 'fy', 'N_r', 'dimension', 'stirrup', 'strup_space'] # Beam CSV 컬럼명에 맞게
+    
     for r in all_results:
         ind = r['ind_object']
         len_col_sec = chromosome_structure['col_sec']
         len_col_rot = chromosome_structure['col_rot']
         
         row_data = {'Solution_ID': r['ID']}
+        # Column Sections
         for i in range(len_col_sec):
-            row_data[f'col_sec_grp_{i}'] = ind[i]
-        for i in range(len_col_rot):
-            row_data[f'col_rot_grp_{i}'] = ind[len_col_sec + i]
+            sec_id = ind[i]
+            row_data[f'col_grp_{i}_ID'] = sec_id
+            row_data[f'col_grp_{i}_Rot'] = ind[len_col_sec + i]
+            # 상세 정보 추가
+            try:
+                sec_details = column_sections_df_full.loc[sec_id, detail_cols_col]
+                for col_name, val in sec_details.items():
+                    row_data[f'col_grp_{i}_{col_name}'] = val
+            except (KeyError, IndexError):
+                for col_name in detail_cols_col:
+                     row_data[f'col_grp_{i}_{col_name}'] = 'N/A'
+
+        # Beam Sections
         for i in range(chromosome_structure['beam_sec']):
-            row_data[f'beam_sec_grp_{i}'] = ind[len_col_sec + len_col_rot + i]
+            sec_id = ind[len_col_sec + len_col_rot + i]
+            row_data[f'beam_grp_{i}_ID'] = sec_id
+            # 상세 정보 추가
+            try:
+                # Beam DF의 컬럼명과 detail_cols_beam이 일치하는지 확인해야 함
+                # 예: beam_sections_df_full.columns
+                sec_details = beam_sections_df_full.loc[sec_id, detail_cols_beam]
+                for col_name, val in sec_details.items():
+                    row_data[f'beam_grp_{i}_{col_name}'] = val
+            except (KeyError, IndexError):
+                for col_name in detail_cols_beam:
+                    row_data[f'beam_grp_{i}_{col_name}'] = 'N/A'
+                    
         design_vars_data.append(row_data)
+        
     design_vars_df = pd.DataFrame(design_vars_data)
     design_vars_df.to_csv(os.path.join(output_folder, "design_variables.csv"), index=False)
 
-    # 5. 변위 검토 결과
+    # 5. 변위 검토 결과 (기존과 동일)
     displacement_data = []
     for r in all_results:
         sol_id = r['ID']
@@ -70,7 +103,7 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
         displacement_df = pd.DataFrame(displacement_data)
         displacement_df.to_csv(os.path.join(output_folder, "displacement_checks_all.csv"), index=False)
 
-    # 6. 부재별 DCR
+    # 6. 부재별 DCR (기존과 동일)
     dcr_data = []
     num_columns = len(COLUMN_LOCATIONS) * FLOORS
     for r in all_results:

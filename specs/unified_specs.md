@@ -1,90 +1,66 @@
-# 통합 명세서: NSGA-II RC 프레임 최적화 연구 개선 (Unified Specifications)
+# 통합 명세서: 비정형 RC 프레임 최적화 연구 (Revised Unified Specs)
 
-이 문서는 리뷰어(R1, R2, R3)의 요구사항을 반영하여 프로젝트를 개선하기 위한 통합 작업 명세서입니다. 작업은 중요도와 의존성에 따라 우선순위별로 정렬되었습니다. CLI를 통해 프로젝트 진행 시 모든 답변은 한글로.
-
----
-
-## 🏗️ Phase 1: 핵심 모델링 및 해석 엔진 고도화 (Reliability First)
-
-구조 해석의 정확성과 현실성을 확보하는 것이 가장 시급합니다. (완료됨)
-
-### 1.1. 구조 해석 로직 보완 (R2-7, R2-8, R3-14, R3-15, R3-13)
-
-- [X] **강체 횡격막 (Rigid Diaphragm):** `ops.equalDOF`를 사용하여 층별 자유도(1, 2, 6) 구속 구현.
-- [X] **P-Delta 효과 (P-Delta Effect):** `geomTransf('PDelta', ...)` 적용 확인.
-- [X] **유효 강성 (Effective Stiffness):** ACI 318 기준 적용 (Column 0.7, Beam 0.35) 확인.
-- [X] **지진 하중 현실화 (Seismic Load):** ELF 기반 등가정적해석을 수행하되, **1차 모드 형상(Eigenvector)에 비례한 하중 분배**를 적용하여 비정형성을 반영.
-- [X] **풍하중 (Wind Load):** ASCE 7-16 기준(V=30m/s, 노출 B) 적용 확인.
-- [X] **장기 처짐 (Long-term Deflection):** ACI 318 기준 $\lambda_\Delta$ 계수 적용 완료.
-- [X] **강한 기둥-약한 보 (SCWB):** 모든 접합부에서 $\sum M_{nc} \ge 1.2 \sum M_{nb}$ 조건 검토 로직 구현 완료.
-
-### 1.2. 평가 모듈 및 비용 모델 업데이트 (R3-3, R3-4, R3-13)
-
-- [X] **거푸집 비용 (Formwork Cost):** 기둥 및 보의 표면적 기반 비용 산정 로직 추가 완료.
+이 문서는 새롭게 정립된 연구 방향(`Revised_Report_KO.md`)에 따라, 리뷰어의 요구사항을 충족하고 논문의 독창성을 입증하기 위한 구체적인 작업 명세서입니다.
 
 ---
 
-## 🛠️ Phase 2: 최적화 및 평가 도구 강화 (Tools Update)
+## 🏗️ Phase 1: 핵심 모델링 및 해석 엔진 고도화 (Reliability) - [완료됨]
 
-검증을 수행하고 데이터를 확보하기 위한 도구를 보완합니다.
+구조 해석의 정확성과 현실성을 확보하는 단계입니다. (`src/structural_analysis.py` 반영 완료)
 
-### 2.1. 최적화 지표 및 로깅 (R1-3, R1-5)
+### 1.1. 정밀 구조 해석 (Rigorous Analysis)
+- [x] **P-Delta 효과:** 기하학적 비선형성 고려.
+- [x] **유효 강성:** ACI 318-19 기준 (Column 0.7, Beam 0.35) 적용.
+- [x] **강체 횡격막:** `ops.equalDOF` 활용 층별 거동 일체화.
+- [x] **정밀 하중 산정:** ASCE 7-16 기반 지진력(Mode-based) 및 풍하중 산정.
+- [x] **제약조건 고도화:** DCR, Drift, SCWB, 장기 처짐, 기둥 면적 위계 등 7종 구현 완료.
 
-- [X] **하이퍼볼륨 (Hypervolume):** 다목적 최적화 성능 지표 계산 로직 구현 확인.
-- [X] **실행 시간 측정 (Timer):** 최적화 소요 시간 측정 및 로깅 기능 구현 확인.
-- [X] **로그 간소화:** 실험 진행 시 불필요한 로그를 숨기고 진행 바(Progress Bar)만 표시하도록 개선.
-
-### 2.2. 하중 조건 동적화
-
-- [X] **하중 상수 제거:** `config.py`의 고정 하중 상수를 제거하고, 모든 실험 스크립트가 계산된 동적 하중을 사용하도록 리팩토링 완료.
-
----
-
-## 🧪 Phase 3: 데이터 생성 및 검증 (Validation Runs) - [핵심 실행 단계]
-
-논문에 수록할 정량적 데이터를 순차적으로 생성합니다.
-
-### 3.1. 최적 파라미터 결정 (GA Parameter Tuning)
-
-- **스크립트:** `experiment_optimization_params.py`
-- **목표:** GA의 핵심 파라미터(Crossover Strategy, Tournament Size, Probabilities, Population Size)를 5단계(Step 1~5) 실험을 통해 확정.
-- **현재 상태:** Step 1 진행 중. 완료 후 `PREV_BEST_PARAMS` 업데이트하며 순차 진행 필요.
-
-### 3.2. 회전 변수 알고리즘 우수성 평가 (R2-11 대응)
-
-- **스크립트:** `scripts/experiment_scenario_comparison.py`
-- **목표:** 기둥 회전을 유전자로 다루는 제안 방식(Scenario A)이, 단순히 회전된 단면을 DB에 추가한 방식(Scenario B)보다 우수하거나 효율적임을 입증.
-- **준비물:** `column_sections_expanded_rotated.csv`, `pm_dataset_expanded_rotated.mat`
-
-### 3.3. 3가지 구조물 예시 최적화 (Case Studies: 4, 6, 8-Story)
-
-- **스크립트:** `scripts/experiment_examples_comparison.py`
-- **목표:** 층수가 다른 3가지 비정형 RC 프레임(4층, 6층, 8층)에 대해 제안된 최적화 알고리즘을 적용하고, 높이 변화에 따른 해의 품질과 수렴성을 비교 분석.
-- **내용:** 각 예시별 최적화 실행 -> Hypervolume 비교 그래프, Pareto Front 비교 그래프, 요약 통계 CSV 생성.
-
-### 3.4. 통계적 검증 (Statistical Validation)
-
-- **스크립트:** `scripts/batch_run_optimization.py`
-- **목표:** 3.3의 대표 예시(예: 4층)에 대해 최적 파라미터로 30회 반복 수행하여 알고리즘의 신뢰성(Stability) 검증.
-- **산출물:** Boxplot, Convergence Plot (with CI), Accumulated Pareto Front.
+### 1.2. 데이터베이스 검증 (Database Verification)
+- [x] **MATLAB 코드 분석:** 단면 생성 로직이 예제 건물의 하중 범위(축력, 모멘트)를 커버하는지 확인.
+- [x] **배근 상세 다양성 검증 (Reinforcement Detailing Diversity):** `column_sections_simple02.csv`에 편심 하중 대응을 위한 비대칭 배근 등 다양한 상세가 적절히 포함되어 있는지 검증.
 
 ---
 
-## 📝 Phase 4: 문서화 및 시각화 (Paper Polishing)
+## 🛠️ Phase 2: 최적화 로직 및 도구 업데이트 (Implementation) - [완료됨]
 
-확보된 결과를 문서와 그림에 반영하여 마무리합니다.
+새로운 최적화 전략(자동 그룹핑, 회전 변수, 목적함수 변경)을 코드에 반영합니다.
 
-### 4.1. 텍스트 및 용어 수정 (R1-1, R1-4, R3-5, R3-9)
+### 2.1. 목적함수 및 제약조건 변경
+- [x] **목적함수 2번 변경:** `Mean DCR` $\to$ `Max Inter-story Drift Ratio`. (`src/optimization.py` 수정 완료)
+- [x] **제약조건 추가:** 단면 종류 수($N_{types}$), 기둥 위계 등 7종 제약 로직 반영 완료. (`src/structural_analysis.py`)
+- [x] **자동 그룹핑 지원:** `Individual` 전략을 기본값으로 설정하여 개별 부재 단위 최적화 활성화. (`src/config.py`)
 
-- [ ] **철근 상세 (Reinforcement Detailing) 명시:** 데이터베이스의 현실성 강조.
-- [ ] **과장된 표현 수정:** "First innovation" 등 삭제.
-- [ ] **기준 연도 명시:** 코드 및 결과물에 `ACI 318-19`, `ASCE 7-16` 명시.
+### 2.2. 실행 스크립트 역할 분담 및 고도화
+- [x] **`scripts/main.py` (핵심 결과 도출):** 제안된 방법론(Scenario A) 기반 3가지 예제 실행 로직 구축 완료.
+- [x] **파라미터 튜닝 스크립트:** `experiment_optimization_params.py` 새로운 로직에 맞춰 업데이트 완료.
+- [ ] **`scripts/experiment_scenario_comparison.py` (효율성 입증):** 신규 로직 반영 및 시나리오 B(확장 DB) 연동 필요.
+- [ ] **`scripts/batch_run_optimization.py` (통계적 신뢰성):** 신규 로직 반영 및 반복 실행 자동화 필요.
 
-### 4.2. 시각화 업데이트 (R3-10, R3-18)
+---
 
-- [ ] **그림 코드 점검:** 출판 품질의 해상도(300dpi 이상) 및 스타일 적용.
-- [ ] **테이블 레이블:** 명확한 용어 사용.
+## 🧪 Phase 3: 데이터 생성 및 검증 (Validation Runs) - [진행 중]
 
-### 4.3. 데이터 공개 준비 (R2-14)
+논문의 핵심 주장(10% 절감, 회복탄력성 확보)을 뒷받침할 데이터를 생성합니다.
 
-- [ ] **저장소 정리:** `README.md` 업데이트 및 민감 데이터 제거 확인.
+### 3.0. 최적 파라미터 결정 (Parameter Tuning)
+- [ ] **스크립트:** `experiment_optimization_params.py` 실행.
+- **목표:** GA 파라미터 최적 조합 선정 및 Hypervolume 수렴 그래프 확보.
+
+### 3.1. 3가지 예제 구조물 최적화 (Generality via main.py)
+- [ ] **스크립트:** `scripts/main.py` 실행.
+- **대상:** 4층, 6층, 8층 비정형 프레임.
+- **산출물:** Cost-Drift 파레토 그래프, 수렴 그래프, 예제별 요약 CSV.
+
+### 3.2. 시나리오 비교 실험 (Efficiency Verification)
+- [ ] **스크립트:** `experiment_scenario_comparison.py`
+- **목표:** 위상 변수 분리의 효율성 입증 (Scenario A vs B).
+
+### 3.3. 통계적 신뢰성 검증 (Reliability)
+- [ ] **스크립트:** `batch_run_optimization.py`
+- **목표:** Hypervolume 변동 계수(CV) 2~3% 이내 달성 확인.
+
+---
+
+## 📝 Phase 4: 논문 작성 및 시각화 (Paper Writing)
+
+확보된 데이터를 바탕으로 `Revised_Report_KO.md`의 내용을 영문 논문으로 확장합니다.
