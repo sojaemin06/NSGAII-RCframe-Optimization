@@ -23,19 +23,19 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: True,   # Step 1: Crossover Strategy (현재 실행)
+    1: False,   # Step 1: Crossover Strategy (현재 실행)
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
     4: False,  # Step 4: Mutation Probability
-    5: False   # Step 5: Population Size
+    5: True   # Step 5: Population Size
 }
 
 # 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
 PREV_BEST_PARAMS = {
-    'Best_Crossover': 'OnePoint', 
+    'Best_Crossover': 'TwoPoint', 
     'Best_Tournament': 3,         
     'Best_CXPB': 0.9,             
-    'Best_MUTPB': 0.1,            
+    'Best_MUTPB': 0.7,            
     'Best_PopSize': 100           
 }
 
@@ -44,12 +44,12 @@ STEP1_GEN = 50     # 교배 전략 비교 (빠른 탐색)
 STEP2_GEN = 50     # 토너먼트 크기 비교
 STEP3_GEN = 50     # 교배 확률 비교
 STEP4_GEN = 50     # 변이 확률 비교
-STEP5_GEN = 80     # 모집단 크기 비교 (조금 더 길게)
+STEP5_GEN = 100     # 모집단 크기 비교 (조금 더 길게)
 
 BASE_POP = 100     # 초기 기준 모집단
 BASE_TOURN = 3     
-BASE_CXPB = 0.9    
-BASE_MUTPB = 0.1   
+BASE_CXPB = 0.8    
+BASE_MUTPB = 0.2   
 
 OUTPUT_ROOT = "Results_Param_Optimization"
 
@@ -61,8 +61,13 @@ plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['lines.linewidth'] = 1.5
 
+import openseespy.opensees as ops
+
 def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb, num_gen, common_data, pbar_desc=""):
     """단일 실험 수행 및 로그 간소화"""
+    # [Fairness] OpenSees 상태 완전 초기화
+    ops.wipe()
+    
     # [Fairness] 공정한 비교를 위해 매 실험마다 난수 시드 고정
     random.seed(42)
     np.random.seed(42)
@@ -77,7 +82,7 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     start_time = time.time()
     
     # verbose=False로 설정하여 내부 로그 억제
-    _, _, final_hof, hof_stats_history = run_ga_optimization(
+    final_pop, _, final_hof, hof_stats_history = run_ga_optimization(
         DL=DL_AREA_LOAD, LL=LL_AREA_LOAD,
         crossover_method=crossover, patterns_by_floor=PATTERNS_BY_FLOOR, h5_file=h5_file,
         num_generations=num_gen, population_size=pop_size,
@@ -101,7 +106,7 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
             'Crossover': crossover, 'CXPB': cxpb, 'MUTPB': mutpb
         })
         
-    return hof_stats_history, final_hof
+    return hof_stats_history, final_hof, final_pop
 
 def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, output_dir):
     """실험 결과 분석 및 시각화 (기존 CSV 병합 기능 추가)"""
@@ -121,18 +126,23 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f'{step_name}_HV.png'))
     plt.close()
+
+    # [추가] 수렴 이력 데이터 저장 (그래프 재현용)
+    history_csv_path = os.path.join(output_dir, f'{step_name}_HV_History.csv')
+    df.to_csv(history_csv_path, index=False)
+    print(f"   -> [Saved] Convergence history saved to {history_csv_path}")
     
-    # 3. Pareto Front 데이터 처리 및 병합
+    # 3. Pareto Front 데이터 처리 및 병합 (HOF Only)
     new_hof_rows = []
     for param, inds in all_hof_data.items():
         for ind in inds:
             new_hof_rows.append({
                 'Parameter': param,
                 'Obj1_NormCostCO2': ind.fitness.values[0],
-                'Obj2_MaxDrift': ind.fitness.values[1], # Changed MeanDCR -> MaxDrift
+                'Obj2_MaxDrift': ind.fitness.values[1],
                 'Cost': ind.detailed_results.get('cost', 0),
                 'CO2': ind.detailed_results.get('co2', 0),
-                'Max_Drift': ind.detailed_results.get('max_drift_ratio', 0), # Changed Key
+                'Max_Drift': ind.detailed_results.get('max_drift_ratio', 0),
                 'Hypervolume': final_hvs.get(param, 0.0)
             })
     
@@ -142,13 +152,15 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     # 기존 파일이 있으면 병합
     if os.path.exists(csv_path):
         print(f"   -> Found existing data at {csv_path}. Merging and updating...")
-        df_old = pd.read_csv(csv_path)
-        # 현재 실험한 파라미터들은 기존 데이터에서 제거 (최신 결과로 대체)
-        # df_new에 있는 파라미터 목록 추출
-        current_params = df_new['Parameter'].unique()
-        df_old = df_old[~df_old['Parameter'].isin(current_params)]
-        
-        df_combined = pd.concat([df_old, df_new], ignore_index=True)
+        try:
+            df_old = pd.read_csv(csv_path)
+            current_params = df_new['Parameter'].unique() if not df_new.empty else []
+            if len(current_params) > 0:
+                df_old = df_old[~df_old['Parameter'].isin(current_params)]
+            df_combined = pd.concat([df_old, df_new], ignore_index=True)
+        except Exception as e:
+            print(f"   -> Warning: Could not merge with existing CSV ({e}). Overwriting.")
+            df_combined = df_new
     else:
         df_combined = df_new
 
@@ -159,6 +171,11 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     # 4. Pareto Front 비교 그래프 (병합된 데이터 사용)
     plt.figure(figsize=(10, 8))
     
+    if df_combined.empty:
+        print("   -> [Warning] No HOF solutions found to plot.")
+        plt.close()
+        return list(all_hof_data.keys())[0] if all_hof_data else "None"
+
     # 병합된 데이터에서 파라미터 목록 추출 및 정렬
     all_params = sorted(df_combined['Parameter'].unique())
     
@@ -169,18 +186,20 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
         if not rows.empty:
             param_hvs[p] = rows.iloc[0]['Hypervolume']
             
-    best_param = max(param_hvs, key=param_hvs.get)
-    worst_param = min(param_hvs, key=param_hvs.get)
+    best_param = max(param_hvs, key=param_hvs.get) if param_hvs else all_params[0]
+    worst_param = min(param_hvs, key=param_hvs.get) if param_hvs else all_params[-1]
     
-    print(f"   -> [Result (Combined)] Best: {best_param} (HV={param_hvs[best_param]:.4f}), Worst: {worst_param}")
+    print(f"   -> [Result (Combined)] Best: {best_param} (HV={param_hvs.get(best_param, 0):.4f}), Worst: {worst_param}")
 
     # 파라미터 개수에 맞춰 색상 생성 (viridis 컬러맵 사용)
     colors = plt.cm.viridis(np.linspace(0, 1, len(all_params)))
     
     for param, color in zip(all_params, colors):
         subset = df_combined[df_combined['Parameter'] == param]
+        if subset.empty: continue
+
         fit1 = subset['Obj1_NormCostCO2']
-        fit2 = subset['Obj2_MaxDrift'] # Changed Key
+        fit2 = subset['Obj2_MaxDrift']
         
         # 라벨 생성 (HV 포함)
         label_str = f"{param}"
@@ -195,8 +214,8 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
             # 그 외: 컬러맵 색상, 원형
             plt.scatter(fit2, fit1, color=color, label=label_str, s=50, alpha=0.7, zorder=5)
     
-    plt.title(f'{step_name} - Pareto Front Comparison (All Parameters)')
-    plt.xlabel('Resilience (Max Drift Ratio)') # Label Update
+    plt.title(f'{step_name} - Pareto Front Comparison (HOF Only)')
+    plt.xlabel('Resilience (Max Drift Ratio)')
     plt.ylabel('Economic & Env. Demand (Norm Cost+CO2)')
     plt.legend()
     plt.grid(True)
@@ -224,17 +243,17 @@ def run_step_logic(step_num, step_title, param_list, param_name, current_best_pa
         exp_name = f"{param_name}_{val}"
         desc = f"({i+1}/{len(param_list)}) Testing {param_name}={val}"
         
-        # 현재 Step의 파라미터(val)를 적용하고, 나머지는 고정값(current_best_params) 사용
+        # 현재 Step의 파라미터(val)를 적용하고, 나머지는 BASE 상수값 사용 (독립적 실험)
         # 동적으로 인자 생성
         args = {
             'pop_size': val if param_name == 'PopSize' else BASE_POP,
-            'tourn_size': val if param_name == 'Tournament' else current_best_params.get('Best_Tournament', BASE_TOURN),
-            'crossover': val if param_name == 'Crossover' else current_best_params.get('Best_Crossover', 'OnePoint'), # Default fallback
-            'cxpb': val if param_name == 'CXPB' else current_best_params.get('Best_CXPB', BASE_CXPB),
-            'mutpb': val if param_name == 'MUTPB' else current_best_params.get('Best_MUTPB', BASE_MUTPB)
+            'tourn_size': val if param_name == 'Tournament' else BASE_TOURN,
+            'crossover': val if param_name == 'Crossover' else 'OnePoint', # Default base crossover
+            'cxpb': val if param_name == 'CXPB' else BASE_CXPB,
+            'mutpb': val if param_name == 'MUTPB' else BASE_MUTPB
         }
         
-        hist, hof = run_single_experiment(
+        hist, hof, _ = run_single_experiment(
             exp_name, args['pop_size'], args['tourn_size'], args['crossover'], args['cxpb'], args['mutpb'], 
             gen_count, common_data, pbar_desc=desc
         )
@@ -253,8 +272,8 @@ def main():
     h5_file = h5py.File('pm_dataset_simple02.mat', 'r')
     
     try:
-        # [수정] 강제 그룹핑 전략 설정 (Individual)
-        forced_grouping_strategy = "Individual"
+        # [수정] 강제 그룹핑 전략 설정 (Hybrid)
+        forced_grouping_strategy = "Hybrid"
         
         num_locations = len(COLUMN_LOCATIONS)
         num_columns = num_locations * FLOORS
@@ -288,12 +307,12 @@ def main():
         current_best['Best_Tournament'] = best_tourn
         
         # --- Step 3: Crossover Probability ---
-        best_cxpb = run_step_logic(3, "Crossover Probability", [0.7, 0.8, 0.9, 1.0], "CXPB", current_best, common_data, STEP3_GEN)
+        best_cxpb = run_step_logic(3, "Crossover Probability", [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], "CXPB", current_best, common_data, STEP3_GEN)
         current_best['Best_CXPB'] = best_cxpb
 
         # --- Step 4: Mutation Probability ---
         # [변경] 추가 실험 (0.7 ~ 1.0)
-        best_mutpb = run_step_logic(4, "Mutation Probability", [0.7, 0.8, 0.9, 1.0], "MUTPB", current_best, common_data, STEP4_GEN)
+        best_mutpb = run_step_logic(4, "Mutation Probability", [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], "MUTPB", current_best, common_data, STEP4_GEN)
         current_best['Best_MUTPB'] = best_mutpb
 
         # --- Step 5: Population Size ---

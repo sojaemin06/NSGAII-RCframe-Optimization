@@ -4,6 +4,7 @@ from tqdm import tqdm
 from deap import base, creator, tools, algorithms
 from deap.benchmarks.tools import hypervolume as hv_indicator
 from src.config import *
+import src.config as cfg
 from src.structural_analysis import evaluate
 
 def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
@@ -59,21 +60,9 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     num_col_opts, num_beam_opts = len(column_sections), len(beam_sections)
     
     def init_individual():
-        # [Strategy] Seeded Initialization for N_types Constraint
-        # Instead of random sampling from entire DB, pick a small subset (pool) first.
-        # This ensures initial population has low N_types violation.
-        
-        # 1. Select a random pool of section IDs (e.g., 5~10 types)
-        pool_size_col = random.randint(5, 10)
-        pool_size_beam = random.randint(5, 10)
-        
-        col_pool = [random.randint(0, num_col_opts - 1) for _ in range(pool_size_col)]
-        beam_pool = [random.randint(0, num_beam_opts - 1) for _ in range(pool_size_beam)]
-        
-        # 2. Assign genes from this pool
-        col_genes = [random.choice(col_pool) for _ in range(chromosome_structure['col_sec'])]
+        col_genes = [random.randint(0, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
         rot_genes = [random.randint(0, 1) for _ in range(chromosome_structure['col_rot'])]
-        beam_genes = [random.choice(beam_pool) for _ in range(chromosome_structure['beam_sec'])]
+        beam_genes = [random.randint(0, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec'])]
         
         return creator.Individual(col_genes + rot_genes + beam_genes)
 
@@ -127,14 +116,13 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         
         if not margins: return "Margins N/A"
         
-        # S:Strength, D:Drift, W:Wind, F:Defl, H:SCWB, C:ColSize, N:N_types
+        # S:Strength, D:Drift, W:Wind, F:Defl, H:SCWB, C:ColSize
         margin_str = (f"S:{margins.get('strength', 0):.2f} "
                       f"D:{margins.get('drift', 0):.2f} "
                       f"W:{margins.get('wind_disp', 0):.2f} "
                       f"F:{margins.get('deflection', 0):.2f} "
                       f"H:{margins.get('hierarchy', 0):.2f} "
-                      f"C:{margins.get('col_size', 0):.2f} "
-                      f"N:{margins.get('N_types', 0):.2f}")
+                      f"C:{margins.get('col_size', 0):.2f}")
         return margin_str
 
     def calculate_valid_stat(pop, key, stat_func, default_val=0.0):

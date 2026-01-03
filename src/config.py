@@ -4,7 +4,7 @@
 # =================================================================
 
 # --- 1.1. 그룹핑 및 교배 전략 선택 ---
-GROUPING_STRATEGY = "Individual" # "Hybrid", "Individual", "ByFloor", "Uniform"
+GROUPING_STRATEGY = "Hybrid" # "Hybrid", "Individual", "ByFloor", "Uniform"
 CROSSOVER_STRATEGY = "OnePoint"  # "OnePoint", "TwoPoint", "Uniform"
 
 # --- 1.2. 건물 기본 정보 ---
@@ -256,7 +256,7 @@ BUILDING_WIDTH_X = 15.0 # m (Y방향 풍하중 수압폭)
 BUILDING_WIDTH_Y = 15.0 # m (X방향 풍하중 수압폭)
 
 # --- 1.5. 유전 알고리즘 파라미터 ---
-POPULATION_SIZE = 600 # [변경] 테스트 시 줄였던 것을 다시 원복하거나 사용자가 조정 가능
+POPULATION_SIZE = 100 
 NUM_GENERATIONS = 200
 CXPB = 0.8
 MUTPB = 0.2

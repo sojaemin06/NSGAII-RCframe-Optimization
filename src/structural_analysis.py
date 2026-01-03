@@ -161,15 +161,17 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "wind_displacements_x": [], "wind_displacements_y": [],
         "violation_deflection": float('inf'), "violation_drift": float('inf'),
         "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
-        "violation_col_size": float('inf'), "violation_N_types": float('inf'),
-        "max_drift_ratio": float('inf'), "N_types": float('inf'),
+        "violation_col_size": float('inf'),
+        "max_drift_ratio": float('inf'),
         "forces_df": pd.DataFrame(), "violation": float('inf'), "absolute_margins": {}
     }
 
     try:
         column_elem_ids, beam_elem_ids, node_map = build_model_for_section(col_indices, col_rotations, beam_indices, col_map, beam_map, beam_sections, column_sections)
     except Exception as e:
-        print(f"DEBUG: Error building model: {e}")
+        print(f"DEBUG: Error building model in evaluate: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return failure_results_dict 
     
     # --- Deflection Check (Immediate + Long-term) ---
@@ -341,7 +343,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
 
     story_drifts_x, story_drifts_y = [], []; actual_drift_ratio = 0.0
     if analysis_ok:
-        allowable_drift_ratio = 0.015
+        allowable_drift_ratio = 0.02
         ops.reset(); ops.pattern('Plain', 101, 1)
         drift_factors_x_seismic = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-E1"), None) 
         if drift_factors_x_seismic:
@@ -464,13 +466,6 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             if area_upper > area_lower + 1e-6: col_size_violations.append(area_upper / area_lower)
     actual_col_size_ratio = max(col_size_violations) if col_size_violations else 0.0
 
-    # --- [New Constraint] Number of Section Types (N_types) ---
-    unique_col_sections = set([col_indices[col_map[i+1]] for i in range(num_columns)])
-    unique_beam_sections = set([beam_indices[beam_map[num_columns+i+1]] for i in range(num_beams)])
-    total_unique_sections = len(unique_col_sections | unique_beam_sections)
-    N_TYPES_LIMIT = 10 
-    actual_N_types_ratio = total_unique_sections / N_TYPES_LIMIT
-
     # --- Cost & CO2 Calculation with Strict ACI Detailing ---
     total_cost, total_co2 = 0, 0
     UNIT_COST_CONCRETE = 80000; UNIT_COST_STEEL = 1000000; UNIT_COST_FORMWORK = cfg.FORMWORK_UNIT_COST
@@ -572,11 +567,11 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
 
     max_allowable_ratios = {
         'strength': 2.0, 'drift': 2.0, 'wind_disp': 2.0, 'deflection': 2.0, 
-        'hierarchy': 1.2, 'col_size': 1.2, 'N_types': 2.0
+        'hierarchy': 1.2, 'col_size': 1.2
     }
     weights = {
         'strength': 1.0, 'drift': 1.0, 'wind_disp': 1.0, 'deflection': 1.0, 
-        'hierarchy': 1.0, 'col_size': 1.0, 'N_types': 1.0
+        'hierarchy': 1.0, 'col_size': 1.0
     }
     margins = {
         'strength': max(0, max_strength_ratio - 1.0),
@@ -584,8 +579,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         'wind_disp': max(0, actual_wind_disp_ratio - 1.0),
         'deflection': max(0, actual_deflection_ratio - 1.0),
         'hierarchy': max(0, actual_hierarchy_ratio - 1.0),
-        'col_size': max(0, actual_col_size_ratio - 1.0),
-        'N_types': max(0, actual_N_types_ratio - 1.0)
+        'col_size': max(0, actual_col_size_ratio - 1.0)
     }
     total_normalized_violation = 0
     normalized_margins = {}
@@ -606,9 +600,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "wind_displacements_x": wind_disps_x, "wind_displacements_y": wind_disps_y,
         "violation_deflection": actual_deflection_ratio, "violation_drift": actual_drift_ratio,
         "violation_hierarchy": actual_hierarchy_ratio, "violation_wind_disp": actual_wind_disp_ratio,
-        "violation_col_size": actual_col_size_ratio, "violation_N_types": actual_N_types_ratio,
+        "violation_col_size": actual_col_size_ratio,
         "max_drift_ratio": actual_drift_ratio,
-        "N_types": total_unique_sections,
         "forces_df": final_max_forces
     }
     
