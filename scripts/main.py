@@ -43,13 +43,13 @@ EXAMPLES = {
     }
 }
 
-# 실험 파라미터 (Scenario A 고정)
-OPT_POP_SIZE = 200 
-OPT_GENERATIONS = 100 
+# 실험 파라미터 (Scenario A 고정 - config.py의 최적 파라미터 사용)
+OPT_POP_SIZE = cfg.POPULATION_SIZE 
+OPT_GENERATIONS = cfg.NUM_GENERATIONS 
 OPT_CX_METHOD = cfg.CROSSOVER_STRATEGY 
 OPT_CX_PROB = cfg.CXPB 
 OPT_MUT_PROB = cfg.MUTPB 
-OPT_TOURN_SIZE = 3 
+OPT_TOURN_SIZE = cfg.TOURNAMENT_SIZE 
 
 # 시나리오 A를 위해 GROUPING_STRATEGY 강제 설정
 cfg.GROUPING_STRATEGY = "Individual"

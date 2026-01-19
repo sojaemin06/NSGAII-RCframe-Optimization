@@ -42,11 +42,14 @@
 
 논문의 핵심 주장(10% 절감, 회복탄력성 확보)을 뒷받침할 데이터를 생성합니다.
 
-### 3.0. 최적 파라미터 결정 (Parameter Tuning)
-- [ ] **스크립트:** `experiment_optimization_params.py` 실행.
-- **목표:** GA 파라미터 최적 조합 선정 및 Hypervolume 수렴 그래프 확보.
+### 3.0. 최적 파라미터 결정 (Parameter Tuning) - [완료됨]
+- [x] **스크립트:** `experiment_optimization_params.py` 및 분석 스크립트 실행 완료.
+- **결과:**
+    - Crossover: `TwoPoint`, Tournament: `3`, CXPB: `0.9`, MUTPB: `0.7`
+    - **PopSize:** `400` (100~600 구간 분석 결과, 성능/비용 트레이드오프가 가장 우수한 지점으로 선정).
+    - 산출물: `Results_Param_Optimization/Step5_PopSize_100_600_*.png` 등 생성 완료.
 
-### 3.1. 3가지 예제 구조물 최적화 (Generality via main.py)
+### 3.1. 3가지 예제 구조물 최적화 (Generality via main.py) - [진행 예정]
 - [ ] **스크립트:** `scripts/main.py` 실행.
 - **대상:** 4층, 6층, 8층 비정형 프레임.
 - **산출물:** Cost-Drift 파레토 그래프, 수렴 그래프, 예제별 요약 CSV.
