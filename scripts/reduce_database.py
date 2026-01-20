@@ -53,6 +53,19 @@ def reduce_database(col_csv_path, beam_csv_path, mat_path):
     reduced_col_indices = sorted(list(set(reduced_col_indices)))
     reduced_col_df = col_df.loc[reduced_col_indices].copy()
     
+    # --- [NEW] Force Exact Number (Target: 800) ---
+    TARGET_COLS = 800
+    if len(reduced_col_df) > TARGET_COLS:
+        # Sort by Performance (PM_Volume) to ensure range coverage
+        if 'PM_Volume' in reduced_col_df.columns:
+            reduced_col_df = reduced_col_df.sort_values('PM_Volume')
+        else:
+            reduced_col_df = reduced_col_df.sort_values(['b', 'h', 'rho'])
+            
+        # Uniformly sample indices to keep distribution
+        selected_indices = np.linspace(0, len(reduced_col_df) - 1, TARGET_COLS, dtype=int)
+        reduced_col_df = reduced_col_df.iloc[selected_indices]
+
     # Re-index 'name' column to 1..N
     old_col_ids = reduced_col_df['name'].values # Keep track for MAT mapping
     reduced_col_df['name'] = range(1, len(reduced_col_df) + 1)
@@ -94,6 +107,19 @@ def reduce_database(col_csv_path, beam_csv_path, mat_path):
 
     reduced_beam_indices = sorted(list(set(reduced_beam_indices)))
     reduced_beam_df = beam_df.loc[reduced_beam_indices].copy()
+    
+    # --- [NEW] Force Exact Number (Target: 500) ---
+    TARGET_BEAMS = 500
+    if len(reduced_beam_df) > TARGET_BEAMS:
+        # Sort by Performance (PiM)
+        if 'PiM' in reduced_beam_df.columns:
+            reduced_beam_df = reduced_beam_df.sort_values('PiM')
+        else:
+            reduced_beam_df = reduced_beam_df.sort_values(['b', 'h'])
+            
+        selected_indices = np.linspace(0, len(reduced_beam_df) - 1, TARGET_BEAMS, dtype=int)
+        reduced_beam_df = reduced_beam_df.iloc[selected_indices]
+
     reduced_beam_df['name'] = range(1, len(reduced_beam_df) + 1)
     
     print(f"Reduced Beams: {len(reduced_beam_df)} ({(len(reduced_beam_df)/len(beam_df))*100:.1f}%)")

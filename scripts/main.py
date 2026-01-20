@@ -28,18 +28,18 @@ EXAMPLES = {
         'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
         'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
         'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
-    },
-    'Example_2_6Story': {
-        'Floors': 6,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
-    },
-    'Example_3_8Story': {
-        'Floors': 8,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
+    # },
+    # 'Example_2_6Story': {
+    #     'Floors': 6,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
+    # },
+    # 'Example_3_8Story': {
+    #     'Floors': 8,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
     }
 }
 
@@ -52,7 +52,7 @@ OPT_MUT_PROB = cfg.MUTPB
 OPT_TOURN_SIZE = cfg.TOURNAMENT_SIZE 
 
 # 시나리오 A를 위해 GROUPING_STRATEGY 강제 설정
-cfg.GROUPING_STRATEGY = "Individual"
+cfg.GROUPING_STRATEGY = "Hybrid"
 
 OUTPUT_BASE_DIR = "Results_Main_Examples_Comparison"
 
