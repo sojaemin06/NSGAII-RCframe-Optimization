@@ -379,7 +379,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                         disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
                         story_drifts_y.append(abs(disp_upper_y - disp_lower_y) / cfg.H)
                 else: story_drifts_y.append(0.0)
-        actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [0], max(story_drifts_y) if story_drifts_y else [0]) / allowable_drift_ratio
+        actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [0], max(story_drifts_y) if story_drifts_y else [0])
     else: actual_drift_ratio = float('inf')
 
     wind_disps_x, wind_disps_y = [], []; actual_wind_disp_ratio = 0.0
@@ -446,9 +446,18 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             sum_mc_for_x_beams, sum_mc_for_y_beams = 0.0, 0.0
             for c_idx in cols_to_check:
                 group_idx = col_map[c_idx + 1]; sec_idx = col_indices[group_idx]
-                rot = col_rotations[group_idx] if len(col_rotations) > 0 else 0
+                
+                # Determine rotation based on scenario
+                if len(col_rotations) > 0:
+                    rot = col_rotations[group_idx]
+                else:
+                    # Scenario B: Odd index means rotated section
+                    rot = 1 if sec_idx % 2 == 1 else 0
+                
                 pm_df = load_pm_data_for_column(h5_file, sec_idx)
                 _, mn0_z = get_pm_capacity_from_df(0, pm_df, axis='z'); _, mn0_y = get_pm_capacity_from_df(0, pm_df, axis='y')
+                
+                # Apply rotation to moment capacity summation
                 if rot == 0: sum_mc_for_x_beams += mn0_y; sum_mc_for_y_beams += mn0_z
                 else: sum_mc_for_x_beams += mn0_z; sum_mc_for_y_beams += mn0_y
             if sum_mb_x > 0: scwb_ratios.append( (1.2 * sum_mb_x) / (sum_mc_for_x_beams + 1e-9) )
@@ -565,28 +574,28 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             total_cost += cost_conc + cost_main_steel + cost_tie_steel + cost_skin_steel + cost_form
             total_co2 += co2_conc + co2_main_steel + co2_tie_steel + co2_skin_steel
 
-    max_allowable_ratios = {
-        'strength': 2.0, 'drift': 2.0, 'wind_disp': 2.0, 'deflection': 2.0, 
-        'hierarchy': 1.2, 'col_size': 1.2
+    # --- Constraint Normalization (Updated for Raw Drift Ratio) ---
+    # Limits where Ratio <= Limit is satisfied
+    limits = {
+        'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
+        'hierarchy': 1.2, 'col_size': 1.0
     }
-    weights = {
-        'strength': 1.0, 'drift': 1.0, 'wind_disp': 1.0, 'deflection': 1.0, 
-        'hierarchy': 1.0, 'col_size': 1.0
+    # Scales for normalization (e.g., how much violation is considered 'large')
+    norm_scales = {
+        'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
+        'hierarchy': 0.2, 'col_size': 0.2
     }
-    margins = {
-        'strength': max(0, max_strength_ratio - 1.0),
-        'drift': max(0, actual_drift_ratio - 1.0),
-        'wind_disp': max(0, actual_wind_disp_ratio - 1.0),
-        'deflection': max(0, actual_deflection_ratio - 1.0),
-        'hierarchy': max(0, actual_hierarchy_ratio - 1.0),
-        'col_size': max(0, actual_col_size_ratio - 1.0)
-    }
+    margins = {key: max(0, val - limits[key]) for key, val in {
+        'strength': max_strength_ratio, 'drift': actual_drift_ratio,
+        'wind_disp': actual_wind_disp_ratio, 'deflection': actual_deflection_ratio,
+        'hierarchy': actual_hierarchy_ratio, 'col_size': actual_col_size_ratio
+    }.items()}
+
     total_normalized_violation = 0
     normalized_margins = {}
     for key, margin in margins.items():
-        max_allowed_margin = max_allowable_ratios[key] - 1.0
-        normalized_margin = min(1.0, margin / (max_allowed_margin + 1e-9))
-        total_normalized_violation += weights[key] * normalized_margin
+        normalized_margin = min(1.0, margin / (norm_scales[key] + 1e-9))
+        total_normalized_violation += normalized_margin # Weight 1.0
         normalized_margins[key] = normalized_margin
 
     detailed_results_dict = {
@@ -602,6 +611,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "violation_hierarchy": actual_hierarchy_ratio, "violation_wind_disp": actual_wind_disp_ratio,
         "violation_col_size": actual_col_size_ratio,
         "max_drift_ratio": actual_drift_ratio,
+        "N_types": len(set(col_indices)) + len(set(beam_indices)),
         "forces_df": final_max_forces
     }
     

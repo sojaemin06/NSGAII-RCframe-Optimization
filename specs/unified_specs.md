@@ -27,8 +27,8 @@
 
 ### 2.1. 목적함수 및 제약조건 변경
 - [x] **목적함수 2번 변경:** `Mean DCR` $\to$ `Max Inter-story Drift Ratio`. (`src/optimization.py` 수정 완료)
-- [x] **제약조건 추가:** 단면 종류 수($N_{types}$), 기둥 위계 등 7종 제약 로직 반영 완료. (`src/structural_analysis.py`)
-- [x] **자동 그룹핑 지원:** `Individual` 전략을 기본값으로 설정하여 개별 부재 단위 최적화 활성화. (`src/config.py`)
+- [x] **제약조건 변경:** 단면 종류 수($N_{types}$) 제약 삭제, 기둥 위계 등 6종 제약 로직 유지. (`src/structural_analysis.py`)
+- [x] **그룹핑 전략 복귀:** `Hybrid` 전략(기둥: 층별/위치별 그룹핑, 보: 층별/방향별 그룹핑)을 기본값으로 설정하여 탐색 공간 효율화. (`src/config.py`)
 
 ### 2.2. 실행 스크립트 역할 분담 및 고도화
 - [x] **`scripts/main.py` (핵심 결과 도출):** 제안된 방법론(Scenario A) 기반 3가지 예제 실행 로직 구축 완료.

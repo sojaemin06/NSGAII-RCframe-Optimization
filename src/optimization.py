@@ -84,14 +84,24 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         toolbox.register("mate", tools.cxTwoPoint)
 
     def custom_mutate(individual, indpb):
-        for i in range(len(individual)):
-            if random.random() < indpb:
-                if i < chromosome_structure['col_sec']:
-                    individual[i] = random.randint(0, num_col_opts - 1)
-                elif i < chromosome_structure['col_sec'] + chromosome_structure['col_rot']:
-                    individual[i] = random.randint(0, 1)
-                else:
-                    individual[i] = random.randint(0, num_beam_opts - 1)
+        if chromosome_structure['col_rot'] > 0:
+            # Scenario A (Proposed): Col + Rot + Beam
+            for i in range(len(individual)):
+                if random.random() < indpb:
+                    if i < chromosome_structure['col_sec']:
+                        individual[i] = random.randint(0, num_col_opts - 1)
+                    elif i < chromosome_structure['col_sec'] + chromosome_structure['col_rot']:
+                        individual[i] = random.randint(0, 1)
+                    else:
+                        individual[i] = random.randint(0, num_beam_opts - 1)
+        else:
+            # Scenario B (Conventional): Col + Beam (No rotation variables)
+            for i in range(len(individual)):
+                if random.random() < indpb:
+                    if i < chromosome_structure['col_sec']:
+                        individual[i] = random.randint(0, num_col_opts - 1)
+                    else:
+                        individual[i] = random.randint(0, num_beam_opts - 1)
         return individual,
     
     toolbox.register("mutate", custom_mutate, indpb=0.1)

@@ -7,7 +7,7 @@ import openseespy.opensees as ops
 import h5py
 import os
 
-from src.config import *
+import src.config as cfg
 
 # =================================================================
 # ===                  데이터 로드 및 처리                        ===
@@ -31,12 +31,20 @@ def load_section_data(beam_path="beam_sections_reduced.csv", col_path="column_se
     beam_sections = [(row["b"]/1000, row["h"]/1000) for _, row in beam_sections_df.iterrows()]
     column_sections = [(row["b"]/1000, row["h"]/1000) for _, row in column_sections_df.iterrows()]
     
-    if "reduced" in col_path:
+    if "reduced" in col_path and "expanded" not in col_path:
         mapping_path = "column_id_mapping.csv"
         if os.path.exists(mapping_path):
             map_df = pd.read_csv(mapping_path)
             COLUMN_ID_MAPPING = dict(zip(map_df['Reduced_ID'] - 1, map_df['Original_ID'] - 1))
         else:
+            COLUMN_ID_MAPPING = {i: i for i in range(len(column_sections))}
+    elif "expanded" in col_path:
+        # For expanded DB, map current index to original_name (which corresponds to HDF5 index)
+        # Note: 'original_name' in CSV is 1-based, we need 0-based for HDF5
+        if 'original_name' in column_sections_df.columns:
+            COLUMN_ID_MAPPING = {i: int(row['original_name']) - 1 for i, row in column_sections_df.iterrows()}
+        else:
+            print("Warning: 'original_name' column not found in expanded DB. PM data mapping may fail.")
             COLUMN_ID_MAPPING = {i: i for i in range(len(column_sections))}
     else:
         COLUMN_ID_MAPPING = {i: i for i in range(len(column_sections))}
@@ -139,8 +147,8 @@ def get_precalculated_strength(element_type, index, col_df, beam_df):
 
 def plot_Structure(title='Structure Shape', view='3D', ax=None, column_locations=None, beam_connections=None):
     import opsvis as opsv
-    if column_locations is None: column_locations = COLUMN_LOCATIONS
-    if beam_connections is None: beam_connections = BEAM_CONNECTIONS
+    if column_locations is None: column_locations = cfg.COLUMN_LOCATIONS
+    if beam_connections is None: beam_connections = cfg.BEAM_CONNECTIONS
     if view == '2D_plan':
         if ax is None: fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_title(title); ax.clear()

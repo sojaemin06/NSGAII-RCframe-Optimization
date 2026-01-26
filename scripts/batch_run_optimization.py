@@ -15,12 +15,12 @@ from src.optimization import run_ga_optimization
 # [USER CONFIGURATION] 최적 파라미터 설정 (실험 완료 후 업데이트 필요)
 # ==================================================================================
 OPTIMAL_PARAMS = {
-    'Population_Size': 100,      # (예시값) Step 5 결과
-    'Tournament_Size': 3,        # (예시값) Step 2 결과
+    'Population_Size': 400,      # Step 5 결과 반영
+    'Tournament_Size': 3,        # Step 2 결과
     'Crossover_Method': 'TwoPoint', # Step 1 결과
-    'Crossover_Prob': 0.9,       # (예시값) Step 3 결과
-    'Mutation_Prob': 0.1,        # (예시값) Step 4 결과
-    'Generations': 200           # 최종 검증용 세대 수
+    'Crossover_Prob': 0.9,       # Step 3 결과
+    'Mutation_Prob': 0.7,        # Step 4 결과 (0.1 -> 0.7로 수정)
+    'Generations': 100           # 검증용 (200 -> 100으로 조정)
 }
 
 NUM_REPEATS = 30 # 통계적 검증을 위한 반복 횟수 (보통 30회 이상 권장)
@@ -68,17 +68,19 @@ def run_validation_instance(run_id, common_data):
         
         # 결과 요약 추출
         best_hv = hof_stats[-1]['hypervolume']
-        best_ind = min(final_hof, key=lambda x: x.fitness.values[0])
+        # Cost가 가장 낮은 해 (Economic Best)
+        best_cost_ind = min(final_hof, key=lambda x: x.fitness.values[0])
         
         # Pareto Front Solutions 추출 (Objective Values Only)
         pareto_front = []
         for ind in final_hof:
             pareto_front.append({
                 'Run_ID': run_id,
-                'Obj1': ind.fitness.values[0], # Cost+CO2
-                'Obj2': ind.fitness.values[1], # DCR
+                'Obj1': ind.fitness.values[0], # Norm Cost+CO2
+                'Obj2': ind.fitness.values[1], # Max Drift Ratio
                 'Cost': ind.detailed_results.get('cost', 0),
-                'CO2': ind.detailed_results.get('co2', 0)
+                'CO2': ind.detailed_results.get('co2', 0),
+                'Max_Drift': ind.detailed_results.get('max_drift_ratio', 0)
             })
             
         # Convergence History 추출 (HV per Generation)
@@ -87,9 +89,9 @@ def run_validation_instance(run_id, common_data):
         return {
             'Run_ID': run_id,
             'Hypervolume': best_hv,
-            'Best_Cost': best_ind.detailed_results['cost'],
-            'Best_CO2': best_ind.detailed_results['co2'],
-            'Best_DCR': best_ind.detailed_results['mean_strength_ratio'],
+            'Best_Cost': best_cost_ind.detailed_results['cost'],
+            'Best_CO2': best_cost_ind.detailed_results['co2'],
+            'Best_Drift': best_cost_ind.detailed_results['max_drift_ratio'], # Best Cost 해의 Drift
             'Elapsed_Time': elapsed,
             'HV_History': hv_history,
             'Pareto_Solutions': pareto_front
@@ -147,7 +149,7 @@ def main():
     df_results = pd.DataFrame(summary_results).sort_values('Run_ID')
     df_results.to_csv(os.path.join(OUTPUT_DIR, 'statistical_summary.csv'), index=False)
     
-    metrics = ['Hypervolume', 'Best_Cost', 'Best_CO2', 'Best_DCR']
+    metrics = ['Hypervolume', 'Best_Cost', 'Best_CO2', 'Best_Drift']
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     for i, metric in enumerate(metrics):
         axes[i].boxplot(df_results[metric], patch_artist=True, boxprops=dict(facecolor='lightblue'))
@@ -184,10 +186,8 @@ def main():
     # 모든 런의 해를 회색 점으로 표시
     plt.scatter(df_pareto['Obj2'], df_pareto['Obj1'], c='gray', alpha=0.3, s=20, label='All Runs Solutions')
     
-    # (선택) 전체 해 중 Non-dominated 해를 찾아서 강조할 수도 있음 (여기선 생략하고 전체 분포만 표시)
-    
     plt.title(f'Accumulated Pareto Fronts ({NUM_REPEATS} Runs)')
-    plt.xlabel('Structural Conservatism (Mean DCR)')
+    plt.xlabel('Max Inter-story Drift Ratio')
     plt.ylabel('Economic & Env. Demand (Norm Cost+CO2)')
     plt.legend()
     plt.grid(True)
