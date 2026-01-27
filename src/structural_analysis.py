@@ -359,7 +359,11 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     if master_node_upper:
                         disp_upper_x = ops.nodeDisp(master_node_upper, 1)
                         disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
-                        story_drifts_x.append(abs(disp_upper_x - disp_lower_x) / cfg.H)
+                        # ASCE 7-16: delta_x = (Cd * delta_xe) / Ie
+                        # Current load is 0.7 * E (ASD), so delta_xe = disp_val / 0.7
+                        # drift = (Cd * (disp / 0.7) / Ie) / H
+                        scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
+                        story_drifts_x.append((abs(disp_upper_x - disp_lower_x) * scaling) / cfg.H)
                 else: story_drifts_x.append(0.0)
         
         ops.reset(); ops.pattern('Plain', 102, 1)
@@ -377,7 +381,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     if master_node_upper:
                         disp_upper_y = ops.nodeDisp(master_node_upper, 2)
                         disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
-                        story_drifts_y.append(abs(disp_upper_y - disp_lower_y) / cfg.H)
+                        scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
+                        story_drifts_y.append((abs(disp_upper_y - disp_lower_y) * scaling) / cfg.H)
                 else: story_drifts_y.append(0.0)
         actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [0], max(story_drifts_y) if story_drifts_y else [0])
     else: actual_drift_ratio = float('inf')

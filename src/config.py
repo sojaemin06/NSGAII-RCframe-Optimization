@@ -218,6 +218,7 @@ SDS = 0.60      # 단주기 설계 스펙트럼 가속도
 SD1 = 0.36      # 1초 주기 설계 스펙트럼 가속도
 
 R_COEFF = 5.0   # 반응 수정 계수 (RC Intermediate Moment Frame)
+CD_FACTOR = 4.5 # 변위 증폭 계수 (Deflection Amplification Factor)
 I_FACTOR = 1.0  # 중요도 계수
 
 # 고유 주기 약산식 파라미터 (RC 모멘트 골조)
