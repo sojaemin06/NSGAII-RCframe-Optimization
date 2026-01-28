@@ -1,10 +1,24 @@
-
 import openseespy.opensees as ops
 import pandas as pd
 import numpy as np
 import math
-import src.config as cfg # Use cfg prefix for dynamic access
+import sys
+import os
+import src.config as cfg 
 from src.utils import *
+
+class SuppressOutput:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
+        sys.stdout = open(os.devnull, 'w')
+        sys.stderr = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stderr.close()
+        sys.stdout = self._original_stdout
+        sys.stderr = self._original_stderr
 
 def extract_local_element_forces(column_elem_ids, beam_elem_ids):
     """OpenSees 해석 후, 모든 부재의 로컬 좌표계 부재력을 추출하여 DataFrame으로 반환하는 함수."""
@@ -104,6 +118,18 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     """
     유전 알고리즘의 핵심 평가 함수.
     """
+    failure_results_dict = {
+        "cost": float('inf'), "co2": float('inf'),
+        "mean_strength_ratio": float('inf'), "max_strength_ratio": float('inf'),
+        "strength_ratios": [], "story_drifts_x": [], "story_drifts_y": [],
+        "wind_displacements_x": [], "wind_displacements_y": [],
+        "violation_deflection": float('inf'), "violation_drift": float('inf'),
+        "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
+        "violation_col_size": float('inf'),
+        "max_drift_ratio": float('inf'),
+        "forces_df": pd.DataFrame(), "violation": float('inf'), "absolute_margins": {}
+    }
+
     num_locations = len(cfg.COLUMN_LOCATIONS)
     
     len_col_sec, len_col_rot = chromosome_structure['col_sec'], chromosome_structure['col_rot']
@@ -154,22 +180,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     
     base_shear_force_seismic = Cs * total_structure_weight
 
-    failure_results_dict = {
-        "cost": float('inf'), "co2": float('inf'),
-        "mean_strength_ratio": float('inf'), "max_strength_ratio": float('inf'),
-        "strength_ratios": [], "story_drifts_x": [], "story_drifts_y": [],
-        "wind_displacements_x": [], "wind_displacements_y": [],
-        "violation_deflection": float('inf'), "violation_drift": float('inf'),
-        "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
-        "violation_col_size": float('inf'),
-        "max_drift_ratio": float('inf'),
-        "forces_df": pd.DataFrame(), "violation": float('inf'), "absolute_margins": {}
-    }
-
     try:
         column_elem_ids, beam_elem_ids, node_map = build_model_for_section(col_indices, col_rotations, beam_indices, col_map, beam_map, beam_sections, column_sections)
     except Exception as e:
-        print(f"DEBUG: Error building model in evaluate: {str(e)}")
+        # print(f"DEBUG: Error building model in evaluate: {str(e)}")
         import traceback
         traceback.print_exc()
         return failure_results_dict 
@@ -247,61 +261,122 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             story_seismic_forces_y[f] = Cvy_mode * base_shear_force_seismic
             
     all_max_combo_forces, analysis_ok = [], True
-    ops.timeSeries('Linear',1); ops.system('ProfileSPD'); ops.numberer('RCM'); ops.constraints('Transformation')
-    ops.integrator('LoadControl',1.0); ops.algorithm('Linear'); ops.analysis('Static')
     
+    # Initialize Analysis Settings
+    ops.timeSeries('Linear', 1)
+    ops.system('ProfileSPD')
+    ops.numberer('RCM')
+    ops.constraints('Transformation')
+    ops.integrator('LoadControl', 1.0)
+    ops.algorithm('Newton')
+    ops.analysis('Static')
+
+    # Robust Analysis Strategy
     for i, (combo_name, factors) in enumerate(cfg.LOAD_COMBINATIONS):
-        pattern_tag = i + 1; ops.reset(); ops.pattern('Plain', pattern_tag, 1)
+        pattern_tag = i + 1
+        converged = False
         
-        for beam_idx, eid in enumerate(beam_elem_ids):
-            group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
-            b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
-            beam_self_weight = b * h * unit_weight 
-            beam_floor = (beam_idx // len(cfg.BEAM_CONNECTIONS)) + 1
-            conn_idx = beam_idx % len(cfg.BEAM_CONNECTIONS)
-            
-            # [수정] 층별 활하중 적용 (Analysis)
-            ll_val = LL.get(beam_floor, LL.get('default', 2.0))
-            
-            tributary_width = cfg.BEAM_TRIBUTARY_WIDTHS[conn_idx] 
-            dl_line_load = DL * tributary_width; ll_line_load = ll_val * tributary_width # [수정] ll_val 사용
-            total_beam_load = beam_self_weight * factors["DL"]
-            loaded_beams_for_this_floor = patterns_by_floor.get(beam_floor, set())
-            if conn_idx in loaded_beams_for_this_floor: total_beam_load += dl_line_load * factors["DL"] + ll_line_load * factors["LL"]
-            else: total_beam_load += dl_line_load * factors["DL"]
-            if abs(total_beam_load) > 1e-6: ops.eleLoad('-ele', eid, '-type', '-beamUniform', 0, -total_beam_load)
+        # Suppress OpenSees output during model manipulation and analysis
+        with SuppressOutput():
+            try:
+                ops.reset()
+                ops.pattern('Plain', pattern_tag, 1)
+                
+                # --- Load Application (Same as before) ---
+                for beam_idx, eid in enumerate(beam_elem_ids):
+                    group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
+                    b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
+                    beam_self_weight = b * h * unit_weight 
+                    beam_floor = (beam_idx // len(cfg.BEAM_CONNECTIONS)) + 1
+                    conn_idx = beam_idx % len(cfg.BEAM_CONNECTIONS)
+                    ll_val = LL.get(beam_floor, LL.get('default', 2.0))
+                    tributary_width = cfg.BEAM_TRIBUTARY_WIDTHS[conn_idx] 
+                    dl_line_load = DL * tributary_width; ll_line_load = ll_val * tributary_width
+                    total_beam_load = beam_self_weight * factors["DL"]
+                    loaded_beams_for_this_floor = patterns_by_floor.get(beam_floor, set())
+                    if conn_idx in loaded_beams_for_this_floor: total_beam_load += dl_line_load * factors["DL"] + ll_line_load * factors["LL"]
+                    else: total_beam_load += dl_line_load * factors["DL"]
+                    if abs(total_beam_load) > 1e-6: ops.eleLoad('-ele', eid, '-type', '-beamUniform', 0, -total_beam_load)
 
-        for col_idx, eid in enumerate(column_elem_ids):
-            group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
-            b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
-            col_self_weight = b * h * cfg.H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
-            ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
-            ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
+                for col_idx, eid in enumerate(column_elem_ids):
+                    group_idx = col_map[col_idx + 1]; sec_idx = col_indices[group_idx]
+                    b, h = column_sections[sec_idx]; unit_weight = column_sections_df.iloc[sec_idx]['UnitWeight']
+                    col_self_weight = b * h * cfg.H * unit_weight; node1_tag, node2_tag = ops.eleNodes(eid)
+                    ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
+                    ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
+                
+                # ... (Wind load logic) ...
+                story_wind_forces_x = [0.0] * cfg.FLOORS; story_wind_forces_y = [0.0] * cfg.FLOORS
+                def get_Kz(z): return 2.01 * ((max(z, 4.57) / cfg.ZG) ** (2 / cfg.ALPHA))
+                Kz_top = get_Kz(cfg.FLOORS * cfg.H)
+                qh = 0.000613 * Kz_top * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) 
+                for k in range(cfg.FLOORS):
+                    z_story = (k + 1) * cfg.H; Kz = get_Kz(z_story)
+                    qz = 0.000613 * Kz * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) 
+                    p_total = (qz * cfg.G_FACTOR * cfg.CP_WINDWARD) + (qh * cfg.G_FACTOR * abs(cfg.CP_LEEWARD))
+                    story_wind_forces_x[k] = p_total * (cfg.BUILDING_WIDTH_Y * cfg.H)
+                    story_wind_forces_y[k] = p_total * (cfg.BUILDING_WIDTH_X * cfg.H)
+
+                if abs(factors["Ex"]) > 1e-9 or abs(factors["Ey"]) > 1e-9 or abs(factors["Wx"]) > 1e-9 or abs(factors["Wy"]) > 1e-9:
+                    for k in range(cfg.FLOORS): 
+                        Fx_total = (story_seismic_forces_x[k] * factors["Ex"]) + (story_wind_forces_x[k] * factors["Wx"])
+                        Fy_total = (story_seismic_forces_y[k] * factors["Ey"]) + (story_wind_forces_y[k] * factors["Wy"])
+                        nodal_load_x = Fx_total / num_locations; nodal_load_y = Fy_total / num_locations
+                        for loc_idx in range(num_locations):
+                            node_tag = node_map.get((k + 1, loc_idx)) 
+                            if node_tag: ops.load(node_tag, nodal_load_x, nodal_load_y, 0, 0, 0, 0)
+
+                # --- Adaptive Analysis Execution ---
+                converged = False
+                solvers = ['BandGeneral', 'UmfPack', 'FullGeneral']
+                algorithms_list = ['Newton', 'NewtonLineSearch', 'ModifiedNewton', 'KrylovNewton']
+                
+                for solver in solvers:
+                    if converged: break
+                    for algo in algorithms_list:
+                        try:
+                            ops.system(solver)
+                            ops.numberer('RCM')
+                            ops.constraints('Transformation')
+                            ops.integrator('LoadControl', 1.0)
+                            ops.algorithm(algo)
+                            ops.analysis('Static')
+                            
+                            if ops.analyze(1) == 0:
+                                converged = True
+                                break
+                        except:
+                            pass
+            except Exception:
+                pass 
+        # End of SuppressOutput
         
-        story_wind_forces_x = [0.0] * cfg.FLOORS; story_wind_forces_y = [0.0] * cfg.FLOORS
-        def get_Kz(z): return 2.01 * ((max(z, 4.57) / cfg.ZG) ** (2 / cfg.ALPHA))
-        Kz_top = get_Kz(cfg.FLOORS * cfg.H)
-        qh = 0.000613 * Kz_top * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) 
-        for k in range(cfg.FLOORS):
-            z_story = (k + 1) * cfg.H; Kz = get_Kz(z_story)
-            qz = 0.000613 * Kz * cfg.KZT * cfg.KD * (cfg.BASIC_WIND_SPEED ** 2) 
-            p_total = (qz * cfg.G_FACTOR * cfg.CP_WINDWARD) + (qh * cfg.G_FACTOR * abs(cfg.CP_LEEWARD))
-            story_wind_forces_x[k] = p_total * (cfg.BUILDING_WIDTH_Y * cfg.H)
-            story_wind_forces_y[k] = p_total * (cfg.BUILDING_WIDTH_X * cfg.H)
-
-        if abs(factors["Ex"]) > 1e-9 or abs(factors["Ey"]) > 1e-9 or abs(factors["Wx"]) > 1e-9 or abs(factors["Wy"]) > 1e-9:
-            for k in range(cfg.FLOORS): 
-                Fx_total = (story_seismic_forces_x[k] * factors["Ex"]) + (story_wind_forces_x[k] * factors["Wx"])
-                Fy_total = (story_seismic_forces_y[k] * factors["Ey"]) + (story_wind_forces_y[k] * factors["Wy"])
-                nodal_load_x = Fx_total / num_locations; nodal_load_y = Fy_total / num_locations
-                for loc_idx in range(num_locations):
-                    node_tag = node_map.get((k + 1, loc_idx)) 
-                    if node_tag: ops.load(node_tag, nodal_load_x, nodal_load_y, 0, 0, 0, 0)
-
-        if ops.analyze(1) != 0: analysis_ok = False; ops.remove('loadPattern', pattern_tag); break
+        if not converged:
+            analysis_ok = False
+            try:
+                with SuppressOutput(): ops.remove('loadPattern', pattern_tag)
+            except: pass
+            break
+            
         df_max_curr = extract_local_element_forces(column_elem_ids, beam_elem_ids)
-        if df_max_curr.empty: analysis_ok = False; ops.remove('loadPattern', pattern_tag); break
-        df_max_curr['Combo'] = combo_name; all_max_combo_forces.append(df_max_curr); ops.remove('loadPattern', pattern_tag)
+        if df_max_curr.empty: 
+            analysis_ok = False
+            try:
+                with SuppressOutput(): ops.remove('loadPattern', pattern_tag)
+            except: pass
+            break
+            
+        df_max_curr['Combo'] = combo_name
+        all_max_combo_forces.append(df_max_curr)
+        try:
+            with SuppressOutput(): ops.remove('loadPattern', pattern_tag)
+        except: pass
+
+    # Restore Output
+    try:
+        ops.stopLog()
+    except:
+        pass
 
     if not analysis_ok or not all_max_combo_forces: return failure_results_dict
     df_all_combos = pd.concat(all_max_combo_forces, ignore_index=True)
@@ -359,9 +434,6 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     if master_node_upper:
                         disp_upper_x = ops.nodeDisp(master_node_upper, 1)
                         disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
-                        # ASCE 7-16: delta_x = (Cd * delta_xe) / Ie
-                        # Current load is 0.7 * E (ASD), so delta_xe = disp_val / 0.7
-                        # drift = (Cd * (disp / 0.7) / Ie) / H
                         scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
                         story_drifts_x.append((abs(disp_upper_x - disp_lower_x) * scaling) / cfg.H)
                 else: story_drifts_x.append(0.0)
@@ -580,12 +652,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             total_co2 += co2_conc + co2_main_steel + co2_tie_steel + co2_skin_steel
 
     # --- Constraint Normalization (Updated for Raw Drift Ratio) ---
-    # Limits where Ratio <= Limit is satisfied
     limits = {
         'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
         'hierarchy': 1.2, 'col_size': 1.0
     }
-    # Scales for normalization (e.g., how much violation is considered 'large')
     norm_scales = {
         'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
         'hierarchy': 0.2, 'col_size': 0.2

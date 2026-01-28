@@ -35,21 +35,28 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
     # 1. 파레토 최적해 요약
     summary_data_list = []
     for r in all_results:
-        ind_obj = r['ind_object']
+        ind_obj = r.get('ind_object')
         # 이미 실제 변위비가 넘어오므로 추가 변환 없음
         actual_drift_ratio_val = r.get('max_drift_ratio', 0)
         
-        summary_data_list.append({
+        row = {
             'ID': r['ID'],
             'Cost': r['cost'],
             'CO2': r['co2'],
             'Max_Drift_Ratio': actual_drift_ratio_val, 
             'Max_Drift_Ratio_Percent': actual_drift_ratio_val * 100, 
             'Mean_DCR': r.get('mean_strength_ratio', -1),
-            'Fit1(CostCO2)': ind_obj.fitness.values[0],
-            'Fit2(MaxDrift)': ind_obj.fitness.values[1],
             'N_types': r.get('N_types', -1)
-        })
+        }
+        
+        if ind_obj:
+            row['Fit1(CostCO2)'] = ind_obj.fitness.values[0]
+            row['Fit2(MaxDrift)'] = ind_obj.fitness.values[1]
+        else:
+            row['Fit1(CostCO2)'] = -1
+            row['Fit2(MaxDrift)'] = -1
+            
+        summary_data_list.append(row)
     summary_df = pd.DataFrame(summary_data_list)
     summary_df.to_csv(os.path.join(data_dir, "pareto_summary.csv"), index=False)
 
@@ -69,7 +76,10 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
     detail_cols_beam = ['h', 'b', 'fck', 'fy', 'N_r', 'dimension', 'stirrup', 'strup_space'] 
     
     for r in all_results:
-        ind = r['ind_object']
+        ind = r.get('ind_object')
+        if ind is None:
+            continue
+            
         len_col_sec = chromosome_structure['col_sec']
         len_col_rot = chromosome_structure['col_rot']
         

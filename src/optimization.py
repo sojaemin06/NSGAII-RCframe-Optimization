@@ -60,9 +60,34 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     num_col_opts, num_beam_opts = len(column_sections), len(beam_sections)
     
     def init_individual():
-        col_genes = [random.randint(0, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
+        # Smart Heuristic Initialization:
+        # To find feasible solutions for 6-story irregular frames, we need:
+        # 1. Strong columns (Strength constraint)
+        # 2. Stiff beams (Deflection constraint)
+        # 3. Hierarchy (Col size constraint) -> Hard to enforce perfectly here without map, 
+        #    but picking from a narrow range of "Strong" sections reduces the chance of huge violations.
+        
+        prob = random.random()
+        
+        if prob < 0.4: # 40% chance: "Heavy Duty" Initialization
+            # Pick from top 20% of strongest sections
+            min_col = int(num_col_opts * 0.8)
+            min_beam = int(num_beam_opts * 0.8)
+            col_genes = [random.randint(min_col, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
+            beam_genes = [random.randint(min_beam, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec'])]
+            
+        elif prob < 0.7: # 30% chance: "Medium-Heavy" Initialization
+            # Pick from top 50%
+            min_col = int(num_col_opts * 0.5)
+            min_beam = int(num_beam_opts * 0.5)
+            col_genes = [random.randint(min_col, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
+            beam_genes = [random.randint(min_beam, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec'])]
+            
+        else: # 30% chance: Pure Random (Exploration)
+            col_genes = [random.randint(0, num_col_opts - 1) for _ in range(chromosome_structure['col_sec'])]
+            beam_genes = [random.randint(0, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec'])]
+            
         rot_genes = [random.randint(0, 1) for _ in range(chromosome_structure['col_rot'])]
-        beam_genes = [random.randint(0, num_beam_opts - 1) for _ in range(chromosome_structure['beam_sec'])]
         
         return creator.Individual(col_genes + rot_genes + beam_genes)
 

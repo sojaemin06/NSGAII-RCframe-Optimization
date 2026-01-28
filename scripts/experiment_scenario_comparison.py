@@ -1,6 +1,10 @@
 
 import sys
 import os
+import warnings
+
+# Suppress all warnings
+warnings.filterwarnings("ignore")
 
 # Add the project root to sys.path
 script_dir = os.path.dirname(__file__)
@@ -107,6 +111,7 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
             if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0:
                 solution_data = ind.detailed_results.copy()
                 solution_data['ID'] = i + 1
+                solution_data['ind_object'] = ind 
                 processed_valid_solutions.append(solution_data)
         
         save_results_to_csv(output_dir, processed_valid_solutions, logbook, hof_stats, chromosome_structure)
@@ -124,52 +129,91 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
 
 def load_existing_results(scenario_name, source_dir):
     print(f"\n{'='*60}")
-    print(f"Loading Existing Results for {scenario_name}")
+    print(f"Attempting to Load Existing Results for {scenario_name}")
     print(f"Source: {source_dir}")
-    print(f"{'='*60}")
     
     log_path = os.path.join(source_dir, "Data", "optimization_log.csv")
     if not os.path.exists(log_path):
-        raise FileNotFoundError(f"Log file not found: {log_path}")
+        print(f" - Optimization log not found at {log_path}")
+        return None
         
-    # Load logbook from CSV using pandas
-    df_log = pd.read_csv(log_path)
-    
-    # Create a dummy logbook-like object (list of dicts)
-    logbook = []
-    for _, row in df_log.iterrows():
-        logbook.append(row.to_dict())
+    try:
+        # Load logbook from CSV using pandas
+        df_log = pd.read_csv(log_path)
         
-    # Get Final HV
-    final_hv = df_log.iloc[-1]['hypervolume']
-    
-    # Chromosome length is hardcoded for Example 1 (Reduced DB)
-    # Col: 60, Rot: 60, Beam: 88 = 208
-    chromosome_len = 208 
-    
-    return {
-        'name': scenario_name,
-        'time': 0.0, # Unknown/Already spent
-        'logbook': logbook,
-        'stats': [{'hypervolume': final_hv}], # Dummy stats
-        'chromosome_len': chromosome_len
-    }
+        # Create a dummy logbook-like object (list of dicts)
+        logbook = []
+        for _, row in df_log.iterrows():
+            logbook.append(row.to_dict())
+            
+        # Get Final HV
+        final_hv = df_log.iloc[-1]['hypervolume']
+        
+        # Chromosome length inference
+        design_vars_path = os.path.join(source_dir, "Data", "design_variables.csv")
+        chromosome_len = 208 # Default fallback
+        
+        if os.path.exists(design_vars_path):
+            try:
+                dv_df = pd.read_csv(design_vars_path, nrows=1) # Read header only
+                cols = dv_df.columns
+                
+                n_col_grps = sum(1 for c in cols if c.startswith('col_grp_') and c.endswith('_ID'))
+                n_beam_grps = sum(1 for c in cols if c.startswith('beam_grp_') and c.endswith('_ID'))
+                has_rot = any(c.startswith('col_grp_') and c.endswith('_Rot') for c in cols)
+                
+                chromosome_len = (n_col_grps * (2 if has_rot else 1)) + n_beam_grps
+                print(f" - Inferred Chromosome Length from Data: {chromosome_len}")
+            except Exception as e:
+                print(f" - Warning: Failed to infer chromosome length from CSV ({e}). Using default 208.")
+        else:
+             print(" - Warning: design_variables.csv not found. Using default 208.")
+        
+        print(f" - Successfully loaded existing results.")
+        return {
+            'name': scenario_name,
+            'time': 0.0,
+            'logbook': logbook,
+            'stats': [{'hypervolume': final_hv}],
+            'chromosome_len': chromosome_len
+        }
+    except Exception as e:
+        print(f" - Error loading existing results: {e}")
+        return None
 
 def main():
     os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
     
-    # --- Scenario A: Proposed (Load Existing) ---
-    # Assuming the local results are in the standard output path
-    existing_path_A = os.path.join(project_root, "Results_Optimization_Paper_Final", "Example_1_4Story")
+    # --- SCI Paper Style Configuration ---
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 12
+    plt.rcParams['axes.labelsize'] = 14
+    plt.rcParams['axes.titlesize'] = 14
+    plt.rcParams['xtick.labelsize'] = 12
+    plt.rcParams['ytick.labelsize'] = 12
+    plt.rcParams['legend.fontsize'] = 10
+    plt.rcParams['figure.dpi'] = 300
+    plt.rcParams['savefig.dpi'] = 300
+    plt.rcParams['mathtext.fontset'] = 'stix' 
+    plt.rcParams['axes.grid'] = True
+    plt.rcParams['grid.linestyle'] = '-' 
+    plt.rcParams['grid.alpha'] = 0.7
     
-    if os.path.exists(existing_path_A):
-        try:
-            results_A = load_existing_results("Scenario_A_Proposed", existing_path_A)
-        except Exception as e:
-            print(f"Failed to load existing results: {e}. Running Scenario A from scratch.")
-            results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True)
-    else:
-        print("Existing results for Scenario A not found. Running from scratch.")
+    # --- Scenario A: Proposed (Load Existing or Run New) ---
+    # Try multiple possible paths for Example 1 results
+    possible_paths = [
+        os.path.join(project_root, "Results_Optimization_Paper_Final", "Example_1_4Story"),
+        os.path.join(project_root, "Results", "Example_1_4Story")
+    ]
+    
+    results_A = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            results_A = load_existing_results("Scenario_A_Proposed", path)
+            if results_A: break
+            
+    if results_A is None:
+        print("\nScenario A: No valid existing results found. Running from scratch (this may take time)...")
         results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True)
     
     # --- Scenario B: Conventional (Run New) ---
@@ -192,12 +236,12 @@ def main():
     gen_A, hv_A = get_data(results_A)
     gen_B, hv_B = get_data(results_B)
     
-    plt.plot(gen_A, hv_A, 'b-o', label=f"Scenario A (Proposed)\nGenLen={results_A['chromosome_len']}")
-    plt.plot(gen_B, hv_B, 'r-x', label=f"Scenario B (Conventional)\nGenLen={results_B['chromosome_len']}")
+    plt.plot(gen_A, hv_A, 'b-o', label=f"Scenario A (Proposed): Hybrid Grouping + Reduced DB\n(GenLen={results_A['chromosome_len']})")
+    plt.plot(gen_B, hv_B, 'r-x', label=f"Scenario B (Conventional): Individual Grouping + Expanded DB\n(GenLen={results_B['chromosome_len']})")
     
     plt.xlabel('Generation')
     plt.ylabel('Hypervolume Indicator')
-    plt.title('Optimization Efficiency Comparison')
+    # plt.title('Optimization Efficiency Comparison') # Removed for paper style
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join(OUTPUT_BASE_DIR, "Comparison_Hypervolume.png"))

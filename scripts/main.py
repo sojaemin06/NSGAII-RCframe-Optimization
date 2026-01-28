@@ -1,5 +1,9 @@
 import sys
 import os
+import warnings
+
+# Suppress all warnings
+warnings.filterwarnings("ignore")
 
 # Add the project root to sys.path
 script_dir = os.path.dirname(__file__)
@@ -23,24 +27,24 @@ from src.post_processing import save_results_to_csv, plot_results
 # ==================================================================================
 
 EXAMPLES = {
-    'Example_1_4Story': {
-        'Floors': 4,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
-    },
+    # 'Example_1_4Story': {
+    #     'Floors': 4,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
+    # },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
     #     'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
     # },
-    # 'Example_3_8Story': {
-    #     'Floors': 8,
-    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
-    # }
+    'Example_3_8Story': {
+        'Floors': 8,
+        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
+    }
 }
 
 # 실험 파라미터 (Scenario A 고정 - config.py의 최적 파라미터 사용)
