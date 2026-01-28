@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 
 # --- SCI Paper Style Configuration ---
 plt.rcParams['font.family'] = 'Times New Roman'
@@ -70,8 +70,6 @@ def plot_pareto_front(step_name, csv_file, x_col='Obj2_MaxDrift', y_col='Obj1_No
     params = df[hue_col].unique()
     markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']
     colors = plt.cm.viridis(np.linspace(0, 0.9, len(params))) if len(params) > 0 else []
-
-    import numpy as np # Ensure numpy is available for linspace
     
     # Custom color palette if needed, or use seaborn/matplotlib defaults
     
