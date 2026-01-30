@@ -23,11 +23,11 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: False,   # Step 1: Crossover Strategy (현재 실행)
+    1: True,   # Step 1: Crossover Strategy (현재 실행)
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
     4: False,  # Step 4: Mutation Probability
-    5: True   # Step 5: Population Size
+    5: False   # Step 5: Population Size
 }
 
 # 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
@@ -132,10 +132,14 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     df.to_csv(history_csv_path, index=False)
     print(f"   -> [Saved] Convergence history saved to {history_csv_path}")
     
-    # 3. Pareto Front 데이터 처리 및 병합 (HOF Only)
+    # 3. Pareto Front 데이터 처리 (HOF Only)
     new_hof_rows = []
     for param, inds in all_hof_data.items():
         for ind in inds:
+            # [제약조건 필터링] violation > 0인 해는 제외
+            if ind.detailed_results.get('violation', 0) > 0:
+                continue
+                
             new_hof_rows.append({
                 'Parameter': param,
                 'Obj1_NormCostCO2': ind.fitness.values[0],
@@ -149,26 +153,14 @@ def analyze_and_plot(all_history_data, all_hof_data, step_name, param_key, outpu
     df_new = pd.DataFrame(new_hof_rows)
     csv_path = os.path.join(output_dir, f'{step_name}_Pareto_Data.csv')
     
-    # 기존 파일이 있으면 병합
-    if os.path.exists(csv_path):
-        print(f"   -> Found existing data at {csv_path}. Merging and updating...")
-        try:
-            df_old = pd.read_csv(csv_path)
-            current_params = df_new['Parameter'].unique() if not df_new.empty else []
-            if len(current_params) > 0:
-                df_old = df_old[~df_old['Parameter'].isin(current_params)]
-            df_combined = pd.concat([df_old, df_new], ignore_index=True)
-        except Exception as e:
-            print(f"   -> Warning: Could not merge with existing CSV ({e}). Overwriting.")
-            df_combined = df_new
-    else:
-        df_combined = df_new
+    # [병합 로직 삭제] 항상 새로운 데이터로 덮어쓰기
+    df_combined = df_new
 
     # 저장
     df_combined.to_csv(csv_path, index=False)
-    print(f"   -> [Saved] Combined Pareto data saved to {csv_path}")
+    print(f"   -> [Saved] Pareto data saved to {csv_path}")
 
-    # 4. Pareto Front 비교 그래프 (병합된 데이터 사용)
+    # 4. Pareto Front 비교 그래프 (Feasible Only)
     plt.figure(figsize=(10, 8))
     
     if df_combined.empty:
