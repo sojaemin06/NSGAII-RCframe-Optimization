@@ -14,6 +14,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 from src.config import *
+import src.config as cfg
 from src.utils import load_section_data, get_beam_lengths, calculate_fixed_scale, get_grouping_maps
 from src.optimization import run_ga_optimization
 
@@ -46,7 +47,7 @@ STEP3_GEN = 50     # 교배 확률 비교
 STEP4_GEN = 50     # 변이 확률 비교
 STEP5_GEN = 100     # 모집단 크기 비교 (조금 더 길게)
 
-BASE_POP = 100     # 초기 기준 모집단
+BASE_POP = 200     # 초기 기준 모집단
 BASE_TOURN = 3     
 BASE_CXPB = 0.8    
 BASE_MUTPB = 0.2   
@@ -81,10 +82,13 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
 
     start_time = time.time()
     
+    # [수정] Example 1 전용 하중 패턴 사용
+    target_patterns = cfg.LOAD_PATTERNS_4F 
+
     # verbose=False로 설정하여 내부 로그 억제
     final_pop, _, final_hof, hof_stats_history = run_ga_optimization(
         DL=DL_AREA_LOAD, LL=LL_AREA_LOAD,
-        crossover_method=crossover, patterns_by_floor=PATTERNS_BY_FLOOR, h5_file=h5_file,
+        crossover_method=crossover, patterns_by_floor=target_patterns, h5_file=h5_file,
         num_generations=num_gen, population_size=pop_size,
         col_map=col_map, beam_map=beam_map, beam_sections=beam_sections, column_sections=column_sections,
         beam_sections_df=beam_sections_df, column_sections_df=column_sections_df, beam_lengths=beam_lengths,
@@ -264,21 +268,29 @@ def main():
     h5_file = h5py.File('pm_dataset_simple02.mat', 'r')
     
     try:
-        # [수정] 강제 그룹핑 전략 설정 (Hybrid)
-        forced_grouping_strategy = "Hybrid"
+        # [Sync with main.py] Example 1 (4층) 환경 강제 설정
+        import src.config as cfg
+        cfg.FLOORS = 4
+        cfg.COLUMN_LOCATIONS = cfg.COLUMN_LOCATIONS_4F
+        cfg.BEAM_CONNECTIONS = cfg.BEAM_CONNECTIONS_4F
+        cfg.BEAM_TRIBUTARY_WIDTHS = cfg.BEAM_TRIBUTARY_WIDTHS_4F
+        cfg.GROUPING_STRATEGY = "Hybrid"
+
+        # [수정] 강제 그룹핑 전략 설정 (Hybrid) -> cfg 사용
+        # forced_grouping_strategy = "Hybrid"
         
-        num_locations = len(COLUMN_LOCATIONS)
-        num_columns = num_locations * FLOORS
-        num_beams = len(BEAM_CONNECTIONS) * FLOORS
-        beam_lengths = get_beam_lengths(COLUMN_LOCATIONS, BEAM_CONNECTIONS)
+        num_locations = len(cfg.COLUMN_LOCATIONS)
+        num_columns = num_locations * cfg.FLOORS
+        num_beams = len(cfg.BEAM_CONNECTIONS) * cfg.FLOORS
+        beam_lengths = get_beam_lengths(cfg.COLUMN_LOCATIONS, cfg.BEAM_CONNECTIONS)
         
         num_col_groups, num_beam_groups, col_map, beam_map = get_grouping_maps(
-            forced_grouping_strategy, num_locations, num_columns, num_beams, FLOORS, BEAM_CONNECTIONS, COLUMN_LOCATIONS
+            cfg.GROUPING_STRATEGY, num_locations, num_columns, num_beams, cfg.FLOORS, cfg.BEAM_CONNECTIONS, cfg.COLUMN_LOCATIONS
         )
         chromosome_structure = {'col_sec': num_col_groups, 'col_rot': num_col_groups, 'beam_sec': num_beam_groups}
         
-        total_col_len = (len(COLUMN_LOCATIONS) * FLOORS) * H
-        total_beam_len = sum(beam_lengths) * FLOORS
+        total_col_len = (len(cfg.COLUMN_LOCATIONS) * cfg.FLOORS) * cfg.H
+        total_beam_len = sum(beam_lengths) * cfg.FLOORS
         fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = calculate_fixed_scale(
             column_sections_df, beam_sections_df, total_col_len, total_beam_len
         )
