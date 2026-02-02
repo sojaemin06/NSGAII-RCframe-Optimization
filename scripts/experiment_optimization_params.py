@@ -47,7 +47,7 @@ STEP3_GEN = 50     # 교배 확률 비교
 STEP4_GEN = 50     # 변이 확률 비교
 STEP5_GEN = 100     # 모집단 크기 비교 (조금 더 길게)
 
-BASE_POP = 200     # 초기 기준 모집단
+BASE_POP = 100     # 초기 기준 모집단
 BASE_TOURN = 3     
 BASE_CXPB = 0.8    
 BASE_MUTPB = 0.2   
@@ -70,8 +70,8 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     ops.wipe()
     
     # [Fairness] 공정한 비교를 위해 매 실험마다 난수 시드 고정
-    random.seed(42)
-    np.random.seed(42)
+    # random.seed(42)
+    # np.random.seed(42)
 
     (beam_sections_df, column_sections_df, beam_sections, column_sections,
      h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
@@ -239,14 +239,14 @@ def run_step_logic(step_num, step_title, param_list, param_name, current_best_pa
         exp_name = f"{param_name}_{val}"
         desc = f"({i+1}/{len(param_list)}) Testing {param_name}={val}"
         
-        # 현재 Step의 파라미터(val)를 적용하고, 나머지는 BASE 상수값 사용 (독립적 실험)
+        # 현재 Step의 파라미터(val)를 적용하고, 나머지는 current_best_params 값 사용 (순차적 최적화 반영)
         # 동적으로 인자 생성
         args = {
-            'pop_size': val if param_name == 'PopSize' else BASE_POP,
-            'tourn_size': val if param_name == 'Tournament' else BASE_TOURN,
-            'crossover': val if param_name == 'Crossover' else 'OnePoint', # Default base crossover
-            'cxpb': val if param_name == 'CXPB' else BASE_CXPB,
-            'mutpb': val if param_name == 'MUTPB' else BASE_MUTPB
+            'pop_size': val if param_name == 'PopSize' else current_best_params.get('Best_PopSize', BASE_POP),
+            'tourn_size': val if param_name == 'Tournament' else current_best_params.get('Best_Tournament', BASE_TOURN),
+            'crossover': val if param_name == 'Crossover' else current_best_params.get('Best_Crossover', 'OnePoint'),
+            'cxpb': val if param_name == 'CXPB' else current_best_params.get('Best_CXPB', BASE_CXPB),
+            'mutpb': val if param_name == 'MUTPB' else current_best_params.get('Best_MUTPB', BASE_MUTPB)
         }
         
         hist, hof, _ = run_single_experiment(
@@ -320,7 +320,7 @@ def main():
         current_best['Best_MUTPB'] = best_mutpb
 
         # --- Step 5: Population Size ---
-        best_pop = run_step_logic(5, "Population Size", list(range(100, 1001, 100)), "PopSize", current_best, common_data, STEP5_GEN)
+        best_pop = run_step_logic(5, "Population Size", [400], "PopSize", current_best, common_data, STEP5_GEN)
         current_best['Best_PopSize'] = best_pop
 
         # 최종 결과 출력
