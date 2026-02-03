@@ -70,8 +70,8 @@ def run_single_experiment(exp_name, pop_size, tourn_size, crossover, cxpb, mutpb
     ops.wipe()
     
     # [Fairness] 공정한 비교를 위해 매 실험마다 난수 시드 고정
-    # random.seed(42)
-    # np.random.seed(42)
+    random.seed(42)
+    np.random.seed(42)
 
     (beam_sections_df, column_sections_df, beam_sections, column_sections,
      h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
