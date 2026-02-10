@@ -24,16 +24,16 @@ from src.optimization import run_ga_optimization
 
 # 1. 실행할 단계 선택 (True: 실행, False: 건너뛰기)
 RUN_STEPS = {
-    1: True,   # Step 1: Crossover Strategy (현재 실행)
+    1: False,   # Step 1: Crossover Strategy (현재 실행)
     2: False,  # Step 2: Tournament Size
     3: False,  # Step 3: Crossover Probability
     4: False,  # Step 4: Mutation Probability
-    5: False   # Step 5: Population Size
+    5: True   # Step 5: Population Size
 }
 
 # 2. 이전 단계에서 결정된 최적 파라미터 (건너뛴 단계의 결과값을 여기에 입력하세요)
 PREV_BEST_PARAMS = {
-    'Best_Crossover': 'TwoPoint', 
+    'Best_Crossover': 'Uniform', 
     'Best_Tournament': 3,         
     'Best_CXPB': 0.9,             
     'Best_MUTPB': 0.7,            
@@ -45,7 +45,7 @@ STEP1_GEN = 50     # 교배 전략 비교 (빠른 탐색)
 STEP2_GEN = 50     # 토너먼트 크기 비교
 STEP3_GEN = 50     # 교배 확률 비교
 STEP4_GEN = 50     # 변이 확률 비교
-STEP5_GEN = 100     # 모집단 크기 비교 (조금 더 길게)
+STEP5_GEN = 50     # 모집단 크기 비교 (조금 더 길게)
 
 BASE_POP = 100     # 초기 기준 모집단
 BASE_TOURN = 3     
@@ -299,8 +299,11 @@ def main():
                        h5_file, col_map, beam_map, beam_lengths, chromosome_structure,
                        num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2)
         
-        # 현재까지의 최적 파라미터를 추적하는 딕셔너리 (초기값은 PREV_BEST_PARAMS로 시작)
-        current_best = PREV_BEST_PARAMS.copy()
+        # [수정] 순차적 실험을 위해 빈 딕셔너리로 시작
+        # - 완료된 Step(False)은 PREV_BEST_PARAMS에서 값을 불러와 current_best에 저장
+        # - 진행 중인 Step은 실험 수행
+        # - 아직 안 한 Step은 current_best에 없으므로 BASE_ 값을 사용
+        current_best = {}
 
         # --- Step 1: Crossover Strategy ---
         best_cx = run_step_logic(1, "Crossover Strategy", ["OnePoint", "TwoPoint", "Uniform"], "Crossover", current_best, common_data, STEP1_GEN)
