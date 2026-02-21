@@ -37,7 +37,7 @@ PREV_BEST_PARAMS = {
     'Best_Tournament': 3,         
     'Best_CXPB': 0.9,             
     'Best_MUTPB': 0.7,            
-    'Best_PopSize': 100           
+    'Best_PopSize': 500           
 }
 
 # 3. 실험 파라미터 설정

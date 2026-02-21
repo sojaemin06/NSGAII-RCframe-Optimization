@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import h5py
 import pandas as pd
@@ -6,6 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import concurrent.futures
 from tqdm import tqdm
+
+# 프로젝트 루트 디렉토리를 sys.path에 추가
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 from src.config import *
 from src.utils import load_section_data, get_beam_lengths, calculate_fixed_scale, get_grouping_maps
@@ -15,9 +21,9 @@ from src.optimization import run_ga_optimization
 # [USER CONFIGURATION] 최적 파라미터 설정 (실험 완료 후 업데이트 필요)
 # ==================================================================================
 OPTIMAL_PARAMS = {
-    'Population_Size': 400,      # Step 5 결과 반영
+    'Population_Size': 500,      # Step 5 결과 반영
     'Tournament_Size': 3,        # Step 2 결과
-    'Crossover_Method': 'TwoPoint', # Step 1 결과
+    'Crossover_Method': 'Uniform', # Step 1 결과
     'Crossover_Prob': 0.9,       # Step 3 결과
     'Mutation_Prob': 0.7,        # Step 4 결과 (0.1 -> 0.7로 수정)
     'Generations': 100           # 검증용 (200 -> 100으로 조정)
@@ -44,7 +50,7 @@ def run_validation_instance(run_id, common_data):
     with h5py.File(h5_file_path, 'r') as h5_file:
         start_time = time.time()
         
-        # GA 실행 (verbose=False로 조용히 실행)
+        # GA 실행 (개별 진행 바를 위해 verbose=True, tqdm_pos 지정)
         pop, logbook, final_hof, hof_stats = run_ga_optimization(
             DL=DL_AREA_LOAD, LL=LL_AREA_LOAD,
             crossover_method=OPTIMAL_PARAMS['Crossover_Method'], 
@@ -61,7 +67,8 @@ def run_validation_instance(run_id, common_data):
             tournament_size=OPTIMAL_PARAMS['Tournament_Size'], 
             cxpb=OPTIMAL_PARAMS['Crossover_Prob'], 
             mutpb=OPTIMAL_PARAMS['Mutation_Prob'],
-            verbose=False
+            verbose=True,
+            tqdm_pos=run_id
         )
         
         elapsed = time.time() - start_time
@@ -126,12 +133,12 @@ def main():
                    h5_file_path, col_map, beam_map, beam_lengths, chromosome_structure,
                    num_columns, num_beams, fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2)
 
-    # 병렬 실행
+    # 병렬 실행 (코어 사용량을 6개로 제한)
     summary_results = []
     all_hv_histories = []
     all_pareto_solutions = []
     
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
         futures = {executor.submit(run_validation_instance, i+1, common_data): i for i in range(NUM_REPEATS)}
         
         for future in tqdm(concurrent.futures.as_completed(futures), total=NUM_REPEATS, desc="Validation Progress"):

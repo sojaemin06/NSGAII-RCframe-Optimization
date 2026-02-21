@@ -23,7 +23,7 @@ from src.post_processing import save_results_to_csv
 
 # --- Experiment Configuration ---
 OUTPUT_BASE_DIR = "Results_Scenario_Comparison"
-POP_SIZE = 400
+POP_SIZE = 500
 GENERATIONS = 100
 EXAMPLE_NAME = 'Example_1_4Story'
 
@@ -84,7 +84,7 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
         # 4. Run Optimization
         pop, logbook, final_hof, hof_stats = run_ga_optimization(
             DL=cfg.DL_AREA_LOAD, LL=cfg.LL_AREA_LOAD,
-            crossover_method='TwoPoint', 
+            crossover_method='Uniform', 
             patterns_by_floor=DYNAMIC_PATTERNS,
             h5_file=h5_file,
             num_generations=GENERATIONS, population_size=POP_SIZE,

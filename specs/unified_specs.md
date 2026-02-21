@@ -48,7 +48,7 @@
 
 ### 3.0. 최적 파라미터 결정 (Parameter Tuning) - [완료됨]
 
-- [ ] **스크립트:** `experiment_optimization_params.py` 및 분석 스크립트 실행 완료.
+- [X] **스크립트:** `experiment_optimization_params.py` 및 분석 스크립트 실행 완료.
 
 - **결과:**
   - Crossover: `TwoPoint`, Tournament: `3`, CXPB: `0.9`, MUTPB: `0.7`
@@ -57,7 +57,7 @@
 
 ### 3.1. 3가지 예제 구조물 최적화 (Generality via main.py) - [완료됨]
 
-- [ ] **스크립트:** `scripts/main.py` 실행.
+- [X] **스크립트:** `scripts/main.py` 실행.
 
 - **대상:** 4층, 6층, 8층 비정형 프레임.
 - **산출물:** Cost-Drift 파레토 그래프, 수렴 그래프, 예제별 요약 CSV.

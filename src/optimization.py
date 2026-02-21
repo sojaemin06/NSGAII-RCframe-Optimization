@@ -15,10 +15,11 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
                         fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2,
                         tournament_size=7, cxpb=0.9, mutpb=0.1,
                         initial_pop=None, start_gen=0, logbook=None, hof=None, hof_stats_history=None,
-                        verbose=True):
+                        verbose=True, tqdm_pos=None):
     """
     DEAP 라이브러리를 사용하여 NSGA-II 다중목표 유전 알고리즘을 설정하고 실행하는 함수.
     """
+    tqdm_desc = f"Run [pos:{tqdm_pos}]" if tqdm_pos is not None else "세대 진화"
     # --- 1. 제약조건 우선 선택 함수 정의 ---
     def constrained_dominance_selection(individuals, k):
         feasible_inds = [ind for ind in individuals if ind.detailed_results['violation'] == 0.0]
@@ -207,9 +208,9 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         hof = tools.ParetoFront()
         hof_stats_history = []
         
-        if verbose: print("\n초기 집단 평가 중...")
+        if verbose: print(f"\n[{tqdm_desc}] 초기 집단 평가 중...")
         eval_results = []
-        for ind in tqdm(pop, desc="Initial Population Evaluation", unit="individual", disable=not verbose):
+        for ind in tqdm(pop, desc=f"{tqdm_desc} Initial", unit="ind", disable=not verbose, position=tqdm_pos, leave=False):
             eval_results.append(toolbox.evaluate(ind))
         for ind, res in zip(pop, eval_results):
             ind.detailed_results = res
@@ -238,15 +239,15 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=0, nevals=len(pop), **record)
         
-        if verbose:
+        if verbose and tqdm_pos is None:
             print("최적화 시작...")
             print(logbook.stream)
     else:
         pop = initial_pop
-        if verbose: print(f"\n이전 {start_gen} 세대에서 최적화를 계속합니다...")
+        if verbose: print(f"\n[{tqdm_desc}] 이전 {start_gen} 세대에서 최적화를 계속합니다...")
 
     # --- 메인 루프 ---
-    for gen in tqdm(range(start_gen + 1, start_gen + num_generations + 1), desc="세대 진화", disable=not verbose):
+    for gen in tqdm(range(start_gen + 1, start_gen + num_generations + 1), desc=tqdm_desc, disable=not verbose, position=tqdm_pos, leave=True):
         if pop is None:
             raise ValueError(f"Error: Population became None at Gen {gen}")
             
@@ -257,7 +258,7 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         
         eval_results = []
         if invalid_ind:
-            for ind in tqdm(invalid_ind, desc=f"Gen {gen} Evaluation", unit="ind", leave=False, disable=not verbose):
+            for ind in tqdm(invalid_ind, desc=f"{tqdm_desc} Gen {gen}", unit="ind", leave=False, disable=not verbose, position=tqdm_pos + 1 if tqdm_pos is not None else None):
                 eval_results.append(toolbox.evaluate(ind))
         for ind, res in zip(invalid_ind, eval_results):
             ind.detailed_results = res
@@ -288,6 +289,8 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         record['hof_size'] = len(hof)
         record['sep1'], record['sep2'], record['sep3'], record['sep4'], record['sep5'] = "|", "|", "|", "|", "|"
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        if verbose: tqdm.write(logbook.stream.splitlines()[-1])
+        if verbose and tqdm_pos is None: tqdm.write(logbook.stream.splitlines()[-1])
+
+    return pop, logbook, hof, hof_stats_history
 
     return pop, logbook, hof, hof_stats_history
