@@ -48,11 +48,20 @@ $$CO_2(X) = \sum_{k=1}^{N} \left( E_{conc} (\gamma_c V_{c,k}) + E_{steel} (W_{s,
 
 $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
-여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 4.2절의 Table 4에 기술하였다.
+여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 4.2절의 Table 5에 기술하였다.
 
 ### 2.3 Constraints
 
-설계안의 실무적 타당성을 확보하기 위해 강도 및 사용성 제약 조건을 엄격히 적용한다. 모든 부재의 수요 대 공급 능력비(Demand-Capacity Ratio, DCR)는 1.0 이하여야 하며, 기둥은 P-M 상관도를, 보는 휨 및 전단 강도를 검토한다 (MacGregor et al., 1997). 사용성 측면에서 보의 장기 처짐($\delta_{LT}$)은 경간 길이 $L$의 240분의 1($L/240$) 이내로 제한하며, 층간변위비는 ASCE 7-16 기준에 따라 허용치(0.020) 이내로 제한한다 (ASCE, 2016). 또한, 상부 기둥의 단면적($A_{c,upper}$)이 하부 기둥의 단면적($A_{c,lower}$)보다 클 수 없다는 위계 조건과 보의 폭이 접합부 내력을 위해 기둥 폭을 초과할 수 없다는 상세 조건을 추가하여 설계의 현실성을 높였다.
+설계안의 실무적 타당성을 확보하기 위해 강도, 사용성, 그리고 시공성 제약 조건을 엄격히 적용한다. 본 연구에서 고려한 주요 제약 조건의 상세 기준은 Table 2에 정리하였다. 모든 부재는 설계 하중에 대해 충분한 내력을 확보해야 하며, 특히 층간변위 및 처짐과 같은 사용성 기준은 최신 설계 기준을 준수하도록 설계하였다 (ASCE, 2016; MacGregor et al., 1997).
+
+**Table 2. Summary of structural design constraints.**
+| Constraint Category | Target Item | Limit / Criteria | Reference |
+| :--- | :--- | :--- | :---: |
+| **Strength (DCR)** | Column (P-M), Beam (V, M) | $DCR \le 1.0$ | ACI 318-19 |
+| **Serviceability** | Maximum Story Drift Ratio | $\Delta/H \le 0.020$ | ASCE 7-16 |
+| **Serviceability** | Long-term Deflection (Beam)| $\delta_{LT} \le L/240$ | ACI 318-19 |
+| **Hierarchy** | Column Section Area | $A_{c,upper} \le A_{c,lower}$ | Practical |
+| **Constructability**| Joint Compatibility | $b_{beam} \le b_{column}$ | Practical |
 
 ## 3. Optimization Methodology
 
@@ -72,9 +81,9 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 ### 4.1 Section Database Reflecting Practical Details
 
-본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 2에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016). 
+본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 3에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016). 
 
-**Table 2. Range and increments of design variables in the section database.**
+**Table 3. Range and increments of design variables in the section database.**
 | Variable Type | Range (Beam / Column) | Step / Details |
 | :--- | :--- | :--- |
 | Section Width ($b$) | 300-500 / 600-1000 mm | 50 mm / 100 mm |
@@ -82,9 +91,9 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 | Main Rebar Ratio ($\rho$) | 0.5% - 4.0% | Based on ACI 318-19 |
 | Stirrup Spacing ($s$) | 100 - 450 mm | D10/D13, ACI 318-19 |
 
-이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 3에 요약된 바와 같다.
+이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 4에 요약된 바와 같다.
 
-**Table 3. Summary of reinforcement detailing logic based on ACI 318-19.**
+**Table 4. Summary of reinforcement detailing logic based on ACI 318-19.**
 | Item | Regulation (ACI 318-19) | Implementation in DB |
 | :--- | :--- | :--- |
 | Supplemental Ties | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties |
@@ -127,9 +136,9 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 ![Figure 8. Comparison of structural performance: DCR contours and displacement profiles.](path/to/fig8_structural_performance.png)
 
-기존 관행 설계(Scenario B: 기둥 회전 고정)와 본 최적화 기법(Scenario A)의 정량적 비교 결과는 Table 5에 정리하였다. 4층 모델의 경우, 기둥 회전각과 실무 상세를 모두 최적화한 시나리오 A는 하이퍼볼륨(HV) 측면에서 약 1.25% 향상된 성능을 보였다. 특히, 동일한 공사비 수준에서 시나리오 A는 시나리오 B 대비 최대 층간변위비를 약 16.7% 저감하여 횡력 저항 성능을 획기적으로 개선하였다.
+기존 관행 설계(Scenario B: 기둥 회전 고정)와 본 최적화 기법(Scenario A)의 정량적 비교 결과는 Table 6에 정리하였다. 4층 모델의 경우, 기둥 회전각과 실무 상세를 모두 최적화한 시나리오 A는 하이퍼볼륨(HV) 측면에서 약 1.25% 향상된 성능을 보였다. 특히, 동일한 공사비 수준에서 시나리오 A는 시나리오 B 대비 최대 층간변위비를 약 16.7% 저감하여 횡력 저항 성능을 획기적으로 개선하였다.
 
-**Table 5. Comparative performance summary: Conventional (B) vs. Optimized (A) for 4-story RC frame.**
+**Table 6. Comparative performance summary: Conventional (B) vs. Optimized (A) for 4-story RC frame.**
 | Performance Metric | Conventional (B) | Optimized (A) | Difference (%) |
 | :--- | :---: | :---: | :---: |
 | Hypervolume (HV) | 5.712 | 5.784 | +1.25% |
