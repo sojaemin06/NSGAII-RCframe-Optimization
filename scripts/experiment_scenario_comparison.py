@@ -35,11 +35,12 @@ cfg.BEAM_TRIBUTARY_WIDTHS = cfg.BEAM_TRIBUTARY_WIDTHS_4F
 DYNAMIC_PATTERNS = cfg.LOAD_PATTERNS_4F
 cfg.GROUPING_STRATEGY = "Hybrid" # Match past success, more tractable search space
 
-def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
+def run_scenario(scenario_name, use_expanded_db, use_separate_rotation, fixed_scale_info):
     print(f"\n{'='*60}")
     print(f"Running {scenario_name}")
     print(f" - DB: {'Expanded (1600 items)' if use_expanded_db else 'Reduced (800 items)'}")
     print(f" - Rotation Variables: {'Included (Separate Gene)' if use_separate_rotation else 'Excluded (Integrated in DB)'}")
+    print(f" - Grouping Strategy: {cfg.GROUPING_STRATEGY}")
     print(f"{'='*60}")
     
     # 1. Load Appropriate Data
@@ -61,8 +62,6 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
             cfg.GROUPING_STRATEGY, num_locations, num_columns, num_beams, cfg.FLOORS, cfg.BEAM_CONNECTIONS, cfg.COLUMN_LOCATIONS
         )
         
-        # CRITICAL: If use_separate_rotation is False, col_rot count becomes 0.
-        # This effectively removes rotation genes from the chromosome.
         chromosome_structure = {
             'col_sec': num_col_groups,
             'col_rot': num_col_groups if use_separate_rotation else 0, 
@@ -72,19 +71,15 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
         total_genes = chromosome_structure['col_sec'] + chromosome_structure['col_rot'] + chromosome_structure['beam_sec']
         print(f"Chromosome Length: {total_genes} (Col: {chromosome_structure['col_sec']}, Rot: {chromosome_structure['col_rot']}, Beam: {chromosome_structure['beam_sec']})")
 
-        # 3. Calculate Normalization Scale (Consistently across scenarios? Ideally yes, but here we base on loaded DB)
-        total_col_len = num_columns * cfg.H
-        total_beam_len = sum(beam_lengths) * cfg.FLOORS
-        fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = calculate_fixed_scale(
-            column_sections_df, beam_sections_df, total_col_len, total_beam_len
-        )
+        # 3. Use Provided Normalization Scale
+        fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = fixed_scale_info
         
         start_time = time.time()
         
         # 4. Run Optimization
         pop, logbook, final_hof, hof_stats = run_ga_optimization(
             DL=cfg.DL_AREA_LOAD, LL=cfg.LL_AREA_LOAD,
-            crossover_method='Uniform', 
+            crossover_method=cfg.CROSSOVER_STRATEGY, 
             patterns_by_floor=DYNAMIC_PATTERNS,
             h5_file=h5_file,
             num_generations=GENERATIONS, population_size=POP_SIZE,
@@ -95,7 +90,7 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation):
             num_columns=num_columns, num_beams=num_beams,
             fixed_min_cost=fixed_min_cost, fixed_range_cost=fixed_range_cost,
             fixed_min_co2=fixed_min_co2, fixed_range_co2=fixed_range_co2,
-            tournament_size=3, cxpb=0.9, mutpb=0.7,
+            tournament_size=cfg.TOURNAMENT_SIZE, cxpb=cfg.CXPB, mutpb=cfg.MUTPB,
             verbose=True
         )
         
@@ -199,6 +194,16 @@ def main():
     plt.rcParams['grid.linestyle'] = '-' 
     plt.rcParams['grid.alpha'] = 0.7
     
+    # --- 0. Calculate Global Normalization Scale (Using Expanded DB for full range) ---
+    print("Calculating Global Normalization Scale...")
+    b_df, c_df, _, _ = load_section_data(col_path="column_sections_expanded_rotated.csv")
+    num_locations = len(cfg.COLUMN_LOCATIONS)
+    num_columns = num_locations * cfg.FLOORS
+    beam_lengths = get_beam_lengths(cfg.COLUMN_LOCATIONS, cfg.BEAM_CONNECTIONS)
+    total_col_len = num_columns * cfg.H
+    total_beam_len = sum(beam_lengths) * cfg.FLOORS
+    fixed_scale_info = calculate_fixed_scale(c_df, b_df, total_col_len, total_beam_len)
+
     # --- Scenario A: Proposed (Load Existing or Run New) ---
     # Try multiple possible paths for Example 1 results
     possible_paths = [
@@ -214,11 +219,11 @@ def main():
             
     if results_A is None:
         print("\nScenario A: No valid existing results found. Running from scratch (this may take time)...")
-        results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True)
+        results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
     
     # --- Scenario B: Conventional (Run New) ---
     # DB: Expanded (1600), Rot Variables: No
-    results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False)
+    results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
     
     # --- Comparison Visualization ---
     plt.figure(figsize=(10, 6))
@@ -237,7 +242,7 @@ def main():
     gen_B, hv_B = get_data(results_B)
     
     plt.plot(gen_A, hv_A, 'b-o', label=f"Scenario A (Proposed): Hybrid Grouping + Reduced DB\n(GenLen={results_A['chromosome_len']})")
-    plt.plot(gen_B, hv_B, 'r-x', label=f"Scenario B (Conventional): Individual Grouping + Expanded DB\n(GenLen={results_B['chromosome_len']})")
+    plt.plot(gen_B, hv_B, 'r-x', label=f"Scenario B (Conventional): Hybrid Grouping + Expanded DB\n(GenLen={results_B['chromosome_len']})")
     
     plt.xlabel('Generation')
     plt.ylabel('Hypervolume Indicator')
