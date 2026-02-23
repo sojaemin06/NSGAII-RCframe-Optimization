@@ -1,0 +1,13 @@
+# Simplified Flowchart: 3D RC Frame Optimization
+
+[Flow]
+1. Start: Initialize Population (C_id, R_dir, B_id)
+2. Mapping: Practical Section DB (ACI 318-19 Detail)
+3. Analysis: Automated 3D Modeling (OpenSees) with Column Rotation
+4. Fitness: Evaluate Objectives (Cost, CO2, Drift) & Constraints (DCR)
+5. Loop: NSGA-II Selection, Crossover, Mutation
+6. Check: Convergence reached? (No: Back to 2 / Yes: Next)
+7. End: Final Pareto Front (Optimal Designs)
+
+[Theme]
+Professional Engineering Diagram, Blue-Grey Palette, Methodology Flow.
