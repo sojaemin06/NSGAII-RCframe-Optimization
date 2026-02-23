@@ -8,7 +8,7 @@
 
 기존 연구의 상당수는 2차원(2D) 프레임 모델에 국한되어 설계 변수를 최적화하는 데 그치고 있다. 실제 건축물은 3차원 공간에서 거동하며, 횡력에 의한 비틀림 및 기둥의 방향성에 따른 강성 변화가 전체 구조 시스템의 효율성에 결정적인 영향을 미친다. 또한, 설계 변수로서의 단면을 정방형으로 단순화하거나 기둥의 강축 방향을 임의로 고정함으로써, 직사각형 단면의 장단축 비율 조절 및 기둥 회전을 통한 구조적 최적화 기회를 원천적으로 차단하는 경우가 많았다 (Esfandiari et al., 2018; Kaveh & Ardebili, 2023a, 2023b; Mergos, 2021, 2022; Bekdaş & Nigdeli, 2014; Djedoui et al., 2025; Faghirnejad, 2023; Gharehbaghi, 2012; Heydari et al., 2025; Juliani & Gomes, 2021; Kaveh & Ardebili, 2021). 마지막으로, 공사비 산정 모델이 지나치게 단순화되어 실무 설계 기준에서 요구하는 보조 대근, 표피 철근, 내진 상세 갈고리 등을 반영하지 못함으로써 최적화 결과와 실제 시공 물량 사이의 상당한 괴리를 발생시켜 왔다 (Boscardin et al., 2019; Kaveh et al., 2020a; Bai et al., 2020).
 
-본 연구에서는 이러한 연구 공백을 메우기 위해 실무 구조 설계에 즉각적으로 적용 가능한 '3차원 RC 프레임 전용 실무형 다중목적 최적화 프레임워크'를 제안한다. 본 연구의 차별화된 독창성은 직사각형 단면 조합과 양방향 및 일방향 배근 패턴, 그리고 표피 철근 및 보조 대근 자동 배치 로직을 포함한 정밀 데이터베이스를 설계 변수로 활용하였다는 점에 있다. 또한, 기둥의 강축 방향을 결정하는 이진 회전 변수를 도입하여 알고리즘이 3차원 비대칭 거동을 능동적으로 제어하도록 설계하였으며, ACI 318-19 내진 상세를 엄격히 준수한 정밀 물량 산출 엔진을 구축하여 경제성 평가의 신뢰도를 확보하였다 (Kaveh et al., 2020b; Mergos, 2024; Oluwole Akadiri & Olaniran Fadiya, 2013; Paya-Zaforteza et al., 2009; Werner & Burns, 2012).
+본 연구에서는 이러한 연구 공백을 메우기 위해 실무 구조 설계에 즉각적으로 적용 가능한 '3차원 RC 프레임 전용 실무형 다중목적 최적화 프레임워크'를 제안한다. 본 연구의 차별화된 독창성은 직사각형 단면 조합과 양방향 및 일방향 배근 패턴, 그리고 표피 철근 및 보조 대근 자동 배치 로직을 포함한 정밀 데이터베이스를 설계 변수로 활용하였다는 점에 있다. 또한, 층별 용도 차이에 따른 활하중 변화와 체커보드 패턴의 불균형 하중 재하 등 실무적인 설계 조건을 반영할 때 발생하는 방향별 강성 요구 조건의 차이를 효율적으로 해결하기 위해, 기둥의 강축 방향을 결정하는 이진 회전 변수를 도입하였다. 이를 통해 알고리즘이 각 층의 국부적인 하중 상태에 따라 최적의 부재 방향성을 능동적으로 탐색하도록 유도하였으며, ACI 318-19 내진 상세를 엄격히 준수한 정밀 물량 산출 엔진을 구축하여 경제성 평가의 신뢰도를 확보하였다 (Kaveh et al., 2020b; Mergos, 2024; Oluwole Akadiri & Olaniran Fadiya, 2013; Paya-Zaforteza et al., 2009; Werner & Burns, 2012).
 
 ## 2. Problem Formulation
 
@@ -20,16 +20,9 @@
 
 $$X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T$$
 
-여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스로서 단면의 폭($b$), 높이($h$), 주철근비($\rho$), 띠철근 간격($s$) 정보를 포함한다. $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수로, 0은 강축이 X축 방향인 0° 회전을, 1은 강축이 Y축 방향인 90° 회전을 의미한다. $B_{id}$는 보 단면 데이터베이스의 인덱스로서 비대칭 배근 상세 및 전단 철근 정보를 포함하고 있다. 실무적인 단면 데이터베이스의 구성 범위와 설계 변수의 단계별 증분값은 Table 2에 상세히 제시하였다.
+여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스로서 단면의 폭($b$), 높이($h$), 주철근비($\rho$), 띠철근 간격($s$) 정보를 포함한다. $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수로, 0은 강축이 X축 방향인 0° 회전을, 1은 강축이 Y축 방향인 90° 회전을 의미한다. $B_{id}$는 보 단면 데이터베이스의 인덱스로서 비대칭 배근 상세 및 전단 철근 정보를 포함하고 있다. Figure 1은 3차원 구조물에서 부재 그룹핑이 어떻게 설계 변수 벡터인 염색체 구조로 변환되는지를 도식화하여 보여준다. 각 부재 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
 
-**Table 2. Range and increments of design variables in the section database.**
-| Variable Type | Range (Beam / Column) | Step / Details |
-| :--- | :--- | :--- |
-| Section Width ($b$) | 300-500 / 600-1000 mm | 50 mm / 100 mm |
-| Section Height ($h$) | 500-800 / 600-1500 mm | 50 mm / 100 mm |
-| Main Rebar Ratio ($\rho$) | 0.5% - 4.0% | Based on ACI 318-19 |
-| Stirrup Spacing ($s$) | 100 - 450 mm | D10/D13, ACI 318-19 |
-| Column Rotation ($R_{dir}$)| {0, 1} | 0: X-dir (0°), 1: Y-dir (90°) |
+![Figure 1. Mapping mechanism from 3D frame member grouping to the genetic chromosome structure.](path/to/fig1_mapping.png)
 
 ### 2.2 Objective Functions
 
@@ -51,9 +44,9 @@ $$\min f_1(X) = w_c \frac{Cost(X) - C_{min}}{C_{max} - C_{min}} + w_e \frac{CO_2
 
 $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
-여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 하중 조건 및 모델링 파라미터는 Table 4에 기술하였다.
+여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 하중 조건 및 모델링 파라미터는 Table 2에 기술하였다.
 
-**Table 4. Structural loading and modeling parameters for benchmark frames.**
+**Table 2. Structural loading and modeling parameters for benchmark frames.**
 | Parameter Type | Item | Value / Description |
 | :--- | :--- | :--- |
 | Dead Load | Floor / Slab | 5.0 $kN/m^2$ / 150mm |
@@ -70,23 +63,33 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 ### 3.1 NSGA-II Algorithm and Constraint Handling
 
-본 연구에서 활용한 NSGA-II는 빠른 비지배 정렬과 혼잡도 거리 계산을 통해 파레토 최적해의 수렴성과 다양성을 동시에 확보하는 기법이다. 특히 RC 프레임 설계와 같이 복잡한 이산 변수와 비선형 제약 조건이 존재하는 문제에서 유효한 설계안을 우선적으로 탐색하기 위해 제약 조건 우선 지배(Constrained Dominance) 원칙을 적용하였다. 이 원칙에 따라 두 개체 사이의 지배 관계는 개체의 유효성 여부와 제약 조건 위반량($\sum \text{Violation}$)을 기준으로 결정된다. 이러한 메커니즘은 알고리즘이 초기 탐색 단계에서 유효한 설계 영역으로 빠르게 수렴하도록 유도하며, 대규모 다중목적 최적화 문제에서의 효율성이 입증된 바 있다 (Zavala et al., 2016). 전체적인 최적화 프로세스는 Figure 1의 플로우차트에 도식화하였다.
+본 연구에서 활용한 NSGA-II는 빠른 비지배 정렬과 혼잡도 거리 계산을 통해 파레토 최적해의 수렴성과 다양성을 동시에 확보하는 기법이다. 특히 RC 프레임 설계와 같이 복잡한 이산 변수와 비선형 제약 조건이 존재하는 문제에서 유효한 설계안을 우선적으로 탐색하기 위해 제약 조건 우선 지배(Constrained Dominance) 원칙을 적용하였다. 이 원칙에 따라 두 개체 사이의 지배 관계는 개체의 유효성 여부와 제약 조건 위반량($\sum \text{Violation}$)을 기준으로 결정된다. 이러한 메커니즘은 알고리즘이 초기 탐색 단계에서 유효한 설계 영역으로 빠르게 수렴하도록 유도하며, 대규모 다중목적 최적화 문제에서의 효율성이 입증된 바 있다 (Zavala et al., 2016). 전체적인 최적화 프로세스는 Figure 2의 플로우차트에 도식화하였다.
 
-![Figure 1. Flowchart of the proposed 3D RC frame optimization framework.](path/to/fig1_flowchart.png)
+![Figure 2. Flowchart of the proposed 3D RC frame optimization framework.](path/to/fig2_flowchart.png)
 
 ### 3.2 Parametric Study of Algorithm Parameters
 
-알고리즘의 성능을 극대화하기 위해 하이퍼볼륨(Hypervolume, 이하 HV) 지표를 기준으로 매개변수 연구를 수행하였다. 실험 결과, 높은 탐색 성능을 위해 교차 확률 $P_c=0.9$, 변이 확률 $P_m=0.1$, 그리고 개체군 크기 500의 조합을 최종적으로 채택하였다. 개체군 크기 500에서 HV 지표는 약 5.817로 가장 우수한 수렴성을 보였으며, 세대별 HV의 향상 추이와 유효 해 생성 비율의 변화는 Figure 4를 통해 확인할 수 있다.
+알고리즘의 성능을 극대화하기 위해 하이퍼볼륨(Hypervolume, 이하 HV) 지표를 기준으로 매개변수 연구를 수행하였다. 실험 결과, 높은 탐색 성능을 위해 교차 확률 $P_c=0.9$, 변이 확률 $P_m=0.1$, 그리고 개체군 크기 500의 조합을 최종적으로 채택하였다. 개체군 크기 500에서 HV 지표는 약 5.817로 가장 우수한 수렴성을 보였으며, 세대별 HV의 향상 추이와 유효 해 생성 비율의 변화는 Figure 3을 통해 확인할 수 있다.
 
-![Figure 4. Convergence history: Hypervolume (HV) and generational feasibility ratio.](path/to/fig4_convergence.png)
+![Figure 3. Convergence history: Hypervolume (HV) and generational feasibility ratio.](path/to/fig3_convergence.png)
 
 ## 4. Practical Section Database and Numerical Analysis Framework
 
 ### 4.1 Section Database Reflecting Practical Details
 
-본 연구의 핵심적인 기여는 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 기둥은 양방향 대칭 배근을, 보는 상·하부 휨 모멘트에 대응하는 일방향 비대칭 배근 패턴을 적용한다. 배근 로직은 Table 3에 요약된 바와 같이 ACI 318-19 규정을 정밀하게 준수한다 (ASCE, 2016). 본 연구에서는 총 철근 물량 산출 시 보조 대근 및 135도 내진 상세 갈고리 여장을 포함하여 단순 철근비 기반 산출 대비 약 10-15%의 물량 정밀도를 향상시켰다.
+본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 2에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016). 
 
-**Table 3. Summary of reinforcement detailing logic based on ACI 318-19.**
+**Table 3. Range and increments of design variables in the section database.**
+| Variable Type | Range (Beam / Column) | Step / Details |
+| :--- | :--- | :--- |
+| Section Width ($b$) | 300-500 / 600-1000 mm | 50 mm / 100 mm |
+| Section Height ($h$) | 500-800 / 600-1500 mm | 50 mm / 100 mm |
+| Main Rebar Ratio ($\rho$) | 0.5% - 4.0% | Based on ACI 318-19 |
+| Stirrup Spacing ($s$) | 100 - 450 mm | D10/D13, ACI 318-19 |
+
+이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 4에 요약된 바와 같다.
+
+**Table 4. Summary of reinforcement detailing logic based on ACI 318-19.**
 | Item | Regulation (ACI 318-19) | Implementation in DB |
 | :--- | :--- | :--- |
 | Supplemental Ties | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties |
@@ -94,31 +97,31 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 | Seismic Hooks | 135-degree hooks (25.7.2.1) | Precision volume calculation |
 | Joint Compatibility | $b_{beam} \le b_{column}$ | Automated constraint check |
 
-주철근 간의 순간격이 150mm를 초과할 경우 보조 대근(Crossties)을 자동 배치하며, 보의 높이가 900mm를 초과하면 표피 철근을 추가한다. 또한 135도 내진 상세 갈고리 여장을 반영하여 물량 산출의 정밀도를 확보하였다. 데이터베이스에서 생성된 자동 배근의 개념도는 Figure 2에 예시하였다.
+이를 통해 최적화 알고리즘은 매 세대마다 복잡한 배근 설계를 반복할 필요 없이, 이미 검증된 단면 후보군 내에서 최적의 조합만을 탐색하게 되므로 연산 속도를 획기적으로 향상시킬 수 있다. 본 연구에서는 이러한 정밀 물량 산출 방식을 통해 단순 철근비 기반 산출 대비 약 10-15%의 물량 정밀도를 향상시켰다. 데이터베이스에서 생성된 자동 배근의 개념도는 Figure 4에 예시하였다.
 
-![Figure 2. Conceptual illustration of automated reinforcement detailing in the section DB.](path/to/fig2_reinforcement_details.png)
+![Figure 4. Conceptual illustration of automated reinforcement detailing in the section DB.](path/to/fig4_reinforcement_details.png)
 
 ### 4.2 Numerical Analysis Integration and System Implementation
 
-전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). Figure 3은 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
+전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). Figure 5는 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
 
-![Figure 3. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig3_structure_models.png)
+![Figure 5. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig5_structure_models.png)
 
 ## 5. Results and Discussion
 
 ### 5.1 Pareto-Optimal Solution Behavior and Analysis by Floor Level
 
-도출된 파레토 최적해 분포(Figure 5)를 분석한 결과, 공사비($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 상충 관계가 확인되었다. 층수가 증가함에 따라 파레토 프런트가 우상향으로 이동하는 것은 고층화될수록 횡방향 강성 확보를 위한 비용 부담이 지수적으로 증가함을 시사한다. 4층 구조물의 경우 공사비는 약 4,000만 원대에서 형성되었으나, 8층 구조물의 경우 구조적 제약 조건 충족을 위해 단위 면적당 비용이 급격히 증가하였다.
+도출된 파레토 최적해 분포(Figure 6)를 분석한 결과, 공사비($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 상충 관계가 확인되었다. 층수가 증가함에 따라 파레토 프런트가 우상향으로 이동하는 것은 고층화될수록 횡방향 강성 확보를 위한 비용 부담이 지수적으로 증가함을 시사한다. 4층 구조물의 경우 공사비는 약 4,000만 원대에서 형성되었으나, 8층 구조물의 경우 구조적 제약 조건 충족을 위해 단위 면적당 비용이 급격히 증가하였다.
 
-![Figure 5. Pareto Fronts in the objective space (Construction Cost vs. Max. Story Drift).](path/to/fig5_pareto_fronts.png)
+![Figure 6. Pareto Fronts in the objective space (Construction Cost vs. Max. Story Drift).](path/to/fig6_pareto_fronts.png)
 
 ### 5.2 Effect of Column Rotation Variables and Practical Detailing
 
-기둥 회전 변수의 도입 효과를 분석한 결과, 동일 비용 수준에서 최대 층간변위비를 약 5.0%에서 17%까지 추가로 저감할 수 있었다. Figure 6은 최적화된 설계안에서의 기둥 방향 배치 및 단면 크기 분포를 보여주며, 알고리즘이 횡방향 강성이 취약한 축으로 기둥 강축을 자동 배치했음을 입증한다. 또한, Figure 7의 DCR 분포 및 변위 프로파일 비교를 통해 제안된 기법이 구조적 안전성을 유지하면서도 효율적인 단면 구성을 찾아냈음을 확인할 수 있다.
+기둥 회전 변수의 도입 효과를 분석한 결과, 동일 비용 수준에서 최대 층간변위비를 약 5.0%에서 17%까지 추가로 저감할 수 있었다. Figure 7은 최적화된 설계안에서의 기둥 방향 배치 및 단면 크기 분포를 보여주며, 알고리즘이 횡방향 강성이 취약한 축으로 기둥 강축을 자동 배치했음을 입증한다. 또한, Figure 8의 DCR 분포 및 변위 프로파일 비교를 통해 제안된 기법이 구조적 안전성을 유지하면서도 효율적인 단면 구성을 찾아냈음을 확인할 수 있다.
 
-![Figure 6. Solution space analysis: Optimized column orientations and section size distribution.](path/to/fig6_solution_analysis.png)
+![Figure 7. Solution space analysis: Optimized column orientations and section size distribution.](path/to/fig7_solution_analysis.png)
 
-![Figure 7. Comparison of structural performance: DCR contours and displacement profiles.](path/to/fig7_structural_performance.png)
+![Figure 8. Comparison of structural performance: DCR contours and displacement profiles.](path/to/fig8_structural_performance.png)
 
 기존 관행 설계(Scenario B: 기둥 회전 고정)와 본 최적화 기법(Scenario A)의 정량적 비교 결과는 Table 5에 정리하였다. 4층 모델의 경우, 기둥 회전각과 실무 상세를 모두 최적화한 시나리오 A는 하이퍼볼륨(HV) 측면에서 약 1.25% 향상된 성능을 보였다. 특히, 동일한 공사비 수준에서 시나리오 A는 시나리오 B 대비 최대 층간변위비를 약 16.7% 저감하여 횡력 저항 성능을 획기적으로 개선하였다.
 

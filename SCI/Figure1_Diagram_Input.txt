@@ -1,13 +1,7 @@
-# Simplified Flowchart: 3D RC Frame Optimization
+In this study, instead of continuous variables, we adopt a database index, which is a collection of practically manufacturable discrete cross-sections, as the design variable. The overall design variable vector $X$ is defined as follows, based on the number of column groups $n$ and the number of beam groups $m$:
 
-[Flow]
-1. Start: Initialize Population (C_id, R_dir, B_id)
-2. Mapping: Practical Section DB (ACI 318-19 Detail)
-3. Analysis: Automated 3D Modeling (OpenSees) with Column Rotation
-4. Fitness: Evaluate Objectives (Cost, CO2, Drift) & Constraints (DCR)
-5. Loop: NSGA-II Selection, Crossover, Mutation
-6. Check: Convergence reached? (No: Back to 2 / Yes: Next)
-7. End: Final Pareto Front (Optimal Designs)
+$$
+X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T
+$$
 
-[Theme]
-Professional Engineering Diagram, Blue-Grey Palette, Methodology Flow.
+Here, $C_{id}$ is the index of the column section database, which includes information on the section width ($b$), height ($h$), main reinforcement ratio ($\rho$), and sash spacing ($s$). $R_{dir}$ is a binary variable that determines whether the column is rotated. A value of 0 indicates a 0° rotation with the strong axis along the X-axis, while a value of 1 indicates a 90° rotation with the strong axis along the Y-axis. $B_{id}$ is the index of the beam section database, which includes information on asymmetric reinforcement details and shear reinforcement. Figure 1 schematically illustrates how element groupings in a 3D structure are converted into a chromosome structure, a design variable vector. The detailed configuration scope and generation logic of the cross-section database assigned to each element group are described in detail in Section 4.1.
