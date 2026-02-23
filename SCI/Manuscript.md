@@ -26,34 +26,29 @@ $$X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T$$
 
 ### 2.2 Objective Functions
 
-첫 번째 목적 함수($f_1$)는 경제성과 환경성을 통합적으로 평가하기 위한 지표이다. 이는 총 공사비($Cost$)와 CO2 배출량($CO_2$)을 최소화하기 위해 각각의 지표를 정규화하여 합산한 값으로, 다음과 같이 정의된다.
+첫 번째 목적 함수($f_1$)는 경제성과 환경성을 통합적으로 평가하기 위한 지표이다. 본 연구에서는 총 공사비($Cost$)와 탄소 배출량($CO_2$)이 모두 사용 재료량에 직접적으로 비례하는 높은 상관관계를 가진다는 점에 착안하여, 두 지표를 별도의 가중치 없이 통합하여 최소화한다. 다만, 데이터베이스에 정의된 각 단면의 고유 공사비(KRW)와 탄소 배출량(kg)은 수치적 단위와 변동 스케일이 상이하므로, 이를 동일한 비중으로 통합하기 위해 각각의 지표를 설계 공간 내의 최솟값과 최대값으로 정규화하여 합산한다. 첫 번째 목적 함수 $f_1$은 다음과 같이 정의된다.
 
-$$\min f_1(X) = w_c \frac{Cost(X) - C_{min}}{C_{max} - C_{min}} + w_e \frac{CO_2(X) - E_{min}}{E_{max} - E_{min}}$$
+$$\min f_1(X) = \frac{Cost(X) - C_{min}}{C_{max} - C_{min}} + \frac{CO_2(X) - E_{min}}{E_{max} - E_{min}}$$
 
-이 식에서 $w_c$와 $w_e$는 각각 비용과 환경 영향에 대한 가중치를 나타내며, $C_{min}$, $C_{max}$, $E_{min}$, $E_{max}$는 각각 설계 공간 내에서의 공사비와 이산화탄소 배출량의 최소 및 최대 범위를 의미하여 각 지표를 0과 1 사이로 정규화한다. 총 공사비 $Cost(X)$는 전체 부재 수 $N_{elem}$에 대하여 콘크리트 단위 비용 $C_{conc}$, 순 부피 $V_{net,k}$, 철근 단위 비용 $C_{steel}$, 총 철근 중량 $W_{total,k}$, 거푸집 단위 비용 $C_{form}$, 표면적 $A_{surf,k}$를 사용하여 산출된다. 산출에 사용된 재료 물성, 단위 공사비 및 탄소 배출 계수는 Table 1에 정리하였다.
+여기서 $C_{min}$, $C_{max}$, $E_{min}$, $E_{max}$는 각각 전체 설계 공간 내에서의 공사비와 이산화탄소 배출량의 최소 및 최대 범위를 의미한다. 전체 부재 수 $N$에 대한 총 공사비 $Cost(X)$와 총 탄소 배출량 $CO_2(X)$는 다음과 같이 개별 부재 물량의 합산으로 산출된다.
+
+$$Cost(X) = \sum_{k=1}^{N} \left( C_{conc} V_{c,k} + C_{steel} W_{s,k} + C_{form} A_{f,k} \right)$$
+$$CO_2(X) = \sum_{k=1}^{N} \left( E_{conc} (\gamma_c V_{c,k}) + E_{steel} (W_{s,k} \times 10^3) + E_{form} A_{f,k} \right)$$
+
+이 식에서 $V_{c,k}$는 $k$번째 부재의 콘크리트 순 부피($m^3$), $W_{s,k}$는 철근 중량($ton$), $A_{f,k}$는 거푸집 설치 면적($m^2$)을 의미한다. $\gamma_c$는 콘크리트의 단위 중량($2,400 \, kg/m^3$)이다. $C$와 $E$는 각각 해당 재료의 단위 비용 및 탄소 배출 계수이며, 산출에 사용된 상세 파라미터는 Table 1에 정리하였다.
 
 **Table 1. Material properties, unit costs, and CO2 emission factors.**
-| Material / Item | Symbol | Unit | Value / Cost (KRW) | CO2 Factor ($kg/unit$) |
-| :--- | :---: | :---: | :---: | :---: |
-| Concrete ($f_{ck}=27$ MPa) | $C_{conc}$ | $m^3$ | 80,000 | 185.0 |
-| Steel Reinforcement | $C_{steel}$ | ton | 1,000,000 | 3.52 |
-| Formwork | $C_{form}$ | $m^2$ | 25,000 | - |
-| Yield Strength ($f_y$) | - | MPa | 400 - 500 | - |
+| Material / Item | Unit cost ($C$) | CO2 factor ($E$) | Unit ($C$ / $E$) |
+| :--- | :---: | :---: | :---: |
+| Concrete ($f_{ck}=27$ MPa) | 80,000 | 0.15 | KRW/$m^3$ / $kgCO_2e/kg$ |
+| Steel Reinforcement | 1,000,000 | 1.99 | KRW/$ton$ / $kgCO_2e/kg$ |
+| Formwork | 25,000 | 10.0 | KRW/$m^2$ / $kgCO_2e/m^2$ |
 
 두 번째 목적 함수($f_2$)는 구조적 서비스 가능성을 평가하기 위한 지표로, 횡력에 대한 구조물의 저항 성능을 극대화하기 위해 전체 층에서 발생하는 최대 층간변위비(Maximum Story Drift Ratio)를 최소화한다.
 
 $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
-여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 하중 조건 및 모델링 파라미터는 Table 2에 기술하였다.
-
-**Table 2. Structural loading and modeling parameters for benchmark frames.**
-| Parameter Type | Item | Value / Description |
-| :--- | :--- | :--- |
-| Dead Load | Floor / Slab | 5.0 $kN/m^2$ / 150mm |
-| Live Load | Typical / Lobby | 2.5 - 5.0 $kN/m^2$ |
-| Earthquake Load | SDS / SD1 | 0.60g / 0.36g (ASCE 7-16) |
-| Story Height | Typical / First | 3.3 / 4.2 m |
-| Span Length | X-dir / Y-dir | 5.0 - 7.0 m (Irregular) |
+여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 4.2절의 Table 4에 기술하였다.
 
 ### 2.3 Constraints
 
@@ -79,7 +74,7 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 2에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016). 
 
-**Table 3. Range and increments of design variables in the section database.**
+**Table 2. Range and increments of design variables in the section database.**
 | Variable Type | Range (Beam / Column) | Step / Details |
 | :--- | :--- | :--- |
 | Section Width ($b$) | 300-500 / 600-1000 mm | 50 mm / 100 mm |
@@ -87,9 +82,9 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 | Main Rebar Ratio ($\rho$) | 0.5% - 4.0% | Based on ACI 318-19 |
 | Stirrup Spacing ($s$) | 100 - 450 mm | D10/D13, ACI 318-19 |
 
-이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 4에 요약된 바와 같다.
+이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 3에 요약된 바와 같다.
 
-**Table 4. Summary of reinforcement detailing logic based on ACI 318-19.**
+**Table 3. Summary of reinforcement detailing logic based on ACI 318-19.**
 | Item | Regulation (ACI 318-19) | Implementation in DB |
 | :--- | :--- | :--- |
 | Supplemental Ties | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties |
@@ -103,7 +98,16 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 ### 4.2 Numerical Analysis Integration and System Implementation
 
-전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). Figure 5는 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
+전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 Table 4에 기술하였다. Figure 5는 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
+
+**Table 4. Structural loading and modeling parameters for benchmark frames.**
+| Parameter Type | Item | Value / Description |
+| :--- | :--- | :--- |
+| Dead Load | Floor / Slab | 5.0 $kN/m^2$ / 150mm |
+| Live Load | Typical / Lobby | 2.5 - 5.0 $kN/m^2$ |
+| Earthquake Load | SDS / SD1 | 0.60g / 0.36g (ASCE 7-16) |
+| Story Height | Typical / First | 3.3 / 4.2 m |
+| Span Length | X-dir / Y-dir | 5.0 - 7.0 m (Irregular) |
 
 ![Figure 5. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig5_structure_models.png)
 
@@ -183,4 +187,3 @@ Paya-Zaforteza, I., Yepes, V., Hospitaler, A., & Gonzalez-Vidosa, F. (2009). CO2
 Werner, W., & Burns, J. G. (2012). Quantification and optimization of structural embodied energy and carbon. In Structures Congress 2012 (pp. 929-940).
 Zavala, G., Nebro, A. J., Luna, F., & Coello Coello, C. A. (2016). Structural design using multi-objective metaheuristics. Comparative study and application to a real-world problem. Structural and Multidisciplinary Optimization, 53(3), 545-566.
 Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comparative case study and the strength Pareto approach. IEEE transactions on Evolutionary Computation, 3(4), 257-271.
-
