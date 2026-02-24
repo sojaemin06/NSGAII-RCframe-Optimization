@@ -114,11 +114,13 @@ $$
 
 ### 4.1 Project-Specific Structural Section Database Construction
 
-본 연구에서 제안하는 최적화 프레임워크의 핵심적인 시작점은 해당 구조물의 고유한 특성과 건축적 제약을 반영한 **'프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'**를 구축하는 것이다. 일반적인 최적화 연구가 고정된 단면 목록을 사용하는 것과 달리, 실무 설계에서는 구조물의 규모, 용도(예: 오피스 vs 창고), 그리고 건축적 요구사항(예: 층고 확보를 위한 보의 최대 춤 제한)에 따라 가용한 단면의 범위가 결정된다. 따라서 본 프레임워크는 최적화 수행 전, 설계자가 해당 프로젝트의 물리적·환경적 제약을 입력하여 유효한 탐색 공간(Search Space)을 사전에 정의하도록 설계되었다.
+본 연구에서 제안하는 최적화 프레임워크의 시작점은 해당 구조물의 고유한 특성과 건축적 제약을 반영한 **'프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'**를 구축하는 것이다. 본 프레임워크는 설계 초기 단계에서 구조물의 규모, 용도, 그리고 층고 확보를 위한 보의 최대 춤 제한 등을 반영하여 유효한 탐색 공간(Search Space)을 사전에 정의한다.
 
-**Database generation logic.** 데이터베이스는 콘크리트 단면 치수(폭, 높이)와 주철근 배근 패턴의 모든 가능한 조합으로 구성된다. 각 단면은 ACI 318-19의 최소/최대 철근비 및 간격 규정을 준수하도록 생성되며, 생성 직후 단면적($A_c$), 관성모멘트($I$), 그리고 비선형 해석을 위한 P-M 상관도 데이터가 자동으로 계산되어 저장된다. 이러한 사전 처리 과정은 최적화 과정에서 반복되는 단면 성능 계산 부하를 획기적으로 줄여 전체 연산 효율을 높인다.
+**Integrated section generation engine.** 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. 먼저 설계자가 정의한 범위($b, h, f_{ck}, f_y$) 내에서 무작위 조합을 통해 수만 개의 초기 단면 후보군(Initial Pool)을 생성한다. 이후 부재별로 특화된 상세 설계 로직이 적용된다.
+*   **Column detailing (Steps C1-C3):** 4개의 코너 철근을 우선 배치한 뒤, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 쌍으로 사이드 철근을 분배한다. 이때 철근 간의 순간격이 150 mm를 초과할 경우 ACI 318-19 규정에 따라 보조 대근(Crossties)을 자동으로 추가 배치한다.
+*   **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따라 인장 및 압축 철근의 층(Layer) 수를 결정하고, 이에 따른 유효 깊이($d_{actual}$)를 정밀하게 재산정한다. 전단 철근(Stirrup)은 주철근 크기와 부재 폭을 고려하여 최적 간격으로 배치된다.
 
-**Case study setup (4-story benchmark).** 본 논문에서 다루는 4층 규모의 RC 프레임 예제는 일반적인 중층 오피스 빌딩의 설계 조건을 가정하여 Table 3과 같은 범위로 데이터베이스를 구축하였다. 층고 제약을 고려하여 보의 높이($H$)를 500~800 mm 범위로 제한하였으며, 기둥은 상하부 층의 강성 연속성을 확보하기 위해 600~1500 mm 범위의 다양한 단면을 포함하였다. 재료 강도는 국내 현장에서 가장 보편적으로 사용되는 $f_{ck}=27$ MPa와 $f_y=400$ MPa를 기준으로 하였으나, 프레임워크 상에서 프로젝트의 환경적 제약에 따라 고강도 재료를 DB에 즉시 반영할 수 있도록 유연성을 확보하였다.
+**Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격($b, h, f_{ck}, f_y$)별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 '지배되는(Dominated)' 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 최종적으로 기둥 800종, 보 500종의 정예 카탈로그를 구축하였다. 이는 알고리즘이 불필요하게 비경제적인 단면을 탐색하는 비용을 차단함으로써 수렴 속도를 비약적으로 향상시키는 결정적인 장치가 된다.
 
 **Table 3. Discrete section ranges for the 4-story benchmark project database.**
 | Element Type | Dimension Item | Range (mm) | Step (mm) | Reinforcement Ratio ($\rho$) |
@@ -128,21 +130,7 @@ $$
 | **Column** | Width ($B$) | 600 ~ 1000 | 50 | 1.0% ~ 4.0% |
 | | Height ($H$) | 600 ~ 1500 | 50 | |
 
-**Smart search space reduction.** 초기 생성된 수천 개의 단면 조합 중, 동일 치수 내에서 비용 대비 구조 성능(P-M 상관도 체적 및 휨 모멘트 성능)이 열등한 '지배되는(Dominated)' 단면들을 사전에 제거하는 감축 프로세스를 수행하였다. 이를 통해 최적화 알고리즘이 탐색해야 할 설계 공간을 기둥 800종, 보 500종의 정예 후보군으로 압축함으로써, 복잡한 3차원 프레임 문제에서의 수렴 속도를 비약적으로 향상시켰다.
-
-**Reinforcement detailing logic.** 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 4에 요약된 바와 같다.
-
-**Table 4. Summary of reinforcement detailing logic based on ACI 318-19.**
-| Item | Regulation (ACI 318-19) | Implementation in DB |
-| :--- | :--- | :--- |
-| Supplemental Ties | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties |
-| Seismic Hooks | 135-degree hooks (25.7.2.1) | Precision volume calculation |
-| Column Rebar | 1.0% < $\rho$ < 8.0% (10.6.1.1) | Practical limit 4.0% applied |
-| Joint Compatibility | $b_{beam} \le b_{column}$ | Automated constraint check |
-
-데이터베이스에서 생성된 자동 배근의 개념도는 Figure 4에 예시하였다.
-
-![Figure 4. Conceptual illustration of automated reinforcement detailing in the section DB.](path/to/fig4_reinforcement_details.png)
+![Figure 4. Detailed flowchart of the structural section detailing logic and Pareto-based reduction process.](path/to/fig4_db_workflow.png)
 
 ### 4.2 Automated Structural Analysis using OpenSees
 
