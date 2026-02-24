@@ -12,13 +12,13 @@
 
 ## 2. Problem Formulation
 
-본 연구의 최적화 목표는 정규화된 총 공사비와 탄소 배출량의 통합 지표($f_1$) 및 구조적 횡적 유연성을 나타내는 최대 층간변위비($f_2$)를 동시에 최소화하는 것이다.
-
 ### 2.1 Design Variables and Chromosome Structure
 
 본 연구에서는 연속 변수 대신 실무적으로 제작 가능한 이산적 단면들의 집합인 데이터베이스 인덱스를 설계 변수로 채택한다. 전체 설계 변수 벡터 $X$는 기둥 그룹의 수 $n$과 보 그룹의 수 $m$에 따라 다음과 같이 정의된다.
 
-$$X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T$$
+$$
+X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T
+$$
 
 여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스로서 단면의 폭($b$), 높이($h$), 주철근비($\rho$), 띠철근 간격($s$) 정보를 포함한다. $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수로, 0은 강축이 X축 방향인 0° 회전을, 1은 강축이 Y축 방향인 90° 회전을 의미한다. $B_{id}$는 보 단면 데이터베이스의 인덱스로서 비대칭 배근 상세 및 전단 철근 정보를 포함하고 있다. Figure 1은 3차원 구조물에서 부재 그룹핑이 어떻게 설계 변수 벡터인 염색체 구조로 변환되는지를 도식화하여 보여준다. 각 부재 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
 
@@ -28,78 +28,113 @@ $$X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T$$
 
 첫 번째 목적 함수($f_1$)는 경제성과 환경성을 통합적으로 평가하기 위한 지표이다. 본 연구에서는 총 공사비($Cost$)와 탄소 배출량($CO_2$)이 모두 사용 재료량에 직접적으로 비례하는 높은 상관관계를 가진다는 점에 착안하여, 두 지표를 별도의 가중치 없이 통합하여 최소화한다. 다만, 데이터베이스에 정의된 각 단면의 고유 공사비(KRW)와 탄소 배출량(kg)은 수치적 단위와 변동 스케일이 상이하므로, 이를 동일한 비중으로 통합하기 위해 각각의 지표를 설계 공간 내의 최솟값과 최대값으로 정규화하여 합산한다. 첫 번째 목적 함수 $f_1$은 다음과 같이 정의된다.
 
-$$\min f_1(X) = \frac{Cost(X) - C_{min}}{C_{max} - C_{min}} + \frac{CO_2(X) - E_{min}}{E_{max} - E_{min}}$$
+$$
+\min f_1(X) = \frac{Cost(X) - C_{min}}{C_{max} - C_{min}} + \frac{CO_2(X) - E_{min}}{E_{max} - E_{min}}
+$$
 
 여기서 $C_{min}$, $C_{max}$, $E_{min}$, $E_{max}$는 각각 전체 설계 공간 내에서의 공사비와 이산화탄소 배출량의 최소 및 최대 범위를 의미한다. 전체 부재 수 $N$에 대한 총 공사비 $Cost(X)$와 총 탄소 배출량 $CO_2(X)$는 다음과 같이 개별 부재 물량의 합산으로 산출된다.
 
-$$Cost(X) = \sum_{k=1}^{N} \left( C_{conc} V_{c,k} + C_{steel} W_{s,k} + C_{form} A_{f,k} \right)$$
-$$CO_2(X) = \sum_{k=1}^{N} \left( E_{conc} (\gamma_c V_{c,k}) + E_{steel} (W_{s,k} \times 10^3) + E_{form} A_{f,k} \right)$$
+$$
+Cost(X) = \sum_{k=1}^{N} \left( C_{conc} V_{c,k} + C_{steel} W_{s,k} + C_{form} A_{f,k} \right)
+$$
+
+$$
+CO_2(X) = \sum_{k=1}^{N} \left( E_{conc} (\gamma_c V_{c,k}) + E_{steel} (W_{s,k} \times 10^3) + E_{form} A_{f,k} \right)
+$$
 
 이 식에서 $V_{c,k}$는 $k$번째 부재의 콘크리트 순 부피($m^3$), $W_{s,k}$는 철근 중량($ton$), $A_{f,k}$는 거푸집 설치 면적($m^2$)을 의미한다. $\gamma_c$는 콘크리트의 단위 중량($2,400 \, kg/m^3$)이다. $C$와 $E$는 각각 해당 재료의 단위 비용 및 탄소 배출 계수이며, 산출에 사용된 상세 파라미터는 Table 1에 정리하였다.
 
 **Table 1. Material properties, unit costs, and CO2 emission factors.**
-| Material / Item | Unit cost ($C$) | CO2 factor ($E$) | Unit ($C$ / $E$) |
-| :--- | :---: | :---: | :---: |
-| Concrete ($f_{ck}=27$ MPa) | 80,000 | 0.15 | KRW/$m^3$ / $kgCO_2e/kg$ |
-| Steel Reinforcement | 1,000,000 | 1.99 | KRW/$ton$ / $kgCO_2e/kg$ |
-| Formwork | 25,000 | 10.0 | KRW/$m^2$ / $kgCO_2e/m^2$ |
+
+| Material / Item              | Unit cost ($C$) | CO2 factor ($E$) |     Unit ($C$ / $E$)     |
+| :--------------------------- | :---------------: | :----------------: | :---------------------------: |
+| Concrete ($f_{ck}=27$ MPa) |      80,000      |        0.15        | KRW/$m^3$ / $kgCO_2e/kg$ |
+| Steel Reinforcement          |     1,000,000     |        1.99        | KRW/$ton$ / $kgCO_2e/kg$ |
+| Formwork                     |      25,000      |        10.0        | KRW/$m^2$ / $kgCO_2e/m^2$ |
 
 두 번째 목적 함수($f_2$)는 구조적 서비스 가능성을 평가하기 위한 지표로, 횡력에 대한 구조물의 저항 성능을 극대화하기 위해 전체 층에서 발생하는 최대 층간변위비(Maximum Story Drift Ratio)를 최소화한다.
 
-$$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
+$$
+\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)
+$$
 
 여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 4.2절의 Table 5에 기술하였다.
 
 ### 2.3 Constraints
 
-설계안의 실무적 타당성을 확보하기 위해 강도, 사용성, 그리고 시공성 제약 조건을 엄격히 적용한다. 본 연구에서 고려한 주요 제약 조건의 상세 기준은 Table 2에 정리하였다. 모든 부재는 설계 하중에 대해 충분한 내력을 확보해야 하며, 특히 층간변위 및 처짐과 같은 사용성 기준은 최신 설계 기준을 준수하도록 설계하였다 (ASCE, 2016; MacGregor et al., 1997).
+설계안의 실무적 타당성을 확보하기 위해 강도, 사용성, 그리고 시공성 제약 조건을 엄격히 적용한다. 본 연구에서 고려한 주요 제약 조건의 상세 기준과 이를 최적화 알고리즘에 적용하기 위한 수학적 수식($g_i(X) \le 0$)은 Table 2에 정리하였다. 모든 제약 조건은 해당 수식의 값이 0 이하일 때 만족되는 것으로 간주하며, 이를 위반할 경우 알고리즘의 제약 조건 위반량($\sum \text{Violation}$)으로 계산되어 개체 선택에 반영된다.
 
-**Table 2. Summary of structural design constraints.**
-| Constraint Category | Target Item | Limit / Criteria | Reference |
-| :--- | :--- | :--- | :---: |
-| **Strength (DCR)** | Column (P-M), Beam (V, M) | $DCR \le 1.0$ | ACI 318-19 |
-| **Serviceability** | Maximum Story Drift Ratio | $\Delta/H \le 0.020$ | ASCE 7-16 |
-| **Serviceability** | Long-term Deflection (Beam)| $\delta_{LT} \le L/240$ | ACI 318-19 |
-| **Hierarchy** | Column Section Area | $A_{c,upper} \le A_{c,lower}$ | Practical |
-| **Constructability**| Joint Compatibility | $b_{beam} \le b_{column}$ | Practical |
+**Table 2. Summary of structural design constraints expressed as $g_i(X) \le 0$.**
+
+| Category                   | Constraint Item   | Mathematical Expression ($g_i$)            | Criteria                 | Reference |
+| :------------------------- | :---------------- | :------------------------------------------- | :----------------------- | :--------: |
+| **Strength**         | Member DCR        | $g_1(X) = DCR - 1.0 \le 0$                 | Max. DCR 1.0             | ACI 318-19 |
+| **Serviceability**   | Story Drift Ratio | $g_2(X) = \Delta/H - 0.020 \le 0$          | ASCE 7-16                | ASCE 7-16 |
+| **Serviceability**   | Beam Deflection   | $g_3(X) = \delta_{LT} - L/240 \le 0$       | Long-term                | ACI 318-19 |
+| **Hierarchy**        | Column Size       | $g_4(X) = A_{c,upper} - A_{c,lower} \le 0$ | Section Area             | Practical |
+| **Constructability** | Joint Width       | $g_5(X) = b_{beam} - b_{column} \le 0$     | $b_{beam} \le b_{col}$ | Practical |
+
+개별 제약 조건 위반량은 $v_i(X) = \max(0, g_i(X))$로 계산되며, 알고리즘에서 개체의 유효성을 평가하기 위한 총 제약 조건 위반량($\Phi(X)$)은 각 제약 조건의 스케일을 정규화하여 다음과 같이 산출된다.
+
+$$
+\Phi(X) = \sum_{i=1}^{m} \frac{v_i(X)}{S_i}
+$$
+
+여기서 $m$은 전체 제약 조건의 수이며, $S_i$는 각 제약 조건별 위반량의 정규화 계수(Scaling factor)이다. 모든 제약 조건을 만족하는 개체의 경우 $\Phi(X)=0$이 된다.
 
 ## 3. Optimization Methodology
 
 ### 3.1 NSGA-II Algorithm and Constraint Handling
 
-본 연구에서 활용한 NSGA-II는 빠른 비지배 정렬과 혼잡도 거리 계산을 통해 파레토 최적해의 수렴성과 다양성을 동시에 확보하는 기법이다. 특히 RC 프레임 설계와 같이 복잡한 이산 변수와 비선형 제약 조건이 존재하는 문제에서 유효한 설계안을 우선적으로 탐색하기 위해 제약 조건 우선 지배(Constrained Dominance) 원칙을 적용하였다. 이 원칙에 따라 두 개체 사이의 지배 관계는 개체의 유효성 여부와 제약 조건 위반량($\sum \text{Violation}$)을 기준으로 결정된다. 이러한 메커니즘은 알고리즘이 초기 탐색 단계에서 유효한 설계 영역으로 빠르게 수렴하도록 유도하며, 대규모 다중목적 최적화 문제에서의 효율성이 입증된 바 있다 (Zavala et al., 2016). 전체적인 최적화 프로세스는 Figure 2의 플로우차트에 도식화하였다.
+본 연구에서 활용한 NSGA-II는 빠른 비지배 정렬과 혼잡도 거리 계산을 통해 파레토 최적해의 수렴성과 다양성을 동시에 확보하는 기법이다. 특히 RC 프레임 설계와 같이 **방대한 이산적 검색 공간(Discrete search space)**과 **수치 해석을 통해서만 확인 가능한 제약 조건**이 복합적으로 존재하는 문제에서 유효한 설계안을 우선적으로 탐색하기 위해 제약 조건 우선 지배(Constrained Dominance) 원칙을 적용하였다. 이 원칙에 따라 두 개체 $X_1$과 $X_2$ 사이의 지배 관계는 개체의 유효성 여부와 총 제약 조건 위반량($\Phi(X)$)을 기준으로 다음과 같이 결정된다:
+
+1) $X_1$은 유효하고($\Phi(X_1)=0$) $X_2$는 유효하지 않은 경우($\Phi(X_2)>0$), $X_1$이 지배한다.
+2) 둘 다 유효하지 않은 경우, 위반량이 더 작은 개체($\Phi(X_1) < \Phi(X_2)$)가 지배한다.
+3) 둘 다 유효한 경우, 일반적인 파레토 지배 원칙(목적 함수 값 비교)을 따른다.
+
+이러한 메커니즘은 알고리즘이 초기 탐색 단계에서 유효한 설계 영역으로 빠르게 수렴하도록 유도하며, 대규모 다중목적 최적화 문제에서의 효율성이 입증된 바 있다 (Zavala et al., 2016). 전체적인 최적화 프로세스는 Figure 2의 플로우차트에 도식화하였다.
 
 ![Figure 2. Flowchart of the proposed 3D RC frame optimization framework.](path/to/fig2_flowchart.png)
 
 ### 3.2 Parametric Study of Algorithm Parameters
 
-알고리즘의 성능을 극대화하기 위해 하이퍼볼륨(Hypervolume, 이하 HV) 지표를 기준으로 매개변수 연구를 수행하였다. 실험 결과, 높은 탐색 성능을 위해 교차 확률 $P_c=0.9$, 변이 확률 $P_m=0.1$, 그리고 개체군 크기 500의 조합을 최종적으로 채택하였다. 개체군 크기 500에서 HV 지표는 약 5.817로 가장 우수한 수렴성을 보였으며, 세대별 HV의 향상 추이와 유효 해 생성 비율의 변화는 Figure 3을 통해 확인할 수 있다.
+본 연구에서는 NSGA-II 알고리즘의 탐색 효율성과 수렴 성능을 극대화하기 위해, 하이퍼볼륨(Hypervolume, 이하 HV) 지표를 기준으로 5단계 순차적 매개변수 연구(Sequential Parametric Study)를 수행하였다. 각 단계에서는 이전 단계에서 도출된 최적 파라미터를 고정한 상태에서 다음 변수를 최적화하는 방식을 채택하여 변수 간의 상호작용을 고려하였다.
 
-![Figure 3. Convergence history: Hypervolume (HV) and generational feasibility ratio.](path/to/fig3_convergence.png)
+**Crossover strategy.** 교배 전략에 따른 수렴 성능을 비교하기 위해 One-Point, Two-Point, Uniform Crossover를 실험하였다. 실험 결과, Uniform Crossover가 초기 탐색 단계부터 가장 가파른 HV 향상을 보였으며, 최종 HV 값 역시 약 5.55로 타 전략(One-Point: 5.26, Two-Point: 5.27) 대비 우수한 성능을 입증하였다 (Figure 3a). 이는 3차원 프레임의 복잡한 염색체 구조에서 유전자의 위치와 상관없이 우수한 형질을 조합하는 데 Uniform 방식이 유리함을 시사한다.
+
+**Tournament size.** 부모 개체 선택의 압력을 조절하는 토너먼트 크기를 2부터 11까지 변화시키며 실험하였다. 실험 결과, 크기가 3일 때 탐색의 다양성과 수렴 속도 사이의 최적의 균형을 보였으며, 지나치게 큰 토너먼트 크기는 조기 수렴(Premature convergence)을 유발하여 최종 해의 다양성을 해치는 것으로 나타났다 (Figure 3b).
+
+**Crossover and mutation probabilities.** 교배 확률($P_c$)은 0.5에서 1.0까지, 변이 확률($P_m$)은 0.5에서 1.0까지 변화시키며 최적 조합을 탐색하였다. 실험 결과, 높은 교차 확률($P_c=0.9$)과 상대적으로 높은 변이 확률($P_m=0.7$) 조합에서 가장 넓은 파레토 프런트와 높은 HV 지표를 확보하였다. 특히 높은 변이 확률은 이산적 단면 인덱스의 국부 최적점(Local optima)을 탈출하는 데 결정적인 역할을 수행하였다 (Figure 3c, 3d).
+
+**Population size.** 알고리즘의 전역 탐색 성능을 결정하는 개체군 크기를 100에서 1000까지 변화시키며 실험하였다. 개체군 크기가 증가함에 따라 HV 지표는 전반적으로 상승하였으나, 500개체 이상에서는 향상 폭이 둔화되는 양상을 보였다. 최종적으로 연산 비용 대비 효율이 가장 우수한 개체군 크기 500(HV $\approx$ 5.817)을 최적 값으로 채택하였다 (Figure 3e).
+
+![Figure 3. Sequential parameter optimization results: (a) Crossover Strategy, (b) Tournament Size, (c) Crossover Probability, (d) Mutation Probability, and (e) Population Size.](path/to/combined_param_study.png)
 
 ## 4. Practical Section Database and Numerical Analysis Framework
 
 ### 4.1 Section Database Reflecting Practical Details
 
-본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 3에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016). 
+본 연구의 핵심적인 차별성은 실무 설계의 복잡성을 변수화한 전용 단면 데이터베이스의 구축과 이를 통한 최적화 효율성 극대화에 있다. 기둥과 보의 단면은 폭($b$)과 높이($h$)의 조합을 통해 다양한 직사각형 형상을 구성하며, 데이터베이스 생성 단계에서 Table 3에 정의된 범위 내의 모든 가능한 조합에 대해 ACI 318-19 상세 규정을 정밀하게 검토한다 (ASCE, 2016).
 
 **Table 3. Range and increments of design variables in the section database.**
-| Variable Type | Range (Beam / Column) | Step / Details |
-| :--- | :--- | :--- |
-| Section Width ($b$) | 300-500 / 600-1000 mm | 50 mm / 100 mm |
-| Section Height ($h$) | 500-800 / 600-1500 mm | 50 mm / 100 mm |
-| Main Rebar Ratio ($\rho$) | 0.5% - 4.0% | Based on ACI 318-19 |
-| Stirrup Spacing ($s$) | 100 - 450 mm | D10/D13, ACI 318-19 |
+
+| Variable Type               | Range (Beam / Column) | Step / Details      |
+| :-------------------------- | :-------------------- | :------------------ |
+| Section Width ($b$)       | 300-500 / 600-1000 mm | 50 mm / 100 mm      |
+| Section Height ($h$)      | 500-800 / 600-1500 mm | 50 mm / 100 mm      |
+| Main Rebar Ratio ($\rho$) | 0.5% - 4.0%           | Based on ACI 318-19 |
+| Stirrup Spacing ($s$)     | 100 - 450 mm          | D10/D13, ACI 318-19 |
 
 이 과정의 주요 이점은 계산 집약적인 사용성 한계 상태(Serviceability Limit State, SLS) 검토와 복잡한 배근 로직을 메인 최적화 루프에서 분리하였다는 점이다. 각 단면 인덱스 생성 시 주철근 간의 순간격(150mm 초과 시 보조 대근 배치), 표피 철근 배치 조건($h > 900$mm), 그리고 135도 내진 상세 갈고리 여장 등을 미리 계산하여 저장한다. 배근 로직은 Table 4에 요약된 바와 같다.
 
 **Table 4. Summary of reinforcement detailing logic based on ACI 318-19.**
-| Item | Regulation (ACI 318-19) | Implementation in DB |
-| :--- | :--- | :--- |
-| Supplemental Ties | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties |
-| Skin Reinforcement | If $h > 900$ mm (9.7.2.3) | Longitudinal bars on sides |
-| Seismic Hooks | 135-degree hooks (25.7.2.1) | Precision volume calculation |
-| Joint Compatibility | $b_{beam} \le b_{column}$ | Automated constraint check |
+
+| Item                | Regulation (ACI 318-19)     | Implementation in DB         |
+| :------------------ | :-------------------------- | :--------------------------- |
+| Supplemental Ties   | Spacing > 150 mm (25.7.2.3) | Auto-inserted Crossties      |
+| Skin Reinforcement  | If$h > 900$ mm (9.7.2.3)  | Longitudinal bars on sides   |
+| Seismic Hooks       | 135-degree hooks (25.7.2.1) | Precision volume calculation |
+| Joint Compatibility | $b_{beam} \le b_{column}$ | Automated constraint check   |
 
 이를 통해 최적화 알고리즘은 매 세대마다 복잡한 배근 설계를 반복할 필요 없이, 이미 검증된 단면 후보군 내에서 최적의 조합만을 탐색하게 되므로 연산 속도를 획기적으로 향상시킬 수 있다. 본 연구에서는 이러한 정밀 물량 산출 방식을 통해 단순 철근비 기반 산출 대비 약 10-15%의 물량 정밀도를 향상시켰다. 데이터베이스에서 생성된 자동 배근의 개념도는 Figure 4에 예시하였다.
 
@@ -107,16 +142,17 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 
 ### 4.2 Numerical Analysis Integration and System Implementation
 
-전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 Table 4에 기술하였다. Figure 5는 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
+전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). 예제 구조물에 적용된 상세 하중 조건 및 모델링 파라미터는 Table 5에 기술하였다. Figure 5은 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
 
-**Table 4. Structural loading and modeling parameters for benchmark frames.**
-| Parameter Type | Item | Value / Description |
-| :--- | :--- | :--- |
-| Dead Load | Floor / Slab | 5.0 $kN/m^2$ / 150mm |
-| Live Load | Typical / Lobby | 2.5 - 5.0 $kN/m^2$ |
-| Earthquake Load | SDS / SD1 | 0.60g / 0.36g (ASCE 7-16) |
-| Story Height | Typical / First | 3.3 / 4.2 m |
-| Span Length | X-dir / Y-dir | 5.0 - 7.0 m (Irregular) |
+**Table 5. Structural loading and modeling parameters for benchmark frames.**
+
+| Parameter Type  | Item            | Value / Description       |
+| :-------------- | :-------------- | :------------------------ |
+| Dead Load       | Floor / Slab    | 5.0$kN/m^2$ / 150mm     |
+| Live Load       | Typical / Lobby | 2.5 - 5.0$kN/m^2$       |
+| Earthquake Load | SDS / SD1       | 0.60g / 0.36g (ASCE 7-16) |
+| Story Height    | Typical / First | 3.3 / 4.2 m               |
+| Span Length     | X-dir / Y-dir   | 5.0 - 7.0 m (Irregular)   |
 
 ![Figure 5. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig5_structure_models.png)
 
@@ -139,13 +175,14 @@ $$\min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)$$
 기존 관행 설계(Scenario B: 기둥 회전 고정)와 본 최적화 기법(Scenario A)의 정량적 비교 결과는 Table 6에 정리하였다. 4층 모델의 경우, 기둥 회전각과 실무 상세를 모두 최적화한 시나리오 A는 하이퍼볼륨(HV) 측면에서 약 1.25% 향상된 성능을 보였다. 특히, 동일한 공사비 수준에서 시나리오 A는 시나리오 B 대비 최대 층간변위비를 약 16.7% 저감하여 횡력 저항 성능을 획기적으로 개선하였다.
 
 **Table 6. Comparative performance summary: Conventional (B) vs. Optimized (A) for 4-story RC frame.**
-| Performance Metric | Conventional (B) | Optimized (A) | Difference (%) |
-| :--- | :---: | :---: | :---: |
-| Hypervolume (HV) | 5.712 | 5.784 | +1.25% |
-| Best Cost Solution (KRW) | 40,512,456 | 40,278,086 | -0.58% |
-| Drift at Best Cost (rad) | 0.0114 | 0.0095 | -16.7% (Improved) |
-| Total CO2 at Best Cost (kg)| 120,278 | 120,352 | +0.06% |
-| Max. DCR (Average) | 0.319 | 0.313 | -1.9% |
+
+| Performance Metric          | Conventional (B) | Optimized (A) |  Difference (%)  |
+| :-------------------------- | :--------------: | :-----------: | :---------------: |
+| Hypervolume (HV)            |      5.712      |     5.784     |      +1.25%      |
+| Best Cost Solution (KRW)    |    40,512,456    |  40,278,086  |      -0.58%      |
+| Drift at Best Cost (rad)    |      0.0114      |    0.0095    | -16.7% (Improved) |
+| Total CO2 at Best Cost (kg) |     120,278     |    120,352    |      +0.06%      |
+| Max. DCR (Average)          |      0.319      |     0.313     |       -1.9%       |
 
 ## 6. Conclusions
 
