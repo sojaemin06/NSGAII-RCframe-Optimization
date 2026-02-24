@@ -136,25 +136,33 @@ $$
 
 전체 최적화 프레임워크는 Python 기반의 DEAP 라이브러리와 범용 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006). 알고리즘에 의해 생성된 개별 설계 변수 조합은 수치 해석 모델로 자동 변환되며, OpenSees를 통해 각 설계안의 구조적 성능이 평가된다.
 
-본 연구에서는 실제적인 3차원 거동을 모사하기 위해 P-Delta 효과와 강체 횡경막 가정을 포함한 정밀 해석 모델을 구축하였으며, ACI 318-19 및 ASCE 7-16 규정에 따른 하중 조합 및 사용성 검토를 수행하였다. 특히, 건물의 용도 및 층별 특성을 반영한 차등 활하중과 체커보드 패턴의 하중 재하 시나리오를 적용하여 설계의 신뢰성을 확보하였다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
+본 연구에서는 실제적인 3차원 거동을 모사하기 위해 P-Delta 효과와 강체 횡경막 가정을 포함한 정밀 해석 모델을 구축하였으며, ACI 318-19 및 ASCE 7-16 규정에 따른 하중 조합 및 사용성 검토를 수행하였다. 특히, 건물의 용도 및 층별 특성을 정밀하게 반영하기 위해 하부 로비 및 근린생활시설(1-2층)에는 $5.0 \, \text{kN/m}^2$, 중층부 사무 공간(3-5층)에는 $3.0 \, \text{kN/m}^2$, 그리고 상층부 주거 및 기타 공간(6층 이상)에는 $2.0 \, \text{kN/m}^2$의 차등 활하중을 정량적으로 적용하였다. 이러한 층별 하중의 차이와 Figure 6에 도식화된 체커보드 패턴의 하중 재하 시나리오는 각 층의 부재 그룹이 처한 국부적인 응력 상태를 상이하게 만들며, 이는 설계의 실무적 신뢰성을 확보하는 핵심 요소가 된다. Figure 5는 본 연구에서 예제로 활용된 4, 6, 8층 벤치마크 구조물의 3차원 형상을 보여준다.
 
-![Figure 5. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig5_structure_models.png)
+![Figure 5. 3D isometric views of the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story frames.](path/to/fig5_structure_models.png)
+
+![Figure 6. Representative checkerboard load pattern plans for the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story cases.](path/to/load_pattern_visualization.png)
+
+Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 건물의 용도 및 공간별 기능 차이에 따른 하중 불균형을 모사하는 데 필수적이다. 실제 건축물은 로비, 사무 공간, 기계실 등 층별 또는 구역별로 서로 다른 활하중 기준이 적용되며, 이러한 하중의 위치별 불균형은 구조물 전체에 비대칭적인 응력 분포와 특정 방향으로의 편심을 유발한다. 
+
+본 연구에서는 이러한 실무적인 하중 상태에 효과적으로 대응하기 위해, 기하학적 효율이 높은 **직사각형 단면 조합**과 기둥의 강축 방향을 결정하는 **이진 회전 변수($R_{dir}$)**를 최적화 엔진의 핵심 요소로 도입하였다. 알고리즘은 각 부재 그룹이 처한 국부적인 하중 편심과 방향별 강성 요구 조건에 맞춰 기둥의 강축을 능동적으로 배치함으로써, 한정된 재료량 내에서 구조적 저항 성능을 극대화한다. 이는 기둥의 단면을 정방형으로 제한하거나 방향을 일률적으로 고정하는 기존의 관행적 설계 방식과 차별화되는 지점이며, 3차원 공간에서 각 층의 하중 특성에 최적화된 맞춤형 강성 분포를 형성하도록 유도하는 결정적인 장치가 된다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
 
 ## 5. Results and Discussion
 
 ### 5.1 Pareto-Optimal Solution Behavior and Analysis by Floor Level
 
-도출된 파레토 최적해 분포(Figure 6)를 분석한 결과, 공사비($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 상충 관계가 확인되었다. 층수가 증가함에 따라 파레토 프런트가 우상향으로 이동하는 것은 고층화될수록 횡방향 강성 확보를 위한 비용 부담이 지수적으로 증가함을 시사한다. 4층 구조물의 경우 공사비는 약 4,000만 원대에서 형성되었으나, 8층 구조물의 경우 구조적 제약 조건 충족을 위해 단위 면적당 비용이 급격히 증가하였다.
+도출된 파레토 최적해 분포(Figure 7)를 분석한 결과, 공사비($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 상충 관계가 확인되었다. 층수가 증가함에 따라 파레토 프런트가 우상향으로 이동하는 것은 고층화될수록 횡방향 강성 확보를 위한 비용 부담이 지수적으로 증가함을 시사한다. 
 
-![Figure 6. Pareto Fronts in the objective space (Construction Cost vs. Max. Story Drift).](path/to/fig6_pareto_fronts.png)
+분석 결과, 4층 구조물의 최적 공사비는 약 4,000만 원 내외에서 형성되었으나, 6층의 경우 약 7,900만 원, 8층의 경우 약 1억 500만 원 수준으로 증가하였다. 특히 층수가 높아질수록 동일한 층간변위비(예: 0.010 rad)를 유지하기 위해 필요한 단위 면적당 비용이 급격히 상승하는 양상을 보였다.
+
+![Figure 7. Pareto Fronts in the objective space (Construction Cost vs. Max. Story Drift).](path/to/fig7_pareto_fronts.png)
 
 ### 5.2 Effect of Column Rotation Variables and Practical Detailing
 
-기둥 회전 변수의 도입 효과를 분석한 결과, 동일 비용 수준에서 최대 층간변위비를 약 5.0%에서 17%까지 추가로 저감할 수 있었다. Figure 7은 최적화된 설계안에서의 기둥 방향 배치 및 단면 크기 분포를 보여주며, 알고리즘이 횡방향 강성이 취약한 축으로 기둥 강축을 자동 배치했음을 입증한다. 또한, Figure 8의 DCR 분포 및 변위 프로파일 비교를 통해 제안된 기법이 구조적 안전성을 유지하면서도 효율적인 단면 구성을 찾아냈음을 확인할 수 있다.
+기둥 회전 변수의 도입 효과를 분석한 결과, 동일 비용 수준에서 최대 층간변위비를 약 5.0%에서 17%까지 추가로 저감할 수 있었다. Figure 8은 최적화된 설계안에서의 기둥 방향 배치 및 단면 크기 분포를 보여주며, 알고리즘이 횡방향 강성이 취약한 축으로 기둥 강축을 자동 배치했음을 입증한다. 또한, Figure 9의 DCR 분포 및 변위 프로파일 비교를 통해 제안된 기법이 구조적 안전성을 유지하면서도 효율적인 단면 구성을 찾아냈음을 확인할 수 있다.
 
-![Figure 7. Solution space analysis: Optimized column orientations and section size distribution.](path/to/fig7_solution_analysis.png)
+![Figure 8. Solution space analysis: Optimized column orientations and section size distribution.](path/to/fig8_solution_analysis.png)
 
-![Figure 8. Comparison of structural performance: DCR contours and displacement profiles.](path/to/fig8_structural_performance.png)
+![Figure 9. Comparison of structural performance: DCR contours and displacement profiles.](path/to/fig9_structural_performance.png)
 
 기존 관행 설계(Scenario B: 기둥 회전 고정)와 본 최적화 기법(Scenario A)의 정량적 비교 결과는 Table 6에 정리하였다. 4층 모델의 경우, 기둥 회전각과 실무 상세를 모두 최적화한 시나리오 A는 하이퍼볼륨(HV) 측면에서 약 1.25% 향상된 성능을 보였다. 특히, 동일한 공사비 수준에서 시나리오 A는 시나리오 B 대비 최대 층간변위비를 약 16.7% 저감하여 횡력 저항 성능을 획기적으로 개선하였다.
 
