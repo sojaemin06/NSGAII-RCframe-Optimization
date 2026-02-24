@@ -660,6 +660,10 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
         'hierarchy': 0.2, 'col_size': 0.2
     }
+    
+    # inf 값 방어 로직 추가
+    safe_drift = actual_drift_ratio if not math.isinf(actual_drift_ratio) else 1.0 # inf일 경우 임의의 큰 위반량 유도
+    
     margins = {key: max(0, val - limits[key]) for key, val in {
         'strength': max_strength_ratio, 'drift': actual_drift_ratio,
         'wind_disp': actual_wind_disp_ratio, 'deflection': actual_deflection_ratio,
@@ -669,9 +673,18 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     total_normalized_violation = 0
     normalized_margins = {}
     for key, margin in margins.items():
-        normalized_margin = min(1.0, margin / (norm_scales[key] + 1e-9))
-        total_normalized_violation += normalized_margin # Weight 1.0
+        if math.isinf(margin):
+            normalized_margin = 1.0 # 최대 페널티
+        else:
+            normalized_margin = min(1.0, margin / (norm_scales[key] + 1e-9))
+        
+        total_normalized_violation += normalized_margin
         normalized_margins[key] = normalized_margin
+
+    # 해석이 실패했거나 drift가 inf인 경우 violation을 최소 1.0 이상으로 강제
+    if not analysis_ok or math.isinf(actual_drift_ratio):
+        total_normalized_violation = max(total_normalized_violation, 1.0)
+
 
     detailed_results_dict = {
         "cost": total_cost, "co2": total_co2,

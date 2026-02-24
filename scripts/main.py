@@ -31,25 +31,26 @@ EXAMPLES = {
         'Floors': 4,
         'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
         'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F
+        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
+        'Pop': 500, 'Gen': 100
     },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
     #     'Beam_Conns': cfg.BEAM_CONNECTIONS_6F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F,
+    #     'Pop': 500, 'Gen': 100
     # },
     # 'Example_3_8Story': {
     #     'Floors': 8,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
     #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
+    #     'Pop': 500, 'Gen': 100
     # }
 }
 
-# 실험 파라미터 (Scenario A 고정 - config.py의 최적 파라미터 사용)
-OPT_POP_SIZE = cfg.POPULATION_SIZE 
-OPT_GENERATIONS = cfg.NUM_GENERATIONS 
+# 실험 파라미터 (공통 전략)
 OPT_CX_METHOD = cfg.CROSSOVER_STRATEGY 
 OPT_CX_PROB = cfg.CXPB 
 OPT_MUT_PROB = cfg.MUTPB 
@@ -74,7 +75,8 @@ def run_example_optimization(ex_name, ex_config):
 
     print(f"\n" + "="*60)
     print(f"Running Optimization for {ex_name} ({ex_config['Floors']} Floors)...")
-    print(f"Strategy: {cfg.GROUPING_STRATEGY} (Automatic Grouping)")
+    print(f"Strategy: {cfg.GROUPING_STRATEGY} (Hybrid Grouping)")
+    print(f"Params: Pop={ex_config['Pop']}, Gen={ex_config['Gen']}")
     print("="*60)
     
     # 1. 데이터 로드
@@ -109,7 +111,7 @@ def run_example_optimization(ex_name, ex_config):
         num_beams = len(cfg.BEAM_CONNECTIONS) * cfg.FLOORS
         beam_lengths = get_beam_lengths(cfg.COLUMN_LOCATIONS, cfg.BEAM_CONNECTIONS)
         
-        # 3. 그룹핑 맵 재생성 (Individual)
+        # 3. 그룹핑 맵 재생성 (Hybrid)
         num_col_groups, num_beam_groups, col_map, beam_map = get_grouping_maps(
             cfg.GROUPING_STRATEGY, num_locations, num_columns, num_beams, cfg.FLOORS, cfg.BEAM_CONNECTIONS, cfg.COLUMN_LOCATIONS
         )
@@ -128,7 +130,7 @@ def run_example_optimization(ex_name, ex_config):
             crossover_method=OPT_CX_METHOD, 
             patterns_by_floor=dynamic_patterns,
             h5_file=h5_file,
-            num_generations=OPT_GENERATIONS, population_size=OPT_POP_SIZE,
+            num_generations=ex_config['Gen'], population_size=ex_config['Pop'], # 인자 값 사용
             col_map=col_map, beam_map=beam_map, 
             beam_sections=beam_sections, column_sections=column_sections,
             beam_sections_df=beam_sections_df, column_sections_df=column_sections_df, 
@@ -145,11 +147,15 @@ def run_example_optimization(ex_name, ex_config):
         # 결과 저장 및 시각화
         processed_valid_solutions = []
         for i, ind in enumerate(final_hof):
-            if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0:
-                solution_data = ind.detailed_results.copy()
-                solution_data['ID'] = i + 1
-                solution_data['ind_object'] = ind 
-                processed_valid_solutions.append(solution_data)
+            if hasattr(ind, 'detailed_results'):
+                res = ind.detailed_results
+                # violation이 0이고, drift ratio가 유효한 수치(inf가 아님)인 경우만 수집
+                if res.get('violation') == 0.0 and not np.isinf(res.get('max_drift_ratio', np.inf)):
+                    solution_data = res.copy()
+                    solution_data['ID'] = i + 1
+                    solution_data['ind_object'] = ind 
+                    processed_valid_solutions.append(solution_data)
+
 
         if not processed_valid_solutions:
             print(f"No feasible solutions found for {ex_name}.")
@@ -201,7 +207,13 @@ def main():
     # 2. Pareto Front Comparison
     fig, axes = plt.subplots(1, len(all_results), figsize=(5 * len(all_results), 5), squeeze=False)
     for i, data in enumerate(all_results):
-        hof_solutions = [sol for sol in data['hof'] if hasattr(sol, 'detailed_results') and sol.detailed_results.get('violation') == 0.0]
+        # inf 값 배제 필터링 강화
+        hof_solutions = [
+            sol for sol in data['hof'] 
+            if hasattr(sol, 'detailed_results') 
+            and sol.detailed_results.get('violation') == 0.0 
+            and not np.isinf(sol.detailed_results.get('max_drift_ratio', np.inf))
+        ]
         fit1 = [sol.fitness.values[0] for sol in hof_solutions] # Norm Cost+CO2
         fit2 = [sol.fitness.values[1] for sol in hof_solutions] # Raw Drift
         

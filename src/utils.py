@@ -95,11 +95,42 @@ def get_grouping_maps(strategy, num_locations, num_columns, num_beams, floors, b
         for k in range(floors):
             for i in range(num_locations): col_map[k * num_locations + i + 1] = k
             for i in range(len(beam_connections)): beam_map[num_columns + k * len(beam_connections) + i + 1] = k
-    else: # Hybrid (Omitted details for brevity, using ByFloor as fallback)
-        num_col_groups, num_beam_groups = floors, floors
+    else: # Hybrid (Floor-wise + Position-wise)
+        # 1. 위치별 분류 (Corner, Edge, Interior)
+        xs = [loc[0] for loc in column_locations]; ys = [loc[1] for loc in column_locations]
+        min_x, max_x = min(xs), max(xs); min_y, max_y = min(ys), max(ys)
+        
+        col_local_types = []
+        for x, y in column_locations:
+            is_x_boundary = (abs(x - min_x) < 1e-3 or abs(x - max_x) < 1e-3)
+            is_y_boundary = (abs(y - min_y) < 1e-3 or abs(y - max_y) < 1e-3)
+            if is_x_boundary and is_y_boundary: col_local_types.append(2) # Corner
+            elif is_x_boundary or is_y_boundary: col_local_types.append(1) # Edge
+            else: col_local_types.append(0) # Interior
+            
+        beam_local_types = []
+        for i1, i2 in beam_connections:
+            x1, y1 = column_locations[i1]; x2, y2 = column_locations[i2]
+            # 보가 평면의 외곽선(Boundary)에 놓여있는지 확인
+            is_exterior = (abs(x1 - x2) < 1e-3 and (abs(x1 - min_x) < 1e-3 or abs(x1 - max_x) < 1e-3)) or \
+                          (abs(y1 - y2) < 1e-3 and (abs(y1 - min_y) < 1e-3 or abs(y1 - max_y) < 1e-3))
+            beam_local_types.append(1 if is_exterior else 0)
+            
+        num_col_groups_per_floor = 3 # Corner, Edge, Interior
+        num_beam_groups_per_floor = 2 # Exterior, Interior
+        
+        num_col_groups = floors * num_col_groups_per_floor
+        num_beam_groups = floors * num_beam_groups_per_floor
+        
         for k in range(floors):
-            for i in range(num_locations): col_map[k * num_locations + i + 1] = k
-            for i in range(len(beam_connections)): beam_map[num_columns + k * len(beam_connections) + i + 1] = k
+            base_col_grp = k * num_col_groups_per_floor
+            for i in range(num_locations):
+                col_map[k * num_locations + i + 1] = base_col_grp + col_local_types[i]
+                
+            base_beam_grp = k * num_beam_groups_per_floor
+            for i in range(len(beam_connections)):
+                beam_map[num_columns + k * len(beam_connections) + i + 1] = base_beam_grp + beam_local_types[i]
+                
     return num_col_groups, num_beam_groups, col_map, beam_map
 
 # =================================================================
