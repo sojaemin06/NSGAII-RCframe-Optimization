@@ -58,7 +58,7 @@ $$
 \min f_2(X) = \max \left( \frac{\Delta_{i,j,k}}{H_k} \right)
 $$
 
-여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 4.2절의 Table 5에 기술하였다.
+여기서 $\Delta_{i,j,k}$는 $k$층의 $j$노드에서 발생하는 $i$방향의 층간변위를 나타내며, $H_k$는 해당 층의 층고를 의미한다. 예제 구조물에 적용된 구체적인 하중 조건 및 모델링 파라미터는 **Appendix A**에 기술하였다.
 
 ### 2.3 Constraints
 
@@ -134,17 +134,9 @@ $$
 
 ### 4.2 Automated Structural Analysis using OpenSees
 
-전체 최적화 프레임워크는 Python의 DEAP 라이브러리와 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006; McKenna, 1997). 알고리즘에서 생성된 설계 변수를 바탕으로 3D 프레임 모델이 자동 생성되며, 특히 기둥 회전 변수($R_{dir}=1$)가 활성화되면 로컬 좌표계의 강축 방향 변화를 반영한다. 설계 하중 및 조합은 ACI 318-19 및 ASCE 7-16 기준을 엄격히 준수하며, 지진 거동 평가는 최신 동역학 이론 및 가이드라인을 따랐다 (Chopra, 2017; FEMA, 2012). 예제 구조물에 적용된 상세 하중 조건 및 모델링 파라미터는 Table 5에 기술하였다. Figure 5은 본 연구에서 검증을 위해 사용한 4, 6, 8층 예제 구조물의 3D 형상과 부재 그룹핑 현황을 보여준다.
+전체 최적화 프레임워크는 Python 기반의 DEAP 라이브러리와 범용 구조 해석 엔진인 OpenSees를 연동하여 구현되었다 (Mazzoni et al., 2006). 알고리즘에 의해 생성된 개별 설계 변수 조합은 수치 해석 모델로 자동 변환되며, OpenSees를 통해 각 설계안의 구조적 성능이 평가된다.
 
-**Table 5. Structural loading and modeling parameters for benchmark frames.**
-
-| Parameter Type  | Item            | Value / Description       |
-| :-------------- | :-------------- | :------------------------ |
-| Dead Load       | Floor / Slab    | 5.0$kN/m^2$ / 150mm     |
-| Live Load       | Typical / Lobby | 2.5 - 5.0$kN/m^2$       |
-| Earthquake Load | SDS / SD1       | 0.60g / 0.36g (ASCE 7-16) |
-| Story Height    | Typical / First | 3.3 / 4.2 m               |
-| Span Length     | X-dir / Y-dir   | 5.0 - 7.0 m (Irregular)   |
+본 연구에서는 실제적인 3차원 거동을 모사하기 위해 P-Delta 효과와 강체 횡경막 가정을 포함한 정밀 해석 모델을 구축하였으며, ACI 318-19 및 ASCE 7-16 규정에 따른 하중 조합 및 사용성 검토를 수행하였다. 특히, 건물의 용도 및 층별 특성을 반영한 차등 활하중과 체커보드 패턴의 하중 재하 시나리오를 적용하여 설계의 신뢰성을 확보하였다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
 
 ![Figure 5. 3D isometric views of the 4, 6, and 8-story benchmark structures.](path/to/fig5_structure_models.png)
 
@@ -225,3 +217,34 @@ Paya-Zaforteza, I., Yepes, V., Hospitaler, A., & Gonzalez-Vidosa, F. (2009). CO2
 Werner, W., & Burns, J. G. (2012). Quantification and optimization of structural embodied energy and carbon. In Structures Congress 2012 (pp. 929-940).
 Zavala, G., Nebro, A. J., Luna, F., & Coello Coello, C. A. (2016). Structural design using multi-objective metaheuristics. Comparative study and application to a real-world problem. Structural and Multidisciplinary Optimization, 53(3), 545-566.
 Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comparative case study and the strength Pareto approach. IEEE transactions on Evolutionary Computation, 3(4), 257-271.
+
+---
+
+## Appendix A. Structural Modeling and Loading Details
+
+본 부록에서는 4.2절에서 언급된 수치 해석 모델의 상세 가정과 하중 산정 근거를 기술한다.
+
+**Modeling assumptions.** 3차원 골조의 거동을 모사하기 위해 사용된 `elasticBeamColumn` 요소는 축력, 전단력, 비틀림 및 2축 휨을 모두 고려한다. 기둥 부재에는 P-Delta 기하학적 변환을 적용하여 고차 효과를 반영하였으며, 바닥판의 강체 횡경막 거동을 위해 각 층의 모든 절점은 해당 층의 마스터 절점에 대해 수평 자유도가 구속되었다. 강성 저감은 ACI 318-19를 따르며, 구체적인 파라미터는 Table A1에 정리하였다.
+
+**Loading and Seismic parameters.** 지진하중은 ASCE 7-16의 등가정적해석법을 기반으로 하며, 반응수정계수($R=5.0$)와 변위증폭계수($C_d=4.5$)를 적용하였다. 층별 지진력은 고유치 해석으로 도출된 모드 형상에 따라 분배되었다. 활하중은 층별 용도 차이를 반영하여 로비층($5.0 \, \text{kN/m}^2$)부터 상층부 주거/사무 공간($2.0 \sim 3.0 \, \text{kN/m}^2$)까지 차등 적용되었다.
+
+**Table A1. Detailed structural modeling and loading parameters for benchmark frames.**
+
+| Category | Parameter | Value / Description |
+| :--- | :--- | :--- |
+| **Modeling** | Element type | 3D `elasticBeamColumn` (6-DOF per node) |
+| | Geometric nonlinearity | P-Delta transformation for columns |
+| | Diaphragm action | Rigid diaphragm (Master-Slave) at each floor |
+| | Effective stiffness | $0.7 I_g$ (Columns), $0.35 I_g$ (Beams) (ACI 318-19) |
+| **Material** | Concrete strength ($f_{ck}$) | $27$ MPa ($E_c = 25.8 \times 10^3$ MPa) |
+| | Steel strength ($f_y$) | $400$ MPa ($E_s = 200 \times 10^3$ MPa) |
+| **Gravity Load** | Dead load (Slab + Superimposed) | $5.0 \, \text{kN/m}^2$ |
+| | Live load (Floor 1-2 / 3-5 / 6+) | $5.0 / 3.0 / 2.0 \, \text{kN/m}^2$ |
+| | Load pattern | Checkerboard pattern per floor |
+| **Seismic (ELF)** | Design spectral acceleration | $S_{DS}=0.60g$, $S_{D1}=0.36g$ (Site Class D) |
+| | Response / Displacement factors | $R = 5.0$, $C_d = 4.5$, $I_e = 1.0$ |
+| | Force distribution | First mode shape based (Eigenvalue analysis) |
+| | Directional combinations | 100% (Principal) + 30% (Orthogonal) |
+| **Wind (MWFRS)** | Basic wind speed ($V$) | $30 \, \text{m/s}$ (Exposure B, ASCE 7-16) |
+| | Gust / Pressure coefficients | $G = 0.85$, $C_p = 0.8$ (Windward), $-0.5$ (Leeward) |
+| **Analysis** | Total load combinations | 38 combinations (Strength: 26, Serviceability: 12) |
