@@ -124,8 +124,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "strength_ratios": [], "story_drifts_x": [], "story_drifts_y": [],
         "wind_displacements_x": [], "wind_displacements_y": [],
         "violation_deflection": float('inf'), "violation_drift": float('inf'),
-        "violation_hierarchy": float('inf'), "violation_wind_disp": float('inf'),
-        "violation_col_size": float('inf'),
+        "violation_scwb": float('inf'), "violation_wind_disp": float('inf'),
         "max_drift_ratio": float('inf'),
         "forces_df": pd.DataFrame(), "violation": float('inf'), "absolute_margins": {}
     }
@@ -539,18 +538,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                 else: sum_mc_for_x_beams += mn0_z; sum_mc_for_y_beams += mn0_y
             if sum_mb_x > 0: scwb_ratios.append( (1.2 * sum_mb_x) / (sum_mc_for_x_beams + 1e-9) )
             if sum_mb_y > 0: scwb_ratios.append( (1.2 * sum_mb_y) / (sum_mc_for_y_beams + 1e-9) )
-    actual_hierarchy_ratio = max(scwb_ratios) if scwb_ratios else 0.0
-
-    # --- [New Constraint] Column Area Hierarchy Check ---
-    col_size_violations = []
-    for k in range(cfg.FLOORS - 1):
-        for i in range(num_locations):
-            lower_abs_idx = k * num_locations + i; lower_group_idx = col_map[lower_abs_idx + 1]
-            lower_sec_idx = col_indices[lower_group_idx]; b_l, h_l = column_sections[lower_sec_idx]; area_lower = b_l * h_l
-            upper_abs_idx = (k + 1) * num_locations + i; upper_group_idx = col_map[upper_abs_idx + 1]
-            upper_sec_idx = col_indices[upper_group_idx]; b_u, h_u = column_sections[upper_sec_idx]; area_upper = b_u * h_u
-            if area_upper > area_lower + 1e-6: col_size_violations.append(area_upper / area_lower)
-    actual_col_size_ratio = max(col_size_violations) if col_size_violations else 0.0
+    actual_scwb_ratio = max(scwb_ratios) if scwb_ratios else 0.0
 
     # --- Cost & CO2 Calculation with Strict ACI Detailing ---
     total_cost, total_co2 = 0, 0
@@ -654,11 +642,11 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     # --- Constraint Normalization (Updated for Raw Drift Ratio) ---
     limits = {
         'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
-        'hierarchy': 1.2, 'col_size': 1.0
+        'scwb': 1.2
     }
     norm_scales = {
         'strength': 1.0, 'drift': 0.02, 'wind_disp': 1.0, 'deflection': 1.0, 
-        'hierarchy': 0.2, 'col_size': 0.2
+        'scwb': 0.2
     }
     
     # inf 값 방어 로직 추가
@@ -667,7 +655,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     margins = {key: max(0, val - limits[key]) for key, val in {
         'strength': max_strength_ratio, 'drift': actual_drift_ratio,
         'wind_disp': actual_wind_disp_ratio, 'deflection': actual_deflection_ratio,
-        'hierarchy': actual_hierarchy_ratio, 'col_size': actual_col_size_ratio
+        'scwb': actual_scwb_ratio
     }.items()}
 
     total_normalized_violation = 0
@@ -696,8 +684,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
         "story_drifts_x": story_drifts_x, "story_drifts_y": story_drifts_y,
         "wind_displacements_x": wind_disps_x, "wind_displacements_y": wind_disps_y,
         "violation_deflection": actual_deflection_ratio, "violation_drift": actual_drift_ratio,
-        "violation_hierarchy": actual_hierarchy_ratio, "violation_wind_disp": actual_wind_disp_ratio,
-        "violation_col_size": actual_col_size_ratio,
+        "violation_scwb": actual_scwb_ratio, "violation_wind_disp": actual_wind_disp_ratio,
         "max_drift_ratio": actual_drift_ratio,
         "N_types": len(set(col_indices)) + len(set(beam_indices)),
         "forces_df": final_max_forces

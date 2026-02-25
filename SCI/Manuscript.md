@@ -14,15 +14,21 @@
 
 ### 2.1 Design Variables and Chromosome Structure
 
-본 연구에서는 연속 변수 대신 실무적으로 제작 가능한 이산적 단면들의 집합인 데이터베이스 인덱스를 설계 변수로 채택한다. 전체 설계 변수 벡터 $X$는 기둥 그룹의 수 $n$과 보 그룹의 수 $m$에 따라 다음과 같이 정의된다.
+본 연구에서는 연속 변수 대신 실무적으로 제작 가능한 이산적 단면들의 집합인 데이터베이스 인덱스를 설계 변수로 채택한다. 특히, 방대한 3차원 프레임의 탐색 공간을 효율적으로 제어하고 시공성을 확보하기 위해, 부재의 층별 위치와 평면상의 기하학적 배치를 통합적으로 고려한 그룹화 전략을 도입한다. 전체 설계 변수 벡터 $X$는 다음과 같이 정의된다.
 
 $$
 X = [\{C_{id}\}_n, \{R_{dir}\}_n, \{B_{id}\}_m]^T
 $$
 
-여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스로서 단면의 폭($b$), 높이($h$), 주철근비($\rho$), 띠철근 간격($s$) 정보를 포함한다. $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수로, 0은 강축이 X축 방향인 0° 회전을, 1은 강축이 Y축 방향인 90° 회전을 의미한다. $B_{id}$는 보 단면 데이터베이스의 인덱스로서 비대칭 배근 상세 및 전단 철근 정보를 포함하고 있다. Figure 1은 3차원 구조물에서 부재 그룹핑이 어떻게 설계 변수 벡터인 염색체 구조로 변환되는지를 도식화하여 보여준다. 각 부재 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
+여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스, $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수(0: 0°, 1: 90°), $B_{id}$는 보 단면 데이터베이스의 인덱스를 의미한다.
 
-![Figure 1. Mapping mechanism from 3D frame member grouping to the genetic chromosome structure.](path/to/fig1_mapping.png)
+Figure 1(a)에 도식화된 바와 같이, 각 부재 그룹은 건물의 높이(층)와 수평면상의 하중 분담 특성에 따라 다음과 같이 계층적으로 분류된다.
+*   **기둥 그룹(Column Groups):** 각 층의 기둥을 평면상의 위치에 따라 코너 기둥(Corner), 외곽 기둥(Edge), 내부 기둥(Interior)의 세 가지 유형으로 분류한다. 이는 2축 휨과 축력의 비중이 위치에 따라 상이한 물리적 하중 상태를 최적화 과정에 정밀하게 반영하기 위함이다.
+*   **보 그룹(Beam Groups):** 평면 외곽에 위치하여 슬래브 하중을 일방향으로 지지하는 외곽 보(Exterior)와 내부에서 양방향 하중을 지지하는 내부 보(Interior)로 이원화하여 관리한다.
+
+이러한 전략을 통해 각 층의 국부적인 하중 불균형에 능동적으로 대응하면서도, 전체 설계 변수의 수를 최적화에 적합한 수준으로 유지하여 알고리즘의 탐색 효율을 극대화한다. Figure 1(b)는 이러한 물리적 그룹핑이 유전 알고리즘의 염색체 구조로 어떻게 매핑되는지를 보여준다. 각 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
+
+![Figure 1. Mapping mechanism from 3D frame member grouping to the genetic chromosome structure: (a) Grouping strategy based on member positions (Corner, Edge, Interior), and (b) corresponding layout of design variables in the chromosome.](path/to/fig1_mapping.png)
 
 ### 2.2 Objective Functions
 
@@ -62,17 +68,17 @@ $$
 
 ### 2.3 Constraints
 
-설계안의 실무적 타당성을 확보하기 위해 강도, 사용성, 그리고 시공성 제약 조건을 엄격히 적용한다. 본 연구에서 고려한 주요 제약 조건의 상세 기준과 이를 최적화 알고리즘에 적용하기 위한 수학적 수식($g_i(X) \le 0$)은 Table 2에 정리하였다. 모든 제약 조건은 해당 수식의 값이 0 이하일 때 만족되는 것으로 간주하며, 이를 위반할 경우 알고리즘의 제약 조건 위반량($\sum \text{Violation}$)으로 계산되어 개체 선택에 반영된다.
+설계안의 실무적 타당성을 확보하기 위해 강도, 사용성, 그리고 계층 구조 제약 조건을 엄격히 적용한다. 본 연구에서는 기존 연구에서 간과되기 쉬운 강한 기둥-약한 보(SCWB) 설계 원칙과 풍하중에 의한 최상층 변위 제약을 포함하여 실무적 완성도를 높였다. 고려한 주요 제약 조건의 상세 기준과 이를 최적화 알고리즘에 적용하기 위한 수학적 수식($g_i(X) \le 0$)은 Table 2에 정리하였다. 모든 제약 조건은 해당 수식의 값이 0 이하일 때 만족되는 것으로 간주하며, 이를 위반할 경우 알고리즘의 제약 조건 위반량($\sum \text{Violation}$)으로 계산되어 개체 선택에 반영된다.
 
 **Table 2. Summary of structural design constraints expressed as $g_i(X) \le 0$.**
 
-| Category                   | Constraint Item   | Mathematical Expression ($g_i$)            | Criteria                 | Reference |
-| :------------------------- | :---------------- | :------------------------------------------- | :----------------------- | :--------: |
-| **Strength**         | Member DCR        | $g_1(X) = DCR - 1.0 \le 0$                 | Max. DCR 1.0             | ACI 318-19 |
-| **Serviceability**   | Story Drift Ratio | $g_2(X) = \Delta/H - 0.020 \le 0$          | ASCE 7-16                | ASCE 7-16 |
-| **Serviceability**   | Beam Deflection   | $g_3(X) = \delta_{LT} - L/240 \le 0$       | Long-term                | ACI 318-19 |
-| **Hierarchy**        | Column Size       | $g_4(X) = A_{c,upper} - A_{c,lower} \le 0$ | Section Area             | Practical |
-| **Constructability** | Joint Width       | $g_5(X) = b_{beam} - b_{column} \le 0$     | $b_{beam} \le b_{col}$ | Practical |
+| Category | Constraint Item | Mathematical Expression ($g_i$) | Criteria | Reference |
+| :--- | :--- | :--- | :--- | :---: |
+| **Strength** | Member DCR | $g_1(X) = DCR - 1.0 \le 0$ | Max. DCR 1.0 | ACI 318-19 |
+| **Serviceability** | Story Drift Ratio | $g_2(X) = \Delta/H - 0.020 \le 0$ | Max. 2.0% | ASCE 7-16 |
+| **Serviceability** | Beam Deflection | $g_3(X) = (\delta_{LT} + \delta_{L,imm}) - L/240 \le 0$ | Long-term + LL | ACI 318-19 |
+| **Serviceability** | Wind Displacement | $g_4(X) = \Delta_{wind} / (H/400) - 1.0 \le 0$ | Max. $H/400$ | ASCE 7-16 |
+| **Hierarchy** | SCWB Ratio | $g_5(X) = \frac{1.2 \sum M_{nb}}{\sum M_{nc}} - 1.0 \le 0$ | Strong Column | ACI 318-19 |
 
 개별 제약 조건 위반량은 $v_i(X) = \max(0, g_i(X))$로 계산되며, 알고리즘에서 개체의 유효성을 평가하기 위한 총 제약 조건 위반량($\Phi(X)$)은 각 제약 조건의 스케일을 정규화하여 다음과 같이 산출된다.
 

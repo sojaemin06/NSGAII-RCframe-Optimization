@@ -152,13 +152,12 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         
         if not margins: return "Margins N/A"
         
-        # S:Strength, D:Drift, W:Wind, F:Defl, H:SCWB, C:ColSize
+        # S:Strength, D:Drift, W:Wind, F:Defl, SCWB:SCWB
         margin_str = (f"S:{margins.get('strength', 0):.2f} "
                       f"D:{margins.get('drift', 0):.2f} "
                       f"W:{margins.get('wind_disp', 0):.2f} "
                       f"F:{margins.get('deflection', 0):.2f} "
-                      f"H:{margins.get('hierarchy', 0):.2f} "
-                      f"C:{margins.get('col_size', 0):.2f}")
+                      f"SCWB:{margins.get('scwb', 0):.2f}")
         return margin_str
 
     def calculate_valid_stat(pop, key, stat_func, default_val=0.0):

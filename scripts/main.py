@@ -27,13 +27,13 @@ from src.post_processing import save_results_to_csv, plot_results
 # ==================================================================================
 
 EXAMPLES = {
-    'Example_1_4Story': {
-        'Floors': 4,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
-        'Pop': 500, 'Gen': 100
-    },
+    # 'Example_1_4Story': {
+    #     'Floors': 4,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
+    #     'Pop': 500, 'Gen': 100
+    # },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
@@ -41,13 +41,13 @@ EXAMPLES = {
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F,
     #     'Pop': 500, 'Gen': 100
     # },
-    # 'Example_3_8Story': {
-    #     'Floors': 8,
-    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
-    #     'Pop': 500, 'Gen': 100
-    # }
+    'Example_3_8Story': {
+        'Floors': 8,
+        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
+        'Pop': 500, 'Gen': 100
+    }
 }
 
 # 실험 파라미터 (공통 전략)
@@ -245,6 +245,18 @@ def main():
                 'N_types': best_ind.detailed_results.get('N_types', 0)
             })
     pd.DataFrame(summary_list).to_csv(os.path.join(summary_dir, 'examples_summary.csv'), index=False)
+    
+    # 4. Save dedicated Timing Report
+    with open(os.path.join(OUTPUT_BASE_DIR, 'optimization_timing_report.txt'), 'w', encoding='utf-8') as f:
+        f.write("=== Optimization Timing Report ===\n")
+        f.write(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("-" * 35 + "\n")
+        for data in summary_list:
+            f.write(f"{data['Example']}: {data['Time(s)']} seconds\n")
+        f.write("-" * 35 + "\n")
+        total_time = sum(data['Time(s)'] for data in summary_list)
+        f.write(f"Total Combined Time: {total_time:.1f} seconds ({total_time/60:.2f} minutes)\n")
+
     print(f"\n[Artifacts Saved in {OUTPUT_BASE_DIR}]")
 
 if __name__ == "__main__":
