@@ -186,15 +186,15 @@ def main():
     plt.rcParams['axes.titlesize'] = 14
     plt.rcParams['xtick.labelsize'] = 12
     plt.rcParams['ytick.labelsize'] = 12
-    plt.rcParams['legend.fontsize'] = 10
+    plt.rcParams['legend.fontsize'] = 11
     plt.rcParams['figure.dpi'] = 300
     plt.rcParams['savefig.dpi'] = 300
     plt.rcParams['mathtext.fontset'] = 'stix' 
     plt.rcParams['axes.grid'] = True
     plt.rcParams['grid.linestyle'] = '-' 
-    plt.rcParams['grid.alpha'] = 0.7
+    plt.rcParams['grid.alpha'] = 0.5
     
-    # --- 0. Calculate Global Normalization Scale (Using Expanded DB for full range) ---
+    # --- 0. Calculate Global Normalization Scale ---
     print("Calculating Global Normalization Scale...")
     b_df, c_df, _, _ = load_section_data(col_path="column_sections_expanded_rotated.csv")
     num_locations = len(cfg.COLUMN_LOCATIONS)
@@ -204,62 +204,42 @@ def main():
     total_beam_len = sum(beam_lengths) * cfg.FLOORS
     fixed_scale_info = calculate_fixed_scale(c_df, b_df, total_col_len, total_beam_len)
 
-    # --- Scenario A: Proposed (Load Existing or Run New) ---
-    # Try multiple possible paths for Example 1 results
-    possible_paths = [
-        os.path.join(project_root, "Results_Optimization_Paper_Final", "Example_1_4Story"),
-        os.path.join(project_root, "Results", "Example_1_4Story")
-    ]
+    # --- Scenario A: Proposed Strategy ---
+    # DB: Reduced (800), Rot Variables: Yes (Separate Genes)
+    results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
     
-    results_A = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            results_A = load_existing_results("Scenario_A_Proposed", path)
-            if results_A: break
-            
-    if results_A is None:
-        print("\nScenario A: No valid existing results found. Running from scratch (this may take time)...")
-        results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
-    
-    # --- Scenario B: Conventional (Run New) ---
-    # DB: Expanded (1600), Rot Variables: No
+    # --- Scenario B: Conventional Strategy ---
+    # DB: Expanded (1600), Rot Variables: No (Integrated in DB index)
     results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
     
     # --- Comparison Visualization ---
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 7))
     
-    # Handle different logbook formats (DEAP Logbook vs List of Dicts)
     def get_data(res):
-        if isinstance(res['logbook'], list): # Loaded from CSV
-            gens = [entry['gen'] for entry in res['logbook']]
-            hvs = [entry['hypervolume'] for entry in res['logbook']]
-        else: # DEAP Logbook
-            gens = res['logbook'].select('gen')
-            hvs = [entry['hypervolume'] for entry in res['logbook']]
+        # Always use logbook.select as both are now run in this script
+        gens = res['logbook'].select('gen')
+        hvs = [entry['hypervolume'] for entry in res['logbook']]
         return gens, hvs
 
     gen_A, hv_A = get_data(results_A)
     gen_B, hv_B = get_data(results_B)
     
-    plt.plot(gen_A, hv_A, 'b-o', label=f"Scenario A (Proposed): Hybrid Grouping + Reduced DB\n(GenLen={results_A['chromosome_len']})")
-    plt.plot(gen_B, hv_B, 'r-x', label=f"Scenario B (Conventional): Hybrid Grouping + Expanded DB\n(GenLen={results_B['chromosome_len']})")
+    plt.plot(gen_A, hv_A, color='#2C3E50', linestyle='-', linewidth=2, 
+             label=f"Scenario A (Proposed):\nReduced DB + Rotation Genes (Len={results_A['chromosome_len']})")
+    plt.plot(gen_B, hv_B, color='#C0392B', linestyle='--', linewidth=2, 
+             label=f"Scenario B (Conventional):\nExpanded DB (Len={results_B['chromosome_len']})")
     
-    plt.xlabel('Generation')
-    plt.ylabel('Hypervolume Indicator')
-    # plt.title('Optimization Efficiency Comparison') # Removed for paper style
-    plt.legend()
-    plt.grid(True)
+    plt.xlabel('Generation', fontweight='bold')
+    plt.ylabel('Hypervolume Indicator', fontweight='bold')
+    plt.legend(frameon=True, loc='lower right', edgecolor='black')
+    plt.tight_layout()
+    
     plt.savefig(os.path.join(OUTPUT_BASE_DIR, "Comparison_Hypervolume.png"))
     
     # Summary CSV
     summary = []
     for res in [results_A, results_B]:
-        # Handle stats access safely
-        if isinstance(res['stats'], list):
-             best_hv = res['stats'][-1]['hypervolume']
-        else:
-             best_hv = res['stats'][-1]['hypervolume']
-             
+        best_hv = res['stats'][-1]['hypervolume']
         summary.append({
             'Scenario': res['name'],
             'Time(s)': round(res['time'], 1),
@@ -267,7 +247,9 @@ def main():
             'Final_HV': round(best_hv, 4)
         })
     pd.DataFrame(summary).to_csv(os.path.join(OUTPUT_BASE_DIR, "Comparison_Summary.csv"), index=False)
-    print("\nExperiment Complete. Check Results_Scenario_Comparison folder.")
+    
+    print("\nExperiment Complete.")
+    print(f"Results saved in: {OUTPUT_BASE_DIR}")
 
 if __name__ == "__main__":
     main()

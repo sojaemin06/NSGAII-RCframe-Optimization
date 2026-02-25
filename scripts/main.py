@@ -27,13 +27,13 @@ from src.post_processing import save_results_to_csv, plot_results
 # ==================================================================================
 
 EXAMPLES = {
-    # 'Example_1_4Story': {
-    #     'Floors': 4,
-    #     'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
-    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
-    #     'Pop': 500, 'Gen': 100
-    # },
+    'Example_1_4Story': {
+        'Floors': 4,
+        'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
+        'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
+        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
+        'Pop': 500, 'Gen': 100
+    },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
@@ -41,13 +41,13 @@ EXAMPLES = {
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F,
     #     'Pop': 500, 'Gen': 100
     # },
-    'Example_3_8Story': {
-        'Floors': 8,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
-        'Pop': 500, 'Gen': 100
-    }
+    # 'Example_3_8Story': {
+    #     'Floors': 8,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
+    #     'Pop': 500, 'Gen': 100
+    # }
 }
 
 # 실험 파라미터 (공통 전략)
