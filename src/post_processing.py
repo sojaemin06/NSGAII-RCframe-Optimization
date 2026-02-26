@@ -187,8 +187,16 @@ def plot_results(output_folder, all_results, logbook, hof_stats_history, chromos
         print(f"Visualization Skipped due to error: {e}")
 
     # 2. 파레토 전선 (Objective Space)
-    # [수정] 해들을 비용순으로 정렬
-    sorted_results = sorted(all_results, key=lambda x: x['cost'])
+    # [수정] 해들을 비용순으로 정렬하며, inf/nan이 없는지 최종 확인
+    valid_plot_results = [r for r in all_results 
+                          if not (np.any(np.isinf(r['ind_object'].fitness.values)) 
+                                  or np.any(np.isnan(r['ind_object'].fitness.values)))]
+    
+    if not valid_plot_results:
+        print("No finite results to plot in objective space.")
+        return
+
+    sorted_results = sorted(valid_plot_results, key=lambda x: x['cost'])
     
     fitness1_vals = [r['ind_object'].fitness.values[0] for r in sorted_results] 
     fitness2_vals = [r['ind_object'].fitness.values[1] for r in sorted_results] # Raw Drift

@@ -204,30 +204,48 @@ def main():
     total_beam_len = sum(beam_lengths) * cfg.FLOORS
     fixed_scale_info = calculate_fixed_scale(c_df, b_df, total_col_len, total_beam_len)
 
-    # --- Scenario A: Proposed Strategy ---
-    # DB: Reduced (800), Rot Variables: Yes (Separate Genes)
-    results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
-    
-    # --- Scenario B: Conventional Strategy ---
+    all_exp_results = []
+
+    def update_comparison_summary(results_list):
+        summary = []
+        for res in results_list:
+            best_hv = res['stats'][-1]['hypervolume']
+            summary.append({
+                'Scenario': res['name'],
+                'Time(s)': round(res['time'], 1),
+                'Chromosome_Length': res['chromosome_len'],
+                'Final_HV': round(best_hv, 4)
+            })
+        pd.DataFrame(summary).to_csv(os.path.join(OUTPUT_BASE_DIR, "Comparison_Summary.csv"), index=False)
+        print(f" -> Partial summary saved to Comparison_Summary.csv")
+
+    # --- [Step 1] Scenario B: Conventional Strategy (Run First) ---
     # DB: Expanded (1600), Rot Variables: No (Integrated in DB index)
     results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
-    
-    # --- Comparison Visualization ---
+    all_exp_results.append(results_B)
+    update_comparison_summary(all_exp_results)
+
+    # --- [Step 2] Scenario A: Proposed Strategy ---
+    # DB: Reduced (800), Rot Variables: Yes (Separate Genes)
+    results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
+    all_exp_results.append(results_A)
+    update_comparison_summary(all_exp_results)
+
+    # --- [Step 3] Comparison Visualization ---
     plt.figure(figsize=(10, 7))
     
     def get_data(res):
-        # Always use logbook.select as both are now run in this script
-        gens = res['logbook'].select('gen')
+        gens = [entry['gen'] for entry in res['logbook']]
         hvs = [entry['hypervolume'] for entry in res['logbook']]
         return gens, hvs
 
-    gen_A, hv_A = get_data(results_A)
     gen_B, hv_B = get_data(results_B)
+    gen_A, hv_A = get_data(results_A)
     
-    plt.plot(gen_A, hv_A, color='#2C3E50', linestyle='-', linewidth=2, 
-             label=f"Scenario A (Proposed):\nReduced DB + Rotation Genes (Len={results_A['chromosome_len']})")
     plt.plot(gen_B, hv_B, color='#C0392B', linestyle='--', linewidth=2, 
              label=f"Scenario B (Conventional):\nExpanded DB (Len={results_B['chromosome_len']})")
+    plt.plot(gen_A, hv_A, color='#2C3E50', linestyle='-', linewidth=2, 
+             label=f"Scenario A (Proposed):\nReduced DB + Rotation Genes (Len={results_A['chromosome_len']})")
     
     plt.xlabel('Generation', fontweight='bold')
     plt.ylabel('Hypervolume Indicator', fontweight='bold')
@@ -235,18 +253,6 @@ def main():
     plt.tight_layout()
     
     plt.savefig(os.path.join(OUTPUT_BASE_DIR, "Comparison_Hypervolume.png"))
-    
-    # Summary CSV
-    summary = []
-    for res in [results_A, results_B]:
-        best_hv = res['stats'][-1]['hypervolume']
-        summary.append({
-            'Scenario': res['name'],
-            'Time(s)': round(res['time'], 1),
-            'Chromosome_Length': res['chromosome_len'],
-            'Final_HV': round(best_hv, 4)
-        })
-    pd.DataFrame(summary).to_csv(os.path.join(OUTPUT_BASE_DIR, "Comparison_Summary.csv"), index=False)
     
     print("\nExperiment Complete.")
     print(f"Results saved in: {OUTPUT_BASE_DIR}")

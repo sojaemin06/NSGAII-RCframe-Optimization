@@ -120,21 +120,27 @@ $$
 
 ### 4.1 Project-Specific Structural Section Database Construction
 
-본 연구에서 제안하는 최적화 프레임워크의 시작점은 해당 구조물의 고유한 특성과 건축적 제약을 반영한 **'프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'**를 구축하는 것이다. 본 프레임워크는 설계 초기 단계에서 구조물의 규모, 용도, 그리고 층고 확보를 위한 보의 최대 춤 제한 등을 반영하여 유효한 탐색 공간(Search Space)을 사전에 정의한다.
+본 연구에서 제안하는 최적화 프레임워크의 시작점은 해당 구조물의 규모와 건축적 제약을 반영한 **'프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'**를 구축하는 것이다. 본 프레임워크는 설계자가 정의한 탐색 가능 범위 내에서 유효한 이산 단면들을 사전에 생성하고, 이를 최적화의 검색 공간으로 활용한다.
 
-**Integrated section generation engine.** 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. 먼저 설계자가 정의한 범위($b, h, f_{ck}, f_y$) 내에서 무작위 조합을 통해 수만 개의 초기 단면 후보군(Initial Pool)을 생성한다. 이후 부재별로 특화된 상세 설계 로직이 적용된다.
-*   **Column detailing (Steps C1-C3):** 4개의 코너 철근을 우선 배치한 뒤, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 쌍으로 사이드 철근을 분배한다. 이때 철근 간의 순간격이 150 mm를 초과할 경우 ACI 318-19 규정에 따라 보조 대근(Crossties)을 자동으로 추가 배치한다.
-*   **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따라 인장 및 압축 철근의 층(Layer) 수를 결정하고, 이에 따른 유효 깊이($d_{actual}$)를 정밀하게 재산정한다. 전단 철근(Stirrup)은 주철근 크기와 부재 폭을 고려하여 최적 간격으로 배치된다.
+**Integrated section generation and sampling.** 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. Table 3은 본 연구에서 검색 공간 구성을 위해 설정한 주요 단면 치수 및 재료 정보의 생성 범위를 나타낸다. 알고리즘은 이러한 범위를 바탕으로 초기 후보군(Initial Pool)을 무작위 조합으로 생성하며, 이후 부재별 상세 설계 로직이 적용된다.
 
-**Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격($b, h, f_{ck}, f_y$)별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 '지배되는(Dominated)' 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 최종적으로 기둥 800종, 보 500종의 정예 카탈로그를 구축하였다. 이는 알고리즘이 불필요하게 비경제적인 단면을 탐색하는 비용을 차단함으로써 수렴 속도를 비약적으로 향상시키는 결정적인 장치가 된다.
+*   **Column detailing (Steps C1-C3):** 코너 철근 배치 후 목표 철근비에 따라 사이드 철근을 분배하며, 순간격 150 mm 초과 시 보조 대근(Crossties)을 자동 배치한다.
+*   **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따른 다층 배근을 수행하고 유효 깊이를 정밀 산정한다.
 
-**Table 3. Discrete section ranges for the 4-story benchmark project database.**
-| Element Type | Dimension Item | Range (mm) | Step (mm) | Reinforcement Ratio ($\rho$) |
-| :--- | :--- | :--- | :---: | :---: |
-| **Beam** | Width ($b$) | 300 ~ 500 | 100 | 0.5% ~ 2.0% |
-| | Height ($h$) | 500 ~ 800 | 50 | |
-| **Column** | Width ($B$) | 600 ~ 1000 | 50 | 1.0% ~ 4.0% |
-| | Height ($H$) | 600 ~ 1500 | 50 | |
+**Table 3. Definition of Discrete Search Space and Section Generation Ranges.**
+| Category | Parameter / Item | Range | Step | Note |
+| :--- | :--- | :--- | :---: | :--- |
+| **Geometry** | Beam Width ($b$) | 300 ~ 500 mm | 100 mm | |
+| | Beam Height ($h$) | 500 ~ 800 mm | 50 mm | |
+| | Column Width ($B$) | 600 ~ 1000 mm | 50 mm | |
+| | Column Height ($H$) | 600 ~ 1500 mm | 50 mm | |
+| **Rebar** | Reinforcement Ratio ($\rho$) | 0.5% ~ 4.0% | - | ACI 318-19 |
+| | Rebar Diameter | 19 ~ 32 mm | - | SD400 |
+| **Material** | Concrete Strength ($f_{ck}$) | 27 ~ 30 MPa | 3 MPa | |
+| | Steel Strength ($f_y$) | 400 MPa | - | |
+| **Variable** | Column Rotation ($R_{dir}$) | {0, 1} | - | 0° or 90° |
+
+**Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 불필요한 비경제적 단면을 탐색 범위에서 제외함으로써 알고리즘의 수렴 속도를 비약적으로 향상시킨다.
 
 ![Figure 4. Detailed flowchart of the structural section detailing logic and Pareto-based reduction process.](path/to/fig4_db_workflow.png)
 

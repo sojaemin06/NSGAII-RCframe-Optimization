@@ -435,7 +435,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                         disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
                         scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
                         story_drifts_x.append((abs(disp_upper_x - disp_lower_x) * scaling) / cfg.H)
-                else: story_drifts_x.append(0.0)
+            else: story_drifts_x = [float('inf')]
         
         ops.reset(); ops.pattern('Plain', 102, 1)
         drift_factors_y_seismic = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-E5"), None) 
@@ -454,8 +454,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                         disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
                         scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
                         story_drifts_y.append((abs(disp_upper_y - disp_lower_y) * scaling) / cfg.H)
-                else: story_drifts_y.append(0.0)
-        actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [0], max(story_drifts_y) if story_drifts_y else [0])
+            else: story_drifts_y = [float('inf')]
+        actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [float('inf')], max(story_drifts_y) if story_drifts_y else [float('inf')])
     else: actual_drift_ratio = float('inf')
 
     wind_disps_x, wind_disps_y = [], []; actual_wind_disp_ratio = 0.0
@@ -469,7 +469,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                 if master_node_id:
                     Fx_story_load = story_wind_forces_x[k-1] * wind_factors_x["Wx"]
                     ops.load(master_node_id, Fx_story_load, 0, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
+            
+            converged = False
+            for algo in ['Newton', 'NewtonLineSearch', 'KrylovNewton']:
+                if ops.analyze(1) == 0:
+                    converged = True; break
+            
+            if converged:
                 disps = []
                 for k in range(1, cfg.FLOORS + 1):
                     master_node_id = node_map.get((k, 0))
@@ -486,7 +492,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                 if master_node_id:
                     Fy_story_load = story_wind_forces_y[k-1] * wind_factors_y["Wy"]
                     ops.load(master_node_id, 0, Fy_story_load, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
+            
+            converged = False
+            for algo in ['Newton', 'NewtonLineSearch', 'KrylovNewton']:
+                if ops.analyze(1) == 0:
+                    converged = True; break
+            
+            if converged:
                 disps = []
                 for k in range(1, cfg.FLOORS + 1):
                     master_node_id = node_map.get((k, 0))

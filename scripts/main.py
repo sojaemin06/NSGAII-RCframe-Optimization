@@ -27,13 +27,13 @@ from src.post_processing import save_results_to_csv, plot_results
 # ==================================================================================
 
 EXAMPLES = {
-    'Example_1_4Story': {
-        'Floors': 4,
-        'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
-        'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
-        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
-        'Pop': 500, 'Gen': 100
-    },
+    # 'Example_1_4Story': {
+    #     'Floors': 4,
+    #     'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
+    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
+    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
+    #     'Pop': 500, 'Gen': 100
+    # },
     # 'Example_2_6Story': {
     #     'Floors': 6,
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_6F,
@@ -41,13 +41,13 @@ EXAMPLES = {
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_6F,
     #     'Pop': 500, 'Gen': 100
     # },
-    # 'Example_3_8Story': {
-    #     'Floors': 8,
-    #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
-    #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
-    #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
-    #     'Pop': 500, 'Gen': 100
-    # }
+    'Example_3_8Story': {
+        'Floors': 8,
+        'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
+        'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
+        'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
+        'Pop': 500, 'Gen': 100
+    }
 }
 
 # 실험 파라미터 (공통 전략)
@@ -149,8 +149,12 @@ def run_example_optimization(ex_name, ex_config):
         for i, ind in enumerate(final_hof):
             if hasattr(ind, 'detailed_results'):
                 res = ind.detailed_results
-                # violation이 0이고, drift ratio가 유효한 수치(inf가 아님)인 경우만 수집
-                if res.get('violation') == 0.0 and not np.isinf(res.get('max_drift_ratio', np.inf)):
+                # 1. 제약 조건 위반이 없고(0.0)
+                # 2. 피트니스 값이 유한한(not inf/nan) 경우만 최종 결과로 수집
+                is_feasible = (res.get('violation', float('inf')) == 0.0)
+                is_finite = not (np.any(np.isinf(ind.fitness.values)) or np.any(np.isnan(ind.fitness.values)))
+                
+                if is_feasible and is_finite:
                     solution_data = res.copy()
                     solution_data['ID'] = i + 1
                     solution_data['ind_object'] = ind 

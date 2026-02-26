@@ -47,9 +47,14 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
             norm_co2 = max(0.0, min(1.0, (res['co2'] - fixed_min_co2) / fixed_range_co2))
             
             obj1 = norm_cost + norm_co2
-            obj2 = res['max_drift_ratio']
+            drift = res.get('max_drift_ratio', float('inf'))
 
-            ind.fitness.values = (obj1, obj2 if obj2 > 0 else float('inf'))
+            # 1. 진짜 해석 실패(inf)인 경우: 최악의 피트니스 부여
+            if np.isinf(drift) or np.isnan(drift):
+                ind.fitness.values = (obj1, 2.0) # 참조점(2.5)보다 작지만 충분히 큰 값으로 페널티
+            # 2. 해석 성공 (변위가 0일 경우 수치적 안정을 위해 최소값 적용)
+            else:
+                ind.fitness.values = (obj1, max(drift, 1e-10))
 
     # --- 3. DEAP Toolbox 설정 ---
     if not hasattr(creator, "FitnessMulti"):
@@ -183,10 +188,24 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
     # Hypervolume Statistic
     HV_REFERENCE_POINT = [2.5, 2.5]
     def get_hypervolume(population):
-        feasible_inds = [ind for ind in population if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation', float('inf')) == 0.0]
+        # 1. 유효하고(violation=0) 목적함수 값이 유한한(not inf) 개체만 선별
+        feasible_inds = [ind for ind in population 
+                         if hasattr(ind, 'detailed_results') 
+                         and ind.detailed_results.get('violation', float('inf')) == 0.0]
+        
         if not feasible_inds: return 0.0
+        
+        # 2. 피트니스 값 추출 및 inf 필터링
+        fitnesses = []
+        for ind in feasible_inds:
+            vals = ind.fitness.values
+            if not np.any(np.isinf(vals)) and not np.any(np.isnan(vals)):
+                fitnesses.append(vals)
+        
+        if not fitnesses: return 0.0
+        
         try:
-            return hv_indicator(feasible_inds, HV_REFERENCE_POINT)
+            return hv_indicator(fitnesses, HV_REFERENCE_POINT)
         except:
             return 0.0
 
