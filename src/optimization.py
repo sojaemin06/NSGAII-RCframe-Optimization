@@ -195,17 +195,17 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
         
         if not feasible_inds: return 0.0
         
-        # 2. 피트니스 값 추출 및 inf 필터링
-        fitnesses = []
+        # 2. inf/nan 필터링된 개체만 선별
+        valid_feasible_inds = []
         for ind in feasible_inds:
             vals = ind.fitness.values
             if not np.any(np.isinf(vals)) and not np.any(np.isnan(vals)):
-                fitnesses.append(vals)
+                valid_feasible_inds.append(ind)
         
-        if not fitnesses: return 0.0
+        if not valid_feasible_inds: return 0.0
         
         try:
-            return hv_indicator(fitnesses, HV_REFERENCE_POINT)
+            return hv_indicator(valid_feasible_inds, HV_REFERENCE_POINT)
         except:
             return 0.0
 

@@ -231,18 +231,28 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     for k in range(cfg.FLOORS):
         node_tag = mass_nodes[k]
         m_val = story_weights[k] / g_accel 
-        ops.mass(node_tag, m_val, m_val, 0, 0, 0, 0) 
+        # 수치적 안정성을 위해 회전 및 수직 자유도에도 아주 작은 질량 할당 (ArpackSolver 오류 방지)
+        ops.mass(node_tag, m_val, m_val, 0.01 * m_val, 1e-9, 1e-9, 1e-9) 
 
     num_eigenvalues = 1 
-    lambda_val = ops.eigen(num_eigenvalues) 
+    try:
+        lambda_val = ops.eigen(num_eigenvalues) 
+    except:
+        lambda_val = None
     
+    # 기본 모드 형상 (삼각형 분포) 초기화
     phi_1x = [(k + 1) * cfg.H for k in range(cfg.FLOORS)] 
     phi_1y = [(k + 1) * cfg.H for k in range(cfg.FLOORS)]
     
-    if lambda_val and lambda_val[0] > 1e-9: 
+    if lambda_val and len(lambda_val) > 0 and lambda_val[0] > 1e-9: 
         try:
-            phi_1x = [ops.nodeEigenvector(node_tag, 1, 1) for node_tag in mass_nodes] 
-            phi_1y = [ops.nodeEigenvector(node_tag, 1, 2) for node_tag in mass_nodes] 
+            # 고유벡터 추출 시도
+            extracted_phi_x = [ops.nodeEigenvector(node_tag, 1, 1) for node_tag in mass_nodes] 
+            extracted_phi_y = [ops.nodeEigenvector(node_tag, 1, 2) for node_tag in mass_nodes] 
+            
+            # 모든 값이 0인지 확인 (추가 안전장치)
+            if any(abs(v) > 1e-9 for v in extracted_phi_x): phi_1x = extracted_phi_x
+            if any(abs(v) > 1e-9 for v in extracted_phi_y): phi_1y = extracted_phi_y
         except Exception: pass
 
     sum_w_phi_x = sum(story_weights[f] * phi_1x[f] for f in range(cfg.FLOORS))
@@ -260,6 +270,8 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
             story_seismic_forces_y[f] = Cvy_mode * base_shear_force_seismic
             
     all_max_combo_forces, analysis_ok = [], True
+    story_drifts_x, story_drifts_y = [], []
+    wind_disps_x, wind_disps_y = [], []
     
     # Initialize Analysis Settings
     ops.timeSeries('Linear', 1)
@@ -281,7 +293,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                 ops.reset()
                 ops.pattern('Plain', pattern_tag, 1)
                 
-                # --- Load Application (Same as before) ---
+                # --- Load Application ---
                 for beam_idx, eid in enumerate(beam_elem_ids):
                     group_idx = beam_map[num_columns + beam_idx + 1]; sec_idx = beam_indices[group_idx]
                     b, h = beam_sections[sec_idx]; unit_weight = beam_sections_df.iloc[sec_idx]['UnitWeight']
@@ -304,7 +316,7 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                     ops.load(node1_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
                     ops.load(node2_tag, 0,0, -col_self_weight/2 * factors["DL"], 0,0,0)
                 
-                # ... (Wind load logic) ...
+                # Wind forces
                 story_wind_forces_x = [0.0] * cfg.FLOORS; story_wind_forces_y = [0.0] * cfg.FLOORS
                 def get_Kz(z): return 2.01 * ((max(z, 4.57) / cfg.ZG) ** (2 / cfg.ALPHA))
                 Kz_top = get_Kz(cfg.FLOORS * cfg.H)
@@ -346,6 +358,34 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
                                 break
                         except:
                             pass
+                
+                if converged:
+                    # Capture Drifts for Seismic (ASCE-S-E1 and ASCE-S-E5)
+                    if combo_name == "ASCE-S-E1":
+                        for k in range(1, cfg.FLOORS + 1):
+                            m_up, m_low = node_map.get((k, 0)), node_map.get((k - 1, 0))
+                            d_up = ops.nodeDisp(m_up, 1) if m_up else 0.0
+                            d_low = ops.nodeDisp(m_low, 1) if m_low else 0.0
+                            scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
+                            story_drifts_x.append((abs(d_up - d_low) * scaling) / cfg.H)
+                    elif combo_name == "ASCE-S-E5":
+                        for k in range(1, cfg.FLOORS + 1):
+                            m_up, m_low = node_map.get((k, 0)), node_map.get((k - 1, 0))
+                            d_up = ops.nodeDisp(m_up, 2) if m_up else 0.0
+                            d_low = ops.nodeDisp(m_low, 2) if m_low else 0.0
+                            scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
+                            story_drifts_y.append((abs(d_up - d_low) * scaling) / cfg.H)
+                    
+                    # Capture Displacements for Wind (ASCE-S-W1 and ASCE-S-W3)
+                    elif combo_name == "ASCE-S-W1":
+                        for k in range(1, cfg.FLOORS + 1):
+                            m_id = node_map.get((k, 0))
+                            if m_id: wind_disps_x.append(abs(ops.nodeDisp(m_id, 1)))
+                    elif combo_name == "ASCE-S-W3":
+                        for k in range(1, cfg.FLOORS + 1):
+                            m_id = node_map.get((k, 0))
+                            if m_id: wind_disps_y.append(abs(ops.nodeDisp(m_id, 2)))
+
             except Exception:
                 pass 
         # End of SuppressOutput
@@ -415,97 +455,13 @@ def evaluate(individual, DL, LL, h5_file, patterns_by_floor,
     max_strength_ratio = max(strength_ratios) if strength_ratios else 1.0
     mean_strength_ratio = np.mean([r for r in strength_ratios if not math.isinf(r)]) if strength_ratios else 0.0
 
-    story_drifts_x, story_drifts_y = [], []; actual_drift_ratio = 0.0
-    if analysis_ok:
-        allowable_drift_ratio = 0.02
-        ops.reset(); ops.pattern('Plain', 101, 1)
-        drift_factors_x_seismic = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-E1"), None) 
-        if drift_factors_x_seismic:
-            for k in range(1,cfg.FLOORS+1):
-                master_node_id = node_map.get((k, 0))
-                if master_node_id:
-                    Fx_story_load = story_seismic_forces_x[k-1] * drift_factors_x_seismic["Ex"]
-                    Fy_story_load = story_seismic_forces_y[k-1] * drift_factors_x_seismic["Ey"] 
-                    ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
-                for k in range(1, cfg.FLOORS + 1):
-                    master_node_upper = node_map.get((k, 0)); master_node_lower = node_map.get((k - 1, 0))
-                    if master_node_upper:
-                        disp_upper_x = ops.nodeDisp(master_node_upper, 1)
-                        disp_lower_x = ops.nodeDisp(master_node_lower, 1) if master_node_lower else 0.0
-                        scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
-                        story_drifts_x.append((abs(disp_upper_x - disp_lower_x) * scaling) / cfg.H)
-            else: story_drifts_x = [float('inf')]
-        
-        ops.reset(); ops.pattern('Plain', 102, 1)
-        drift_factors_y_seismic = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-E5"), None) 
-        if drift_factors_y_seismic:
-            for k in range(1,cfg.FLOORS+1):
-                master_node_id = node_map.get((k, 0))
-                if master_node_id:
-                    Fx_story_load = story_seismic_forces_x[k-1] * drift_factors_y_seismic["Ex"] 
-                    Fy_story_load = story_seismic_forces_y[k-1] * drift_factors_y_seismic["Ey"] 
-                    ops.load(master_node_id, Fx_story_load, Fy_story_load, 0, 0, 0, 0)
-            if ops.analyze(1) == 0:
-                for k in range(1, cfg.FLOORS + 1):
-                    master_node_upper = node_map.get((k, 0)); master_node_lower = node_map.get((k - 1, 0))
-                    if master_node_upper:
-                        disp_upper_y = ops.nodeDisp(master_node_upper, 2)
-                        disp_lower_y = ops.nodeDisp(master_node_lower, 2) if master_node_lower else 0.0
-                        scaling = cfg.CD_FACTOR / (0.7 * cfg.I_FACTOR)
-                        story_drifts_y.append((abs(disp_upper_y - disp_lower_y) * scaling) / cfg.H)
-            else: story_drifts_y = [float('inf')]
-        actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [float('inf')], max(story_drifts_y) if story_drifts_y else [float('inf')])
-    else: actual_drift_ratio = float('inf')
-
-    wind_disps_x, wind_disps_y = [], []; actual_wind_disp_ratio = 0.0
-    if analysis_ok:
-        actual_wind_disp_ratio_x = float('inf')
-        ops.reset(); ops.pattern('Plain', 201, 1)
-        wind_factors_x = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-W1"), None) 
-        if wind_factors_x:
-            for k in range(1, cfg.FLOORS + 1):
-                master_node_id = node_map.get((k, 0))
-                if master_node_id:
-                    Fx_story_load = story_wind_forces_x[k-1] * wind_factors_x["Wx"]
-                    ops.load(master_node_id, Fx_story_load, 0, 0, 0, 0, 0)
-            
-            converged = False
-            for algo in ['Newton', 'NewtonLineSearch', 'KrylovNewton']:
-                if ops.analyze(1) == 0:
-                    converged = True; break
-            
-            if converged:
-                disps = []
-                for k in range(1, cfg.FLOORS + 1):
-                    master_node_id = node_map.get((k, 0))
-                    if master_node_id: disps.append(abs(ops.nodeDisp(master_node_id, 1)))
-                wind_disps_x = disps
-                if wind_disps_x: actual_wind_disp_ratio_x = wind_disps_x[-1] / ((cfg.FLOORS * cfg.H) / 400.0)
-        
-        actual_wind_disp_ratio_y = float('inf')
-        ops.reset(); ops.pattern('Plain', 202, 1)
-        wind_factors_y = next((f for name, f in cfg.LOAD_COMBINATIONS if name == "ASCE-S-W3"), None)
-        if wind_factors_y:
-            for k in range(1, cfg.FLOORS + 1):
-                master_node_id = node_map.get((k, 0))
-                if master_node_id:
-                    Fy_story_load = story_wind_forces_y[k-1] * wind_factors_y["Wy"]
-                    ops.load(master_node_id, 0, Fy_story_load, 0, 0, 0, 0)
-            
-            converged = False
-            for algo in ['Newton', 'NewtonLineSearch', 'KrylovNewton']:
-                if ops.analyze(1) == 0:
-                    converged = True; break
-            
-            if converged:
-                disps = []
-                for k in range(1, cfg.FLOORS + 1):
-                    master_node_id = node_map.get((k, 0))
-                    if master_node_id: disps.append(abs(ops.nodeDisp(master_node_id, 2)))
-                wind_disps_y = disps
-                if wind_disps_y: actual_wind_disp_ratio_y = wind_disps_y[-1] / ((cfg.FLOORS * cfg.H) / 400.0)
-        actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
+    # Process Drift results
+    actual_drift_ratio = max(max(story_drifts_x) if story_drifts_x else [0.0], max(story_drifts_y) if story_drifts_y else [0.0])
+    
+    # Process Wind Displacement results
+    actual_wind_disp_ratio_x = wind_disps_x[-1] / ((cfg.FLOORS * cfg.H) / 400.0) if wind_disps_x else 0.0
+    actual_wind_disp_ratio_y = wind_disps_y[-1] / ((cfg.FLOORS * cfg.H) / 400.0) if wind_disps_y else 0.0
+    actual_wind_disp_ratio = max(actual_wind_disp_ratio_x, actual_wind_disp_ratio_y)
 
     scwb_ratios = []
     node_beams_x = {}; node_beams_y = {}

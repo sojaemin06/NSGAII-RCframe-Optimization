@@ -87,7 +87,14 @@ def save_results_to_csv(output_folder, all_results, logbook, hof_stats_history, 
         for i in range(len_col_sec):
             sec_id = ind[i]
             row_data[f'col_grp_{i}_ID'] = sec_id
-            row_data[f'col_grp_{i}_Rot'] = ind[len_col_sec + i]
+            
+            # [수정] 회전 유전자가 있을 때만 참조, 없으면 ID 기반으로 추정하거나 0으로 설정
+            if len_col_rot > 0:
+                row_data[f'col_grp_{i}_Rot'] = ind[len_col_sec + i]
+            else:
+                # Scenario B: ID가 홀수면 회전된 섹션인 관례(또는 Integrated 상태)를 따름
+                row_data[f'col_grp_{i}_Rot'] = 1 if sec_id % 2 == 1 else 0
+                
             try:
                 sec_details = column_sections_df_full.loc[sec_id, detail_cols_col]
                 for col_name, val in sec_details.items():
