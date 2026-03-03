@@ -200,6 +200,22 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 | Total CO2 at Best Cost (kg) |     120,278     |    120,352    |      +0.06%      |
 | Max. DCR (Average)          |      0.319      |     0.313     |       -1.9%       |
 
+### 5.3 알고리즘의 통계적 안정성 및 수렴성 검증
+
+메타휴리스틱 알고리즘은 확률적 탐색 과정을 포함하므로, 단일 실행 결과보다는 다회 반복 실행을 통한 통계적 안정성 확보가 필수적이다. 본 연구에서는 3.2절에서 도출된 최적 매개변수 조합(Population size: 500, Uniform Crossover, $P_c=0.9, P_m=0.7$)을 적용하여 총 12회의 독립적인 반복 최적화를 수행하였으며, 그 결과를 하이퍼볼륨(HV) 및 주요 성능 지표를 기준으로 분석하였다.
+
+분석 결과, 하이퍼볼륨 지표는 평균 5.948, 표준편차 0.017로 매우 낮은 변동 계수(C.V. $\approx$ 0.28%)를 기록하였다. 이는 제안된 프레임워크가 확률적 변동성에도 불구하고 일관되게 우수한 품질의 파레토 해 집합을 도출할 수 있음을 의미한다. 12회 실행에서 도출된 경제성 최적해(Best Cost Solution)의 공사비는 약 3,486만 원에서 3,620만 원 사이에 분포하였으며, 이는 초기 탐색 범위 대비 극히 좁은 수렴 범위를 보여준다.
+
+![Figure 10. Statistical Validation](../Results_Statistical_Validation/boxplot_metrics.png)
+**Figure 10. Boxplots of key performance metrics over 12 independent runs: (a) Hypervolume, (b) Best Cost, (c) Total CO2, and (d) Max. Drift Ratio at the best cost solution.**
+
+Figure 10의 박스플롯 분석은 각 실행에서 도출된 최적해들이 구조적 안전성(층간변위비)과 경제성(공사비 및 탄소 배출량) 측면에서 높은 견고성(Robustness)을 유지하고 있음을 보여준다. 특히, 층간변위비의 경우 모든 실행에서 설계 제한치(0.020)를 안정적으로 만족하면서도, 경제성을 극대화한 해들이 0.015~0.019 rad 범위로 수렴하는 양상을 보였다.
+
+또한, Figure 11의 세대별 평균 하이퍼볼륨 변화 및 표준편차 대역(Shaded area)을 분석한 결과, 약 60세대 이후부터 수렴 속도가 안정화되며 최종 해 집합의 다양성이 확보되는 것을 확인하였다. 이는 지능형 초기화 기법과 높은 변이 확률의 조합이 국부 최적점 탈출과 전역 최적해 탐색에 효과적으로 작용했음을 입증한다. 12회의 실행을 통해 누적된 파레토 프런트(Accumulated Pareto Front)는 특정 지점에 해가 뭉치지 않고 설계 공간 전반에 걸쳐 균형 있게 분포함으로써, 설계자에게 신뢰도 높은 다양한 대안을 제공할 수 있는 알고리즘의 성능을 뒷받침한다.
+
+![Figure 11. Convergence Plot](../Results_Statistical_Validation/convergence_plot.png)
+**Figure 11. Mean hypervolume convergence history with $\pm 1$ standard deviation band, demonstrating the search stability and efficiency of the framework.**
+
 ## 6. Conclusions
 
 본 연구에서는 실무적 배근 상세와 3차원 기둥 회전 변수를 통합 고려한 RC 모멘트 골조 전용 다중목적 최적설계 프레임워크를 제안하고 그 유효성을 검증하였다. 4, 6, 8층 예제 구조물을 통한 분석 결과, 다음과 같은 주요 결론을 도출하였다.

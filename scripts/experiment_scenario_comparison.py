@@ -219,11 +219,11 @@ def main():
         pd.DataFrame(summary).to_csv(os.path.join(OUTPUT_BASE_DIR, "Comparison_Summary.csv"), index=False)
         print(f" -> Partial summary saved to Comparison_Summary.csv")
 
-    # --- [Step 1] Scenario B: Conventional Strategy (Run First) ---
-    # DB: Expanded (1600), Rot Variables: No (Integrated in DB index)
-    results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
-    all_exp_results.append(results_B)
-    update_comparison_summary(all_exp_results)
+    # # --- [Step 1] Scenario B: Conventional Strategy (Run First) ---
+    # # DB: Expanded (1600), Rot Variables: No (Integrated in DB index)
+    # results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
+    # all_exp_results.append(results_B)
+    # update_comparison_summary(all_exp_results)
 
     # --- [Step 2] Scenario A: Proposed Strategy ---
     # DB: Reduced (800), Rot Variables: Yes (Separate Genes)
