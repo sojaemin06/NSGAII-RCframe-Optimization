@@ -23,8 +23,8 @@ from src.post_processing import save_results_to_csv
 
 # --- Experiment Configuration ---
 OUTPUT_BASE_DIR = "Results_Scenario_Comparison"
-POP_SIZE = 10
-GENERATIONS = 1
+POP_SIZE = 500
+GENERATIONS = 100
 EXAMPLE_NAME = 'Example_1_4Story'
 
 # Use Example 1 Config
