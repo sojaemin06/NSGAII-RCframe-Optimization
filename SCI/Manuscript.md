@@ -28,7 +28,8 @@ Figure 1(a)에 도식화된 바와 같이, 각 부재 그룹은 건물의 높이
 
 이러한 전략을 통해 각 층의 국부적인 하중 불균형에 능동적으로 대응하면서도, 전체 설계 변수의 수를 최적화에 적합한 수준으로 유지하여 알고리즘의 탐색 효율을 극대화한다. Figure 1(b)는 이러한 물리적 그룹핑이 유전 알고리즘의 염색체 구조로 어떻게 매핑되는지를 보여준다. 각 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
 
-![Figure 1. Mapping mechanism from 3D frame member grouping to the genetic chromosome structure: (a) Grouping strategy based on member positions (Corner, Edge, Interior), and (b) corresponding layout of design variables in the chromosome.](path/to/fig1_mapping.png)
+![Figure 1. Mapping mechanism](Figure1_Mapping.png)
+**Figure 1. Mapping mechanism from 3D frame member grouping to the genetic chromosome structure: (a) Grouping strategy based on member positions (Corner, Edge, Interior), and (b) corresponding layout of design variables in the chromosome.**
 
 ### 2.2 Objective Functions
 
@@ -100,7 +101,8 @@ $$
 
 이러한 메커니즘은 알고리즘이 초기 탐색 단계에서 유효한 설계 영역으로 빠르게 수렴하도록 유도하며, 대규모 다중목적 최적화 문제에서의 효율성이 입증된 바 있다 (Zavala et al., 2016). 전체적인 최적화 프로세스는 Figure 2의 플로우차트에 도식화하였다.
 
-![Figure 2. Flowchart of the proposed 3D RC frame optimization framework.](path/to/fig2_flowchart.png)
+![Figure 2. Flowchart](다이어그램2.png)
+**Figure 2. Flowchart of the proposed 3D RC frame optimization framework.**
 
 ### 3.2 Parametric Study of Algorithm Parameters
 
@@ -114,7 +116,8 @@ $$
 
 **Population size.** 알고리즘의 전역 탐색 성능을 결정하는 개체군 크기를 100에서 1000까지 변화시키며 실험하였다. 개체군 크기가 증가함에 따라 HV 지표는 전반적으로 상승하였으나, 500개체 이상에서는 향상 폭이 둔화되는 양상을 보였다. 최종적으로 연산 비용 대비 효율이 가장 우수한 개체군 크기 500(HV $\approx$ 5.817)을 최적 값으로 채택하였다 (Figure 3e).
 
-![Figure 3. Sequential parameter optimization results: (a) Crossover Strategy, (b) Tournament Size, (c) Crossover Probability, (d) Mutation Probability, and (e) Population Size.](path/to/combined_param_study.png)
+![Figure 3. Parametric Optimization](../Results_Param_Optimization/Step5_PopSize_HV_Paper.png)
+**Figure 3. Sequential parameter optimization results: (a) Crossover Strategy, (b) Tournament Size, (c) Crossover Probability, (d) Mutation Probability, and (e) Population Size.**
 
 ## 4. Practical Section Database and Numerical Analysis Framework
 
@@ -142,7 +145,8 @@ $$
 
 **Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 불필요한 비경제적 단면을 탐색 범위에서 제외함으로써 알고리즘의 수렴 속도를 비약적으로 향상시킨다.
 
-![Figure 4. Detailed flowchart of the structural section detailing logic and Pareto-based reduction process.](path/to/fig4_db_workflow.png)
+![Figure 4. DB Workflow](Figure4_DB_Workflow.png)
+**Figure 4. Detailed flowchart of the structural section detailing logic and Pareto-based reduction process.**
 
 ### 4.2 Automated Structural Analysis using OpenSees
 
@@ -150,13 +154,15 @@ $$
 
 본 연구에서는 실제적인 3차원 거동을 모사하기 위해 P-Delta 효과와 강체 횡경막 가정을 포함한 정밀 해석 모델을 구축하였으며, ACI 318-19 및 ASCE 7-16 규정에 따른 하중 조합 및 사용성 검토를 수행하였다. 특히, 건물의 용도 및 층별 특성을 정밀하게 반영하기 위해 하부 로비 및 근린생활시설(1-2층)에는 $5.0 \, \text{kN/m}^2$, 중층부 사무 공간(3-5층)에는 $3.0 \, \text{kN/m}^2$, 그리고 상층부 주거 및 기타 공간(6층 이상)에는 $2.0 \, \text{kN/m}^2$의 차등 활하중을 정량적으로 적용하였다. 이러한 층별 하중의 차이와 Figure 6에 도식화된 체커보드 패턴의 하중 재하 시나리오는 각 층의 부재 그룹이 처한 국부적인 응력 상태를 상이하게 만들며, 이는 설계의 실무적 신뢰성을 확보하는 핵심 요소가 된다. Figure 5는 본 연구에서 예제로 활용된 4, 6, 8층 벤치마크 구조물의 3차원 형상을 보여준다.
 
-![Figure 5. 3D isometric views of the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story frames.](path/to/fig5_structure_models.png)
+![Figure 5. Structure Models](Figure5_Combined.png)
+**Figure 5. 3D isometric views of the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story frames.**
 
-![Figure 6. Representative checkerboard load pattern plans for the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story cases.](path/to/load_pattern_visualization.png)
+![Figure 6. Load Patterns](Figure6_Combined.png)
+**Figure 6. Representative checkerboard load pattern plans for the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story cases.**
 
 Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 건물의 용도 및 공간별 기능 차이에 따른 하중 불균형을 모사하는 데 필수적이다. 실제 건축물은 로비, 사무 공간, 기계실 등 층별 또는 구역별로 서로 다른 활하중 기준이 적용되며, 이러한 하중의 위치별 불균형은 구조물 전체에 비대칭적인 응력 분포와 특정 방향으로의 편심을 유발한다. 
 
-본 연구에서는 이러한 실무적인 하중 상태에 효과적으로 대응하기 위해, 기하학적 효율이 높은 **직사각형 단면 조합**과 기둥의 강축 방향을 결정하는 **이진 회전 변수($R_{dir}$)**를 최적화 엔진의 핵심 요소로 도입하였다. 알고리즘은 각 부재 그룹이 처한 국부적인 하중 편심과 방향별 강성 요구 조건에 맞춰 기둥의 강축을 능동적으로 배치함으로써, 한정된 재료량 내에서 구조적 저항 성능을 극대화한다. 이는 기둥의 단면을 정방형으로 제한하거나 방향을 일률적으로 고정하는 기존의 관행적 설계 방식과 차별화되는 지점이며, 3차원 공간에서 각 층의 하중 특성에 최적화된 맞춤형 강성 분포를 형성하도록 유도하는 결정적인 장치가 된다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
+본 연구에서는 이러한 실무적인 하중 상태에 효과적으로 대응하기 위해, 기하학적 효율이 높은 **직사각형 단면 조합**과 기둥의 강축 방향을 결정하는 **이진 회전 변수($R_{dir}$)**를 최적화 엔진의 핵심 요소로 도입하였다. 알고리즘은 각 부재 그룹이 처한 국부적인 응력 상태와 방향별 강성 요구 조건에 맞춰 기둥의 강축을 능동적으로 배치함으로써, 한정된 재료량 내에서 구조적 저항 성능을 극대화한다. 이는 기둥의 단면을 정방형으로 제한하거나 방향을 일률적으로 고정하는 기존의 관행적 설계 방식과 차별화되는 지점이며, 3차원 공간에서 각 층의 하중 특성에 최적화된 맞춤형 강성 분포를 형성하도록 유도하는 결정적인 장치가 된다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
 
 ## 5. Results and Discussion
 
@@ -166,15 +172,23 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 분석 결과, 4층 구조물의 최적 공사비는 약 4,000만 원 내외에서 형성되었으나, 6층의 경우 약 7,900만 원, 8층의 경우 약 1억 500만 원 수준으로 증가하였다. 특히 층수가 높아질수록 동일한 층간변위비(예: 0.010 rad)를 유지하기 위해 필요한 단위 면적당 비용이 급격히 상승하는 양상을 보였다.
 
-![Figure 7. Pareto Fronts in the objective space (Construction Cost vs. Max. Story Drift).](path/to/fig7_pareto_fronts.png)
+![Figure 7. Pareto Fronts](../Results_Optimization_Paper_Final/Summary/Examples_Pareto_Comparison.png)
+**Figure 7. Pareto Fronts in the objective space (Normalized Cost+CO2 vs. Max. Inter-story Drift Ratio) for 4, 6, and 8-story benchmark structures.**
 
 ### 5.2 Effect of Column Rotation Variables and Practical Detailing
 
 본 연구의 핵심적인 독창성인 기둥 회전 변수($R_{dir}$)와 실무 정밀 상세 데이터베이스의 도입 효과를 분석하였다. Figure 8은 최적화된 설계안에서의 기둥 방향 배치 및 단면 크기 분포를 보여주며, 알고리즘이 횡방향 강성이 취약한 축 또는 하중 편심이 발생하는 방향으로 기둥의 강축(Strong-axis)을 능동적으로 배치했음을 입증한다.
 
+![Figure 8. Optimal column layout](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/optimal_structure_2D_plan.png)
+**Figure 8. Optimized column layout and orientation for the 4-story benchmark structure, showing the adaptive deployment of column strong-axes.**
+
 실무적으로 건물은 층별 용도 및 평면 형태에 따라 X, Y 각 축에 대한 강성 요구 조건(Stiffness demand)이 비대칭적으로 형성된다. 기존의 관행적 설계 방식은 기둥의 방향을 일률적으로 고정하거나 정방형 단면을 사용함으로써 이러한 비대칭성에 수동적으로 대응해 왔으나, 제안된 기법은 이진 회전 변수를 통해 구조물의 동적/정적 요구 조건에 최적화된 '방향성 강성(Directional Stiffness)'을 형성한다. 분석 결과, 동일한 공사비 수준에서 기둥 회전을 허용한 경우(Scenario A)가 고정된 경우(Scenario B)보다 최대 층간변위비를 약 16.7% 추가로 저감할 수 있었으며, 이는 별도의 물량 증가 없이 기하학적 배치만으로 구조 성능을 획기적으로 개선할 수 있음을 의미한다.
 
-또한, ACI 318-19 규정을 엄격히 준수한 정밀 상세 데이터베이스는 최적화 결과의 실무적 신뢰성을 뒷받침한다. 단순히 철근비만을 변수로 활용하는 기존 연구와 달리, 본 프레임워크는 보조 대근(Crossties), 표피 철근(Skin rebar), 그리고 내진 상세 갈고리 길이를 포함한 실제 시공 물량을 산출한다. Figure 9의 DCR 분포 분석 결과, 제안된 기법으로 도출된 해들은 모든 부재에서 안전율을 확보하면서도 특정 부재에 응력이 집중되지 않는 균형 잡힌 설계를 보여주었다. 특히, 하이퍼볼륨(HV) 지표가 시나리오 B 대비 1.25% 향상된 것은 탐색 공간 내에서 경제성과 안전성이라는 상충하는 목적 사이의 더 넓고 우수한 절충안들을 찾아냈음을 시사한다.
+또한, ACI 318-19 규정을 엄격히 준수한 정밀 상세 데이터베이스는 최적화 결과의 실무적 신뢰성을 뒷받침한다. 단순히 철근비만을 변수로 활용하는 기존 연구와 달리, 본 프레임워크는 보조 대근(Crossties), 표피 철근(Skin rebar), 그리고 내진 상세 갈고리 길이를 포함한 실제 시공 물량을 산출한다. Figure 9의 DCR 분포 분석 결과, 제안된 기법으로 도출된 해들은 모든 부재에서 안전율을 확보하면서도 특정 부재에 응력이 집중되지 않는 균형 잡힌 설계를 보여주었다.
+
+![Figure 9. Section distribution](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/solution_comparison_boxplot.png)
+**Figure 9. Distribution of column and beam section indices across the Pareto-optimal solutions, demonstrating consistent structural performance.**
+ 특히, 하이퍼볼륨(HV) 지표가 시나리오 B 대비 1.25% 향상된 것은 탐색 공간 내에서 경제성과 안전성이라는 상충하는 목적 사이의 더 넓고 우수한 절충안들을 찾아냈음을 시사한다.
 
 **Table 6. Comparative performance summary: Conventional (B) vs. Optimized (Proposed A) for 4-story RC frame.**
 

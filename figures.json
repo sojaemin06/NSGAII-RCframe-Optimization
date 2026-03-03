@@ -1,0 +1,12 @@
+[
+  {
+    "id": "fig_1_mapping",
+    "content": "# 2.1 Design Variables & Chromosome Structure. This figure defines the mapping mechanism from the physical 3D frame to the genetic representation. Members are categorized into hierarchical groups: columns by planar position (Corner, Edge, Interior) and beams by functional role (Exterior, Interior). these physical groups are then encoded into a unified chromosome vector following the exact sequence of column section indices, binary rotation flags, and beam section indices, ensuring a structured search space for optimization.",
+    "visual_intent": "Figure 1: Schematic of the encoding process. (a) 3D isometric and plan views of the RC frame showing the classification of members into Column groups (Corner, Edge, Interior) and Beam groups (Exterior, Interior). (b) The transformation into a Genetic Chromosome, illustrating the sequential serialization order: [Column Section IDs] -> [Column Rotation Flags] -> [Beam Section IDs]. Explicit mapping arrows show how each physical group is linked to its designated segment in the chromosome."
+  },
+  {
+    "id": "fig_2_flowchart",
+    "content": "# 3.1 Optimization Methodology. The proposed framework integrates three major components as shown in the flowchart: (1) Stage 1: Database Construction, where a section library is generated and pre-calculated; (2) User Input, defining structural geometry, loads, and GA parameters; and (3) Stage 2: Optimization, which executes an iterative fitness evaluation loop including 3D FEA modeling, structural analysis, and constraint-dominance based NSGA-II operations. The framework specifically handles constraint violations through a penalty application mechanism before yielding the final Pareto-optimal front.",
+    "visual_intent": "Figure 2: Comprehensive flowchart of the optimization framework divided into two main stages and a user input block. Stage 1 (Database Construction) shows steps 1-4 (Define constraints -> Store in DB). User Input includes GA params, shape, and loads. Stage 2 (Optimization) detail steps 5-9: Initial population -> Fitness evaluation (6.1 Build model, 6.2 Analysis, 6.3 Check constraints, 6.4 Calculate objectives) -> Decision on violation (Yes: Apply penalty, No: Continue) -> Step 7 NSGA-II operations -> Step 8 Next gen selection -> Step 9 Termination check (Loop or Final Pareto Front)."
+  }
+]
