@@ -81,14 +81,6 @@ $$
 | **Serviceability** | Wind Displacement | $g_4(X) = \Delta_{wind} / (H/400) - 1.0 \le 0$ | Max. $H/400$ | ASCE 7-16 |
 | **Hierarchy** | SCWB Ratio | $g_5(X) = \frac{1.2 \sum M_{nb}}{\sum M_{nc}} - 1.0 \le 0$ | Strong Column | ACI 318-19 |
 
-개별 제약 조건 위반량은 $v_i(X) = \max(0, g_i(X))$로 계산되며, 알고리즘에서 개체의 유효성을 평가하기 위한 총 제약 조건 위반량($\Phi(X)$)은 각 제약 조건의 스케일을 정규화하여 다음과 같이 산출된다.
-
-$$
-\Phi(X) = \sum_{i=1}^{m} \frac{v_i(X)}{S_i}
-$$
-
-여기서 $m$은 전체 제약 조건의 수이며, $S_i$는 각 제약 조건별 위반량의 정규화 계수(Scaling factor)이다. 모든 제약 조건을 만족하는 개체의 경우 $\Phi(X)=0$이 된다.
-
 ## 3. Optimization Methodology
 
 ### 3.1 NSGA-II Algorithm and Constraint Handling
@@ -166,104 +158,17 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 5. Results and Discussion
 
-### 5.1 파레토 최적해의 분포 및 최적 설계 사례 분석
+### 5.1 Analysis of Pareto Fronts and Representative Optimized Designs
 
-본 절에서는 4, 6, 8층 예제 구조물에 대한 다중목적 최적화 결과와 4층 예제의 구체적인 설계 사례를 분석한다. Figure 7, 8, 9는 각 예제별 목적 함수 공간과 솔루션 공간의 해 분포를 보여준다.
+(To be rewritten based on new results)
 
-![Figure 7. Pareto analysis results for 4-story frame](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
-![Figure 7. Pareto analysis results for 4-story frame](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_solution_space_new.png)
-**Figure 7. Multi-objective Pareto analysis results for 4-story frame (Example 1): (a) Objective space and (b) Solution space distribution.**
+### 5.2 Comparative Analysis: Effect of Separate Column Rotation Variables
 
-![Figure 8. Pareto analysis results for 6-story frame](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_objective_space.png)
-![Figure 8. Pareto analysis results for 6-story frame](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_solution_space_new.png)
-**Figure 8. Multi-objective Pareto analysis results for 6-story frame (Example 2): (a) Objective space and (b) Solution space distribution.**
+(To be rewritten based on new results)
 
-![Figure 9. Pareto analysis results for 8-story frame](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_objective_space.png)
-![Figure 9. Pareto analysis results for 8-story frame](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_solution_space_new.png)
-**Figure 9. Multi-objective Pareto analysis results for 8-story frame (Example 3): (a) Objective space and (b) Solution space distribution.**
+### 5.3 Statistical Reliability and Convergence Stability of the Framework
 
-모든 예제에서 경제성($f_1$)과 구조 성능($f_2$) 사이의 명확한 상충 관계가 확인되었으며, 예제별로 독특한 해 분포 특성이 관찰되었다. 
-
-먼저 4층 예제(Figure 7)의 경우, 파레토 전선이 경제성 중심 구간과 고성능 구간으로 명확히 분리되는 **'불연속적 클러스터링(Discrete Clustering)'** 현상을 보인다. 이는 본 연구에서 채택한 이산적 단면 데이터베이스의 특성에 기인한다. 기둥의 단면 규격이나 배근 패턴이 한 단계 상향될 때 발생하는 구조 강성(Lateral Stiffness)의 도약적 증가가 목적 함수 공간상에서 전역 최적해의 공백을 형성한 결과이다. 즉, 특정 임계 비용을 기점으로 구조 시스템의 저항 메커니즘이 경제성 위주에서 강성 중심으로 급격히 전환됨을 시사한다.
-
-반면, 6층(Figure 8) 및 8층(Figure 9) 예제에서는 4층 대비 층간변위비가 매우 작은 영역(0.005 rad 이하)에서 해들이 밀집되는 양상을 보인다. 이는 건물의 층수가 증가함에 따라 횡력(풍하중 및 지진하중)에 의한 전도 모멘트와 P-Delta 효과를 제어하기 위해 하부층에 매우 높은 강성을 가진 단면 배치가 강제되기 때문이다. 구조적 안정성(Stability)과 강도(Strength) 제약 조건을 만족하기 위해 필수적으로 투입된 높은 강성이 결과적으로 층간변위비를 설계 제한치(0.020 rad)보다 훨씬 낮은 수준으로 억제하는 **'강성 지배형 설계(Stiffness-dominant Design)'** 상태를 유도한 것으로 분석된다.
-
-이러한 분석을 바탕으로, 4층 예제(Example 1)의 파레토 전선 상에서 성능 기반 설계(Performance-Based Design) 관점을 반영한 두 가지 대표 설계안을 비교 분석한 결과는 다음과 같다.
-
-첫째, **경제성 최적 설계(Solution ID 7)**는 총 공사비 약 3,510만 원을 달성하였다. 이 안은 설계 제한치(0.020 rad) 이내에서 최소한의 강성을 확보하도록 최적화되었으며, 최대 층간변위비 0.01829 rad를 기록하였다. 기둥 단면은 주로 650x650 mm 이하의 규격으로 구성되어 경제성을 극대화하였다.
-
-둘째, **합리적 성능 중심 설계(Solution ID 43)**는 경제성 최적안 대비 공사비를 약 4.6%만 추가(3,673만 원)하면서도, 최대 층간변위비를 0.00977 rad로 약 46.5% 대폭 감소시켰다. 이는 기존 연구에서 흔히 나타나는 극단적인 고강성 설계(오버디자인)가 아닌, 실무적으로 수용 가능한 비용 증가 범위 내에서 구조적 안전성을 비약적으로 향상시킨 사례이다.
-
-Table 5는 4층 예제의 두 대표 설계안에 대한 주요 성능 지표를 비교하여 나타낸다. 이러한 결과는 본 프레임워크가 엔지니어에게 목적에 부합하는 다양한 성능 대안을 정량적으로 제시함으로써 합리적인 의사결정을 지원할 수 있음을 입증한다.
-
-**Table 5. Detailed design comparison of representative solutions for 4-story frame (Example 1).**
-
-| 항목 (Design Item / Metric) | 경제성 최적안 (Solution ID 7) | 성능 중심 최적안 (Solution ID 43) |
-| :--- | :---: | :---: |
-| 총 공사비 (Total Cost, KRW) | 35,097,203 | 36,730,287 |
-| 최대 층간변위비 (Max. Drift, rad) | 0.01829 | 0.00977 |
-| 1층 내부 기둥 단면 (Section ID) | ID 16 (650x650) | ID 16 (650x650) |
-| 1층 내부 기둥 주철근 (Main Rebar) | 6 - D32 | 6 - D32 |
-| 1층 내부 기둥 콘크리트 강도 (MPa) | 30 | 30 |
-| 1층 대표 보 단면 (Beam ID) | ID 101 | ID 101 |
-
-Table 6는 각 층별 및 평면 위치별 부재 그룹에 할당된 구체적인 단면 데이터베이스 인덱스와 기둥의 회전 상태($R_{dir}$)를 통합하여 보여준다. 분석 결과, 성능 중심 설계(ID 43)는 기둥의 기본 규격은 경제성 최적안과 유사하게 유지하면서도, 3~4층의 특정 보 단면(ID 97 등)을 보강하고 기둥의 강축 방향($R_{dir}$)을 국부적인 하중 상태에 맞춰 능동적으로 배치함으로써 추가 재료량 대비 층간변위 억제 효율을 극대화하였음을 확인할 수 있다.
-
-**Table 6. Detailed assignment of section IDs and rotation states for all member groups.**
-
-| 층 (Floor) | 부재 (Member) | 위치 (Position) | Solution ID 7 (ID / $R_{dir}$) | Solution ID 43 (ID / $R_{dir}$) |
-| :--- | :--- | :--- | :---: | :---: |
-| **1F** | 기둥 (Cols) | 내부 (Interior) | ID 16 / 0 | ID 16 / 0 |
-| | | 외곽 (Edge) | ID 2 / 0 | ID 2 / 0 |
-| | | 코너 (Corner) | ID 2 / 1 | ID 2 / 1 |
-| | 보 (Beams) | 내부 (Interior) | ID 101 / - | ID 101 / - |
-| | | 외곽 (Exterior) | ID 21 / - | ID 21 / - |
-| **2F** | 기둥 (Cols) | 내부 (Interior) | ID 157 / 0 | ID 157 / 0 |
-| | | 외곽 (Edge) | ID 21 / 0 | ID 21 / 0 |
-| | | 코너 (Corner) | ID 28 / 0 | ID 28 / 0 |
-| | 보 (Beams) | 내부 (Interior) | ID 30 / - | ID 30 / - |
-| | | 외곽 (Exterior) | ID 4 / - | ID 97 / - |
-| **3F** | 기둥 (Cols) | 내부 (Interior) | ID 90 / 0 | ID 90 / 0 |
-| | | 외곽 (Edge) | ID 4 / 0 | ID 4 / 0 |
-| | | 코너 (Corner) | ID 90 / 0 | ID 90 / 0 |
-| | 보 (Beams) | 내부 (Interior) | ID 9 / - | ID 9 / - |
-| | | 외곽 (Exterior) | ID 4 / - | ID 4 / - |
-| **4F** | 기둥 (Cols) | 내부 (Interior) | ID 2 / 0 | ID 2 / 0 |
-| | | 외곽 (Edge) | ID 2 / 0 | ID 2 / 0 |
-| | | 코너 (Corner) | ID 2 / 0 | ID 2 / 0 |
-| | 보 (Beams) | 내부 (Interior) | ID 4 / - | ID 4 / - |
-| | | 외곽 (Exterior) | ID 4 / - | ID 4 / - |
-
-![Figure 10. Optimized 4-story structure](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/optimal_structure_3D_elements.png)
-![Figure 10. Optimized 4-story structure](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/optimal_structure_2D_plan.png)
-**Figure 10. Representative optimized design for the 4-story structure: (a) 3D member distribution view, and (b) 2D plan showing adaptive column sizes and orientations.**
-
-### 5.2 기둥 회전 변수 독립 운영에 따른 시나리오 비교 분석
-
-본 연구의 핵심 제안 사항인 기둥 회전 변수($R_{dir}$)의 독립적 운영 효과를 검증하기 위해, 제안 기법(Scenario A)과 관행적 방식(Scenario B)의 수렴 성능을 비교하였다. Figure 11은 두 시나리오의 세대별 하이퍼볼륨(HV) 변화를 보여준다.
-
-![Figure 11. Scenario Comparison Graph](../Results_Scenario_Comparison/Comparison_Hypervolume.png)
-**Figure 11. Hypervolume convergence comparison between Scenario A (Proposed: Separate rotation genes) and Scenario B (Conventional: Integrated rotation in DB index).**
-
-분석 결과, 제안된 시나리오 A는 초기 세대부터 시나리오 B보다 가파른 HV 상승 곡선을 나타냈으며, 최종 HV 지표에서도 약 0.39% 우수한 성능(A: 5.9703, B: 5.9473)을 기록하였다. 이는 기둥의 단면 규격과 회전각을 별개의 유전자로 분리함으로써, 알고리즘이 우수한 단면 규격을 유지하면서도 강축 방향만을 국부적으로 최적화하는 유전적 안정성을 확보했기 때문으로 판단된다.
-
-경제성 측면에서도 시나리오 A의 최적해(35,097,203 KRW)는 시나리오 B(35,555,661 KRW) 대비 약 1.29%의 공사비를 추가로 절감하였다. 이는 기둥의 회전을 자유롭게 허용함으로써 비대칭 하중 및 횡력 요구 조건에 맞춰 구조물의 강성 분포를 더 정밀하게 제어한 결과이다. 특히 3차원 공간에서 각 층의 하중 상태에 최적화된 '방향성 강성'을 형성함으로써, 재료의 추가 투입 없이도 구조적 효율성을 극대화할 수 있음을 확인하였다.
-
-### 5.3 알고리즘의 통계적 안정성 및 수렴성 검증
-
-메타휴리스틱 알고리즘의 확률적 탐색 특성을 고려하여, 도출된 최적 설계안의 신뢰성과 알고리즘의 견고성을 검증하기 위해 총 10회의 독립적인 반복 최적화를 수행하였다. 실험에는 3.2절에서 도출된 최적 매개변수 조합(Population size: 500, Uniform Crossover, $P_c=0.9, P_m=0.7$)을 적용하였으며, 하이퍼볼륨(HV) 및 주요 성능 지표를 기준으로 분석하였다.
-
-분석 결과, 하이퍼볼륨 지표는 평균 5.949, 표준편차 0.014로 매우 낮은 변동 계수(C.V. $\approx$ 0.24%)를 기록하였다. 이는 본 연구에서 제안한 프레임워크가 확률적 변동성에도 불구하고 일관되게 우수한 품질의 파레토 해 집합을 도출할 수 있음을 의미한다. 10회 실행에서 도출된 경제성 최적해의 공사비는 약 3,505만 원에서 3,619만 원 사이에 분포하였으며, 이는 초기 탐색 범위 대비 극히 좁은 수렴 범위를 보여줌으로써 전역 최적해 탐색 성능의 안정성을 입증하였다.
-
-![Figure 12. Statistical Validation Boxplots](../Results_Statistical_Validation/boxplot_metrics_paper.png)
-**Figure 12. Boxplots of key performance metrics over 10 independent runs: (a) Hypervolume, (b) Best Cost, and (c) Max. Drift Ratio at the best cost solution, demonstrating high robustness of the proposed framework.**
-
-Figure 12의 박스플롯 분석은 각 실행에서 도출된 최적해들이 구조적 안전성(층간변위비)과 경제성(공사비) 측면에서 높은 견고성(Robustness)을 유지하고 있음을 시각적으로 보여준다. 층간변위비의 경우 모든 실행에서 설계 제한치를 안정적으로 만족하면서도, 경제성을 극대화한 해들이 특정 좁은 범위로 수렴하는 양상을 보였다.
-
-또한 세대별 평균 하이퍼볼륨 변화와 표준편차 대역(Shaded area)을 분석한 결과(Figure 13), 약 60세대 이후부터 수렴 속도가 안정화되며 최종 해 집합의 다양성이 확보되는 것을 확인하였다. 표준편차 대역이 매우 좁게 형성된 것은 알고리즘이 매 실행마다 유사한 경로를 통해 유효한 설계 공간으로 수렴하고 있음을 의미하며, 이는 본 프레임워크가 실무 엔지니어의 합리적 의사결정을 돕는 신뢰성 있는 도구임을 뒷받침한다.
-
-![Figure 13. Convergence Stability](../Results_Statistical_Validation/convergence_stability_paper.png)
-**Figure 13. Mean hypervolume convergence history with $\pm 1$ standard deviation band over 10 independent runs, showing high convergence stability.**
+(To be rewritten based on new results)
 
 ## 6. Conclusions
 
