@@ -1,13 +1,23 @@
-Scenario Scenario_B_Conventional completed in 166620.34s
-Traceback (most recent call last):
-  File "c:\SCI_NSGA2_RCframe_다중목적최적화\scripts\experiment_scenario_comparison.py", line 261, in <module>
-    main()
-  File "c:\SCI_NSGA2_RCframe_다중목적최적화\scripts\experiment_scenario_comparison.py", line 224, in main
-    results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "c:\SCI_NSGA2_RCframe_다중목적최적화\scripts\experiment_scenario_comparison.py", line 112, in run_scenario
-    save_results_to_csv(output_dir, processed_valid_solutions, logbook, hof_stats, chromosome_structure)
-  File "c:\SCI_NSGA2_RCframe_다중목적최적화\src\post_processing.py", line 90, in save_results_to_csv
-    row_data[f'col_grp_{i}_Rot'] = ind[len_col_sec + i]
-                                   ~~~^^^^^^^^^^^^^^^^^
-IndexError: list index out of range
+
+C:\SCI_NSGA2_RCframe_다중목적최적화>"c:\Users\82105\OneDrive\Desktop\ERS\[논문작성]\SCI_NSGA2_RCframe_다중목적최적화\Python\03 Frame해석\my\Scripts\python.exe" c:/SCI_NSGA2_RCframe_다중목적최적화/scripts/main.py
+### Main Execution: 3 Building Examples (Proposed Scenario A) ###
+
+============================================================
+Running Optimization for Example_1_4Story (4 Floors)...
+Strategy: Hybrid (Hybrid Grouping)
+Params: Pop=50, Gen=0
+============================================================
+
+[Visualization] Generating architectural load pattern plots...
+
+[세대 진화] 초기 집단 평가 중...
+세대 진화 Initial:  78%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                 | 39/50 [01:50<00:33,  3.04s/ind]ArpackSolver::Maximum number of iteration reached.
+최적화 시작...
+gen     nevals  avg                     max                     min                     std                     sep1    success_rate    valid_ratio     sep2    avg_cost        min_cost        avg_drift       min_drift         sep3    best_margins                            hypervolume     sep4    hof_size        sep5    hof_min_cost    hof_min_drift
+0       50      [0.8998432  0.43813597] [1.24159256 0.76119533] [0.46107169 0.34284278] [0.19904442 0.07359512] |       100             54              |       8.45567e+07     6.32177e+07     0.00842387      0.00685686        |       S:0.00 D:0.00 W:0.00 F:0.00 SCWB:0.18   4.05812         |       4               |       6.32177e+07     0.00685686
+세대 진화: 0it [00:00, ?it/s]
+   -> Optimization for Example_1_4Story completed in 141.3s
+All CSV results saved in Results_Optimization_Paper_Final\Example_1_4Story\Data.
+All plots saved in Results_Optimization_Paper_Final\Example_1_4Story\Figures with SCI style.
+
+[Artifacts Saved in Results_Optimization_Paper_Final]

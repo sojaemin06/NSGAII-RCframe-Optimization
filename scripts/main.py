@@ -32,7 +32,7 @@ EXAMPLES = {
         'Col_Locs': cfg.COLUMN_LOCATIONS_4F,
         'Beam_Conns': cfg.BEAM_CONNECTIONS_4F,
         'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
-        'Pop': 500, 'Gen': 100
+        'Pop': 50, 'Gen': 0
     },
     # 'Example_2_6Story': {
     #     'Floors': 6,
@@ -46,7 +46,7 @@ EXAMPLES = {
     #     'Col_Locs': cfg.COLUMN_LOCATIONS_8F,
     #     'Beam_Conns': cfg.BEAM_CONNECTIONS_8F,
     #     'Trib_Widths': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
-    #     'Pop': 500, 'Gen': 100
+    #     'Pop': 50, 'Gen': 0
     # }
 }
 

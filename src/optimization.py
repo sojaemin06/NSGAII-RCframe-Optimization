@@ -49,12 +49,16 @@ def run_ga_optimization(DL, LL, crossover_method, patterns_by_floor, h5_file,
             obj1 = norm_cost + norm_co2
             drift = res.get('max_drift_ratio', float('inf'))
 
+            # 층간변위비 정규화 (0.02 rad 기준)
+            # Obj 2가 1.0이면 설계 한계치(0.02)에 도달했음을 의미
+            norm_drift = drift / 0.02
+
             # 1. 진짜 해석 실패(inf)인 경우: 최악의 피트니스 부여
             if np.isinf(drift) or np.isnan(drift):
-                ind.fitness.values = (obj1, 2.0) # 참조점(2.5)보다 작지만 충분히 큰 값으로 페널티
-            # 2. 해석 성공 (변위가 0일 경우 수치적 안정을 위해 최소값 적용)
+                ind.fitness.values = (obj1, 2.0) # 참조점(2.5)보다 작지만 충분히 큰 값
+            # 2. 해석 성공
             else:
-                ind.fitness.values = (obj1, max(drift, 1e-10))
+                ind.fitness.values = (obj1, max(norm_drift, 1e-10))
 
     # --- 3. DEAP Toolbox 설정 ---
     if not hasattr(creator, "FitnessMulti"):

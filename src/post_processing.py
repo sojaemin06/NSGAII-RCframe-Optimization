@@ -214,8 +214,8 @@ def plot_results(output_folder, all_results, logbook, hof_stats_history, chromos
     # [수정] 두 그래프 색상 통일: Drift Ratio에 따라 색상 매핑
     sc_obj = ax_p.scatter(fitness2_vals, fitness1_vals, c=drifts, cmap='viridis', s=80, edgecolors='k', alpha=0.8, zorder=3)
     
-    # 축 제목 설정
-    ax_p.set_xlabel('Objective 2 (Max. Inter-story Drift Ratio)')
+    # 축 제목 설정 (정규화된 목적함수 반영)
+    ax_p.set_xlabel('Objective 2 (Normalized Max. Story Drift Ratio)')
     ax_p.set_ylabel('Objective 1 (Normalized Cost + CO$_2$)')
     plt.grid(True, linestyle='-', alpha=0.7) 
     
