@@ -1,0 +1,53 @@
+flowchart TD
+    %% Phase 1: Input & Seeding
+    subgraph P1 ["<b>Phase 1: Structural Parameter Seeding</b>"]
+        Start([<b>START</b>]) --> A["<b>Design Space Definition:</b><br/>- Section Geometry (b, h)<br/>- Discrete Material Grades (fck, fy)<br/>- Target Reinforcement Ratio (rho)<br/>- Unit Cost & CO2 Factors (Cc, Cs, ECF)"]
+        A --> B{"<b>Member<br/>Categorization</b>"}
+    end
+
+    %% Phase 2: Detailing Engine (Column)
+    subgraph P2C ["<b>Phase 2-C: Column Section Detailing</b>"]
+        direction TB
+        B -- "Column" --> C1["<b>Longitudinal Arrangement:</b><br/>Biaxial Symmetry Strategy (FB/LR)<br/>Rebar Pair Distribution"]
+        C1 --> C2["<b>Seismic Confinement:</b><br/>Tie Spacing & Lateral Hooks<br/>Clear Spacing Check (s >= s_min)"]
+        C2 --> C3{"<b>Feasibility<br/>Check</b>"}
+    end
+
+    %% Phase 2: Detailing Engine (Beam)
+    subgraph P2B ["<b>Phase 2-B: Beam Section Detailing</b>"]
+        direction TB
+        B -- "Beam" --> B1["<b>Flexural Detailing:</b><br/>Doubly Reinforced Layout (rho, rho')<br/>Multi-layer Rebar Rows"]
+        B1 --> B2["<b>Depth Mapping:</b><br/>Precise Effective Depth (d) Calculation<br/>based on Actual Clearances"]
+        B2 --> B3["<b>Shear Reinforcement:</b><br/>Seismic Stirrup Spacing (sv)<br/>per ACI 318 Provisions"]
+    end
+
+    %% Phase 3: Capacity & Metric Evaluation
+    subgraph P3 ["<b>Phase 3: High-Fidelity Performance Evaluation</b>"]
+        direction TB
+        C3 -- "Pass" --> C4["<b>Non-linear Section Analysis:</b><br/>Strain Compatibility Method<br/>Dynamic Strength Reduction (phi)<br/>Biaxial P-M Volume (V_PM)"]
+        
+        B3 --> B4["<b>Mechanical Resistance:</b><br/>Design Strengths (phi*Mn, phi*Vn)<br/>Minimum Flexure Check (Mn >= 1.2*Mcr)"]
+        
+        C4 --> D["<b>Quantitative Metrics:</b><br/>- Construction Cost & CO2 Emission<br/>- Unit Weight (w) for FEA Dead Load"]
+        B4 --> D
+    end
+
+    %% Phase 4: DB Reduction
+    subgraph P4 ["<b>Phase 4: Smart Search Space Reduction</b>"]
+        D --> E["<b>Geometric Clustering:</b><br/>Grouping by Dimensions (b x h)"]
+        E --> F["<b>Pareto Efficiency Filtering:</b><br/>Minimize (Cost, CO2) vs. Maximize (Capacity)"]
+        F --> G["<b>Optimized Section Database</b><br/>(Ready for Global NSGA-II Optimization)"]
+    end
+
+    %% Error Loops
+    C3 -- "Fail" --> A
+    B4 -- "Fail" --> A
+    G --> End([<b>END</b>])
+
+    %% Styling
+    style P1 fill:#ffffff,stroke:#333,stroke-width:2px
+    style P2C fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    style P2B fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    style P3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P4 fill:#eceff1,stroke:#455a64,stroke-width:2px
+    style G fill:#cfd8dc,stroke:#263238,stroke-width:3px
