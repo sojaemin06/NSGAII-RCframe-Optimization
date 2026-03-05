@@ -23,8 +23,9 @@ $$
 여기서 $C_{id}$는 기둥 단면 데이터베이스의 인덱스, $R_{dir}$은 기둥의 회전 여부를 결정하는 이진 변수(0: 0°, 1: 90°), $B_{id}$는 보 단면 데이터베이스의 인덱스를 의미한다.
 
 Figure 1(a)에 도식화된 바와 같이, 각 부재 그룹은 건물의 높이(층)와 수평면상의 하중 분담 특성에 따라 다음과 같이 계층적으로 분류된다.
-*   **기둥 그룹(Column Groups):** 각 층의 기둥을 평면상의 위치에 따라 코너 기둥(Corner), 외곽 기둥(Edge), 내부 기둥(Interior)의 세 가지 유형으로 분류한다. 이는 2축 휨과 축력의 비중이 위치에 따라 상이한 물리적 하중 상태를 최적화 과정에 정밀하게 반영하기 위함이다.
-*   **보 그룹(Beam Groups):** 평면 외곽에 위치하여 슬래브 하중을 일방향으로 지지하는 외곽 보(Exterior)와 내부에서 양방향 하중을 지지하는 내부 보(Interior)로 이원화하여 관리한다.
+
+* **기둥 그룹(Column Groups):** 각 층의 기둥을 평면상의 위치에 따라 코너 기둥(Corner), 외곽 기둥(Edge), 내부 기둥(Interior)의 세 가지 유형으로 분류한다. 이는 2축 휨과 축력의 비중이 위치에 따라 상이한 물리적 하중 상태를 최적화 과정에 정밀하게 반영하기 위함이다.
+* **보 그룹(Beam Groups):** 평면 외곽에 위치하여 슬래브 하중을 일방향으로 지지하는 외곽 보(Exterior)와 내부에서 양방향 하중을 지지하는 내부 보(Interior)로 이원화하여 관리한다.
 
 이러한 전략을 통해 각 층의 국부적인 하중 불균형에 능동적으로 대응하면서도, 전체 설계 변수의 수를 최적화에 적합한 수준으로 유지하여 알고리즘의 탐색 효율을 극대화한다. Figure 1(b)는 이러한 물리적 그룹핑이 유전 알고리즘의 염색체 구조로 어떻게 매핑되는지를 보여준다. 각 그룹별로 할당되는 단면 데이터베이스의 상세한 구성 범위와 생성 로직은 4.1절에서 상세히 기술한다.
 
@@ -73,13 +74,13 @@ $$
 
 **Table 2. Summary of structural design constraints expressed as $g_i(X) \le 0$.**
 
-| Category | Constraint Item | Mathematical Expression ($g_i$) | Criteria | Reference |
-| :--- | :--- | :--- | :--- | :---: |
-| **Strength** | Member DCR | $g_1(X) = DCR - 1.0 \le 0$ | Max. DCR 1.0 | ACI 318-19 |
-| **Serviceability** | Story Drift Ratio | $g_2(X) = \Delta/H - \theta_{all} \le 0$ | Max. 2.0% | ASCE 7-16 |
-| **Serviceability** | Beam Deflection | $g_3(X) = (\delta_{LT} + \delta_{L,imm}) - L/240 \le 0$ | Long-term + LL | ACI 318-19 |
-| **Serviceability** | Wind Displacement | $g_4(X) = \Delta_{wind} / (H/400) - 1.0 \le 0$ | Max. $H/400$ | ASCE 7-16 |
-| **Hierarchy** | SCWB Ratio | $g_5(X) = \frac{1.2 \sum M_{nb}}{\sum M_{nc}} - 1.0 \le 0$ | Strong Column | ACI 318-19 |
+| Category                 | Constraint Item   | Mathematical Expression ($g_i$)                            | Criteria       | Reference |
+| :----------------------- | :---------------- | :----------------------------------------------------------- | :------------- | :--------: |
+| **Strength**       | Member DCR        | $g_1(X) = DCR - 1.0 \le 0$                                 | Max. DCR 1.0   | ACI 318-19 |
+| **Serviceability** | Story Drift Ratio | $g_2(X) = \Delta/H - \theta_{all} \le 0$                   | Max. 2.0%      | ASCE 7-16 |
+| **Serviceability** | Beam Deflection   | $g_3(X) = (\delta_{LT} + \delta_{L,imm}) - L/240 \le 0$    | Long-term + LL | ACI 318-19 |
+| **Serviceability** | Wind Displacement | $g_4(X) = \Delta_{wind} / (H/400) - 1.0 \le 0$             | Max.$H/400$  | ASCE 7-16 |
+| **Hierarchy**      | SCWB Ratio        | $g_5(X) = \frac{1.2 \sum M_{nb}}{\sum M_{nc}} - 1.0 \le 0$ | Strong Column  | ACI 318-19 |
 
 ## 3. Optimization Methodology
 
@@ -119,21 +120,22 @@ $$
 
 **Integrated section generation and sampling.** 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. Table 3은 본 연구에서 검색 공간 구성을 위해 설정한 주요 단면 치수 및 재료 정보의 생성 범위를 나타낸다. 알고리즘은 이러한 범위를 바탕으로 초기 후보군(Initial Pool)을 무작위 조합으로 생성하며, 이후 부재별 상세 설계 로직이 적용된다.
 
-*   **Column detailing (Steps C1-C3):** 코너 철근 배치 후 목표 철근비에 따라 사이드 철근을 분배하며, 순간격 150 mm 초과 시 보조 대근(Crossties)을 자동 배치한다.
-*   **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따른 다층 배근을 수행하고 유효 깊이를 정밀 산정한다.
+* **Column detailing (Steps C1-C3):** 코너 철근 배치 후 목표 철근비에 따라 사이드 철근을 분배하며, 순간격 150 mm 초과 시 보조 대근(Crossties)을 자동 배치한다.
+* **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따른 다층 배근을 수행하고 유효 깊이를 정밀 산정한다.
 
-**Table 3. Definition of Discrete Search Space and Section Generation Ranges.**
-| Category | Parameter / Item | Range | Step | Note |
-| :--- | :--- | :--- | :---: | :--- |
-| **Geometry** | Beam Width ($b$) | 300 ~ 500 mm | 100 mm | |
-| | Beam Height ($h$) | 500 ~ 800 mm | 50 mm | |
-| | Column Width ($B$) | 600 ~ 1000 mm | 50 mm | |
-| | Column Height ($H$) | 600 ~ 1500 mm | 50 mm | |
-| **Rebar** | Reinforcement Ratio ($\rho$) | 0.5% ~ 4.0% | - | ACI 318-19 |
-| | Rebar Diameter | 19 ~ 32 mm | - | SD400 |
-| **Material** | Concrete Strength ($f_{ck}$) | 27 ~ 30 MPa | 3 MPa | |
-| | Steel Strength ($f_y$) | 400 MPa | - | |
-| **Variable** | Column Rotation ($R_{dir}$) | {0, 1} | - | 0° or 90° |
+**Table 3. Definition of Discrete Search Space and User-Defined Ranges for Database Generation.**
+
+| Parameter / Item                 | **Beam Section**     | **Column Section**     | **Note**          |
+| :------------------------------- | :------------------------- | :--------------------------- | :---------------------- |
+| **Width** ($b, B$)       | 300, 400, 500 mm           | 600 ~ 1000 mm (50 mm step)   | Geometrical constraints |
+| **Height** ($h, H$)      | 500 ~ 800 mm (50 mm step)  | $B \sim 1.5B$ (50 mm step) | Rectangularity ratio    |
+| **Concrete** ($f_{ck}$)  | 24, 27, 30 MPa             | 27, 30, 35, 40 MPa           | Member-specific grades  |
+| **Main Rebar**             | D16, D22                   | D25, D29, D32                | SD400, SD500            |
+| **Rebar Ratio** ($\rho$) | 0.5% ~ 4.5%                | 1.0% ~ 8.0%                  | ACI 318-19              |
+| **Stirrup Size**           | D10, D13                   | D10, D13                     | Transverse rebar        |
+| **Stirrup Spacing**        | 100 ~$0.5d$ (max 600 mm) | 100 ~ 150 mm                 | ACI Seismic detailing   |
+| **Steel** ($f_y$)        | 400, 500 MPa               | 400, 500 MPa                 | Main reinforcement      |
+| **Aggregate Size**         | 25 mm                      | 25 mm                        | For spacing/cover       |
 
 **Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 불필요한 비경제적 단면을 탐색 범위에서 제외함으로써 알고리즘의 수렴 속도를 비약적으로 향상시킨다.
 
@@ -152,7 +154,7 @@ $$
 ![Figure 6. Load Patterns](Figure6_Combined.png)
 **Figure 6. Representative checkerboard load pattern plans for the benchmark structures: (a) 4-story, (b) 6-story, and (c) 8-story cases.**
 
-Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 건물의 용도 및 공간별 기능 차이에 따른 하중 불균형을 모사하는 데 필수적이다. 실제 건축물은 로비, 사무 공간, 기계실 등 층별 또는 구역별로 서로 다른 활하중 기준이 적용되며, 이러한 하중의 위치별 불균형은 구조물 전체에 비대칭적인 응력 분포와 특정 방향으로의 편심을 유발한다. 
+Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 건물의 용도 및 공간별 기능 차이에 따른 하중 불균형을 모사하는 데 필수적이다. 실제 건축물은 로비, 사무 공간, 기계실 등 층별 또는 구역별로 서로 다른 활하중 기준이 적용되며, 이러한 하중의 위치별 불균형은 구조물 전체에 비대칭적인 응력 분포와 특정 방향으로의 편심을 유발한다.
 
 본 연구에서는 이러한 실무적인 하중 상태에 효과적으로 대응하기 위해, 기하학적 효율이 높은 **직사각형 단면 조합**과 기둥의 강축 방향을 결정하는 **이진 회전 변수($R_{dir}$)**를 최적화 엔진의 핵심 요소로 도입하였다. 알고리즘은 각 부재 그룹이 처한 국부적인 응력 상태와 방향별 강성 요구 조건에 맞춰 기둥의 강축을 능동적으로 배치함으로써, 한정된 재료량 내에서 구조적 저항 성능을 극대화한다. 이는 기둥의 단면을 정방형으로 제한하거나 방향을 일률적으로 고정하는 기존의 관행적 설계 방식과 차별화되는 지점이며, 3차원 공간에서 각 층의 하중 특성에 최적화된 맞춤형 강성 분포를 형성하도록 유도하는 결정적인 장치가 된다. 해석 모델 구축을 위한 상세한 파라미터, 하중 산정 근거 및 구조 해석 가정은 논문 말미의 **Appendix A**에 상세히 기술하였다.
 
@@ -186,7 +188,7 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 Aga, A. A., & Adam, F. M. (2015). Design optimization of reinforced concrete frames. Open Journal of Civil Engineering, 05(01), 74–83.
 Akin, A., & Saka, M. P. (2015). Harmony search algorithm based optimum detailed design of reinforced concrete plane frames subject to ACI 318-05 provisions. Computers & Structures, 147, 79-95.
-American Society for Civil Engineering (ASCE). (2016). Minimum Design Loads and Associated Criteria for Buildings and Other Structures, ASCE/SEI 7-16.
+American Society for Civil Engineering (ASCE). (2016). Mign Loads and Associated Criteria for Buildings and Other Structures, ASCE/SEI 7-16.
 Aslay, S. E., Dede, T., & Kaveh, A. (2024). Integrated design optimization process for building projects. Periodica Polytechnica Civil Engineering, 68(4), 1175-1183.
 Babaei, M., & Mollayi, M. (2016). Multi-objective optimization of reinforced concrete frames using NSGA-II algorithm. Engineering Structures and Technologies, 8(4), 157-164.
 BAI, J. L., CHEN, H. M., SUN, B. H., & JIN, S. S. (2020). Seismic uniform damage-targeted design of RC frame structures. Engineering Mechanics, 37(8), 179-188.
@@ -240,21 +242,21 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 
 **Table A1. Detailed structural modeling and loading parameters for benchmark frames.**
 
-| Category | Parameter | Value / Description |
-| :--- | :--- | :--- |
-| **Modeling** | Element type | 3D `elasticBeamColumn` (6-DOF per node) |
-| | Geometric nonlinearity | P-Delta transformation for columns |
-| | Diaphragm action | Rigid diaphragm (Master-Slave) at each floor |
-| | Effective stiffness | $0.7 I_g$ (Columns), $0.35 I_g$ (Beams) (ACI 318-19) |
-| **Material** | Concrete strength ($f_{ck}$) | $27$ MPa ($E_c = 25.8 \times 10^3$ MPa) |
-| | Steel strength ($f_y$) | $400$ MPa ($E_s = 200 \times 10^3$ MPa) |
-| **Gravity Load** | Dead load (Slab + Superimposed) | $5.0 \, \text{kN/m}^2$ |
-| | Live load (Floor 1-2 / 3-5 / 6+) | $5.0 / 3.0 / 2.0 \, \text{kN/m}^2$ |
-| | Load pattern | Checkerboard pattern per floor |
-| **Seismic (ELF)** | Design spectral acceleration | $S_{DS}=0.60g$, $S_{D1}=0.36g$ (Site Class D) |
-| | Response / Displacement factors | $R = 5.0$, $C_d = 4.5$, $I_e = 1.0$ |
-| | Force distribution | First mode shape based (Eigenvalue analysis) |
-| | Directional combinations | 100% (Principal) + 30% (Orthogonal) |
-| **Wind (MWFRS)** | Basic wind speed ($V$) | $30 \, \text{m/s}$ (Exposure B, ASCE 7-16) |
-| | Gust / Pressure coefficients | $G = 0.85$, $C_p = 0.8$ (Windward), $-0.5$ (Leeward) |
-| **Analysis** | Total load combinations | 38 combinations (Strength: 26, Serviceability: 12) |
+| Category                | Parameter                        | Value / Description                                        |
+| :---------------------- | :------------------------------- | :--------------------------------------------------------- |
+| **Modeling**      | Element type                     | 3D `elasticBeamColumn` (6-DOF per node)                  |
+|                         | Geometric nonlinearity           | P-Delta transformation for columns                         |
+|                         | Diaphragm action                 | Rigid diaphragm (Master-Slave) at each floor               |
+|                         | Effective stiffness              | $0.7 I_g$ (Columns), $0.35 I_g$ (Beams) (ACI 318-19)   |
+| **Material**      | Concrete strength ($f_{ck}$)   | $27$ MPa ($E_c = 25.8 \times 10^3$ MPa)                |
+|                         | Steel strength ($f_y$)         | $400$ MPa ($E_s = 200 \times 10^3$ MPa)                |
+| **Gravity Load**  | Dead load (Slab + Superimposed)  | $5.0 \, \text{kN/m}^2$                                   |
+|                         | Live load (Floor 1-2 / 3-5 / 6+) | $5.0 / 3.0 / 2.0 \, \text{kN/m}^2$                       |
+|                         | Load pattern                     | Checkerboard pattern per floor                             |
+| **Seismic (ELF)** | Design spectral acceleration     | $S_{DS}=0.60g$, $S_{D1}=0.36g$ (Site Class D)          |
+|                         | Response / Displacement factors  | $R = 5.0$, $C_d = 4.5$, $I_e = 1.0$                  |
+|                         | Force distribution               | First mode shape based (Eigenvalue analysis)               |
+|                         | Directional combinations         | 100% (Principal) + 30% (Orthogonal)                        |
+| **Wind (MWFRS)**  | Basic wind speed ($V$)         | $30 \, \text{m/s}$ (Exposure B, ASCE 7-16)               |
+|                         | Gust / Pressure coefficients     | $G = 0.85$, $C_p = 0.8$ (Windward), $-0.5$ (Leeward) |
+| **Analysis**      | Total load combinations          | 38 combinations (Strength: 26, Serviceability: 12)         |
