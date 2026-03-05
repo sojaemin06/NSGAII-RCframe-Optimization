@@ -82,6 +82,14 @@ $$
 | **Serviceability** | Wind Displacement | $g_4(X) = \Delta_{wind} / (H/400) - 1.0 \le 0$             | Max.$H/400$  | ASCE 7-16 |
 | **Hierarchy**      | SCWB Ratio        | $g_5(X) = \frac{1.2 \sum M_{nb}}{\sum M_{nc}} - 1.0 \le 0$ | Strong Column  | ACI 318-19 |
 
+개별 제약 조건 위반량은 $v_i(X) = \max(0, g_i(X))$로 계산되며, 알고리즘에서 개체의 유효성을 평가하기 위한 총 제약 조건 위반량($\Phi(X)$)은 각 제약 조건의 스케일을 정규화하여 다음과 같이 산출된다.
+
+$$
+\Phi(X) = \sum_{i=1}^{m} \frac{v_i(X)}{S_i}
+$$
+
+여기서 $m$은 전체 제약 조건의 수이며, $S_i$는 각 제약 조건별 위반량의 정규화 계수(Scaling factor)이다. 모든 제약 조건을 만족하는 개체의 경우 $\Phi(X)=0$이 된다.
+
 ## 3. Optimization Methodology
 
 ### 3.1 NSGA-II Algorithm and Constraint Handling
@@ -230,26 +238,25 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 
 본 부록에서는 4.2절에서 언급된 수치 해석 모델의 상세 가정과 하중 산정 근거를 기술한다.
 
-**Modeling assumptions.** 3차원 골조의 거동을 모사하기 위해 사용된 `elasticBeamColumn` 요소는 축력, 전단력, 비틀림 및 2축 휨을 모두 고려한다. 기둥 부재에는 P-Delta 기하학적 변환을 적용하여 고차 효과를 반영하였으며, 바닥판의 강체 횡경막 거동을 위해 각 층의 모든 절점은 해당 층의 마스터 절점에 대해 수평 자유도가 구속되었다. 강성 저감은 ACI 318-19를 따르며, 구체적인 파라미터는 Table A1에 정리하였다.
+**Modeling assumptions:** 3차원 골조의 거동을 모사하기 위해 사용된 `elasticBeamColumn` 요소는 축력, 전단력, 비틀림 및 2축 휨을 모두 고려한다. 기둥 부재에는 P-Delta 기하학적 변환을 적용하여 고차 효과를 반영하였으며, 바닥판의 강체 횡경막 거동을 위해 각 층의 모든 절점은 해당 층의 마스터 절점에 대해 수평 자유도가 구속되었다. 강성 저감은 ACI 318-19를 따르며 ($0.7I_g$ for columns, $0.35I_g$ for beams), 구체적인 파라미터는 Table A1에 정리하였다.
 
-**Loading and Seismic parameters.** 지진하중은 ASCE 7-16의 등가정적해석법을 기반으로 하며, 반응수정계수($R=5.0$)와 변위증폭계수($C_d=4.5$)를 적용하였다. 층별 지진력은 고유치 해석으로 도출된 모드 형상에 따라 분배되었다. 활하중은 층별 용도 차이를 반영하여 로비층($5.0 \, \text{kN/m}^2$)부터 상층부 주거/사무 공간($2.0 \sim 3.0 \, \text{kN/m}^2$)까지 차등 적용되었다.
+**Loading and Seismic parameters**: 지진하중은 ASCE 7-16의 등가정적해석법을 기반으로 하며, 반응수정계수($R=5.0$)와 변위증폭계수($C_d=4.5$)를 적용하였다. 층별 지진력은 고유치 해석으로 도출된 1차 모드 형상($\phi$)에 따라 분배되었다. 활하중은 층별 용도 차이를 반영하여 로비층($5.0{\mathrm{kN/m}}^2$)부터 상층부 주거/사무 공간($2.0\sim3.0{\mathrm{kN/m}}^2$)까지 차등 적용되었다. 풍하중 산정 시에는 지표면 조도 구분 B(Exposure B)를 적용하였으며, 풍속 $30\mathrm{m/s}$에 대한 풍압 계수($C_p$)는 풍상측 0.8, 풍하측 -0.5를 사용하였다.
 
 **Table A1. Detailed structural modeling and loading parameters for benchmark frames.**
 
 | Category                | Parameter                        | Value / Description                                        |
 | :---------------------- | :------------------------------- | :--------------------------------------------------------- |
-| **Modeling**      | Element type                     | 3D `elasticBeamColumn` (6-DOF per node)                  |
+| **Modeling**      | Element type                     | 3D elasticBeamColumn (6-DOF per node)                      |
 |                         | Geometric nonlinearity           | P-Delta transformation for columns                         |
 |                         | Diaphragm action                 | Rigid diaphragm (Master-Slave) at each floor               |
 |                         | Effective stiffness              | $0.7 I_g$ (Columns), $0.35 I_g$ (Beams) (ACI 318-19)   |
-| **Material**      | Concrete strength ($f_{ck}$)   | $27$ MPa ($E_c = 25.8 \times 10^3$ MPa)                |
-|                         | Steel strength ($f_y$)         | $400$ MPa ($E_s = 200 \times 10^3$ MPa)                |
-| **Gravity Load**  | Dead load (Slab + Superimposed)  | $5.0 \, \text{kN/m}^2$                                   |
+|                         | Steel strength ($f_y$)         | $400,\ 500 MPa (E_s=200,000 MPa)$                        |
+| **Gravity Load**  | Dead load (Slab + Superimposed)  | $5.0{\mathrm{kN/m}}^2$ (including 150mm slab)            |
 |                         | Live load (Floor 1-2 / 3-5 / 6+) | $5.0 / 3.0 / 2.0 \, \text{kN/m}^2$                       |
 |                         | Load pattern                     | Checkerboard pattern per floor                             |
 | **Seismic (ELF)** | Design spectral acceleration     | $S_{DS}=0.60g$, $S_{D1}=0.36g$ (Site Class D)          |
 |                         | Response / Displacement factors  | $R = 5.0$, $C_d = 4.5$, $I_e = 1.0$                  |
-|                         | Force distribution               | First mode shape based (Eigenvalue analysis)               |
+|                         | Force distribution               | First mode shape ($\phi$) based (Eigenvalue analysis)    |
 |                         | Directional combinations         | 100% (Principal) + 30% (Orthogonal)                        |
 | **Wind (MWFRS)**  | Basic wind speed ($V$)         | $30 \, \text{m/s}$ (Exposure B, ASCE 7-16)               |
 |                         | Gust / Pressure coefficients     | $G = 0.85$, $C_p = 0.8$ (Windward), $-0.5$ (Leeward) |
