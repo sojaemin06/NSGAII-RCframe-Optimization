@@ -1,23 +1,5 @@
-
-C:\SCI_NSGA2_RCframe_다중목적최적화>"c:\Users\82105\OneDrive\Desktop\ERS\[논문작성]\SCI_NSGA2_RCframe_다중목적최적화\Python\03 Frame해석\my\Scripts\python.exe" c:/SCI_NSGA2_RCframe_다중목적최적화/scripts/main.py
-### Main Execution: 3 Building Examples (Proposed Scenario A) ###
-
-============================================================
-Running Optimization for Example_1_4Story (4 Floors)...
-Strategy: Hybrid (Hybrid Grouping)
-Params: Pop=50, Gen=0
-============================================================
-
-[Visualization] Generating architectural load pattern plots...
-
-[세대 진화] 초기 집단 평가 중...
-세대 진화 Initial:  78%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                 | 39/50 [01:50<00:33,  3.04s/ind]ArpackSolver::Maximum number of iteration reached.
-최적화 시작...
-gen     nevals  avg                     max                     min                     std                     sep1    success_rate    valid_ratio     sep2    avg_cost        min_cost        avg_drift       min_drift         sep3    best_margins                            hypervolume     sep4    hof_size        sep5    hof_min_cost    hof_min_drift
-0       50      [0.8998432  0.43813597] [1.24159256 0.76119533] [0.46107169 0.34284278] [0.19904442 0.07359512] |       100             54              |       8.45567e+07     6.32177e+07     0.00842387      0.00685686        |       S:0.00 D:0.00 W:0.00 F:0.00 SCWB:0.18   4.05812         |       4               |       6.32177e+07     0.00685686
-세대 진화: 0it [00:00, ?it/s]
-   -> Optimization for Example_1_4Story completed in 141.3s
-All CSV results saved in Results_Optimization_Paper_Final\Example_1_4Story\Data.
-All plots saved in Results_Optimization_Paper_Final\Example_1_4Story\Figures with SCI style.
-
-[Artifacts Saved in Results_Optimization_Paper_Final]
+본 연구에서 제안하는 최적화 프레임워크의 시작점은 해당 구조물의 고유한 특성과 건축적 제약을 반영한 '프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'를 구축하는 것이다. 본 프레임워크는 설계 초기 단계에서 구조물의 규모, 용도, 그리고 층고 확보를 위한 보의 최대 춤 제한 등을 반영하여 유효한 탐색 공간(Search Space)을 사전에 정의한다.
+Integrated section generation engine. 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. 먼저 설계자가 정의한 범위(b,h,f_{ck},f_y) 내에서 무작위 조합을 통해 수만 개의 초기 단면 후보군(Initial Pool)을 생성한다. 이후 부재별로 특화된 상세 설계 로직이 적용된다.
+	Column detailing (Steps C1-C3): 4개의 코너 철근을 우선 배치한 뒤, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 쌍으로 사이드 철근을 분배한다. 이때 철근 간의 순간격이 150 mm를 초과할 경우 ACI 318-19 규정에 따라 보조 대근(Crossties)을 자동으로 추가 배치한다.
+Beam detailing (Steps B1-B3): 모멘트 요구량에 따라 인장 및 압축 철근의 층(Layer) 수를 결정하고, 이에 따른 유효 깊이(d_{actual})를 정밀하게 재산정한다. 전단 철근(Stirrup)은 주철근 크기와 부재 폭을 고려하여 최적 간격으로 배치된다.
+Internal performance filtering. 생성 엔진의 마지막 단계에서는 지능형 설계 공간 감축(Smart search space reduction) 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격(b,h,f_{ck},f_y)별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: P-M 상관도 체적, 보: 휨 내력 M_n)이 열등한 '지배되는(Dominated)' 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 최종적으로 기둥 800종, 보 500종의 정예 카탈로그를 구축하였다. 이는 알고리즘이 불필요하게 비경제적인 단면을 탐색하는 비용을 차단함으로써 수렴 속도를 비약적으로 향상시키는 결정적인 장치가 된다.

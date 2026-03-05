@@ -99,7 +99,7 @@ $$
 
 ### 3.2 Parametric Study of Algorithm Parameters
 
-본 연구에서는 NSGA-II 알고리즘의 탐색 효율성과 수렴 성능을 극대화하기 위해, 하이퍼볼륨(Hypervolume, 이하 HV)  지표를 기준으로 5단계 순차적 매개변수 연구(Sequential Parametric Study)를 수행하였다. 각 단계에서는 이전 단계에서 도출된 최적 파라미터를 고정한 상태에서 다음 변수를 최적화하는 방식을 채택하여 변수 간의 상호작용을 고려하였다.
+본 연구에서는 NSGA-II 알고리즘의 탐색 효율성과 수렴 성능을 극대화하기 위해, 하이퍼볼륨(Hypervolume, 이하 HV) 지표를 기준으로 5단계 순차적 매개변수 연구(Sequential Parametric Study)를 수행하였다. 각 단계에서는 이전 단계에서 도출된 최적 파라미터를 고정한 상태에서 다음 변수를 최적화하는 방식을 채택하여 변수 간의 상호작용을 고려하였다.
 
 우선, 교배 전략에 따른 수렴 성능을 비교하기 위해 One-Point, Two-Point, Uniform Crossover를 대상으로 실험을 진행하였다. 분석 결과, Uniform Crossover가 초기 탐색 단계부터 가장 가파른 HV 향상을 보였으며, 최종 HV 값 역시 약 5.55를 기록하여 타 전략(One-Point: 5.26, Two-Point: 5.27) 대비 우수한 성능을 입증하였다(Figure 3a). 이는 3차원 프레임의 복잡한 염색체 구조에서 유전자의 위치와 상관없이 우수한 형질을 조합하는 데 Uniform 방식이 유리함을 시사한다.
 
@@ -107,7 +107,7 @@ $$
 
 알고리즘의 탐색 강도를 결정하는 교배 확률($P_c$)과 변이 확률($P_m$)의 최적 조합을 찾기 위해 각각 0.5에서 1.0까지의 범위를 설정하여 분석하였다. 실험 결과, 높은 교차 확률($P_c=0.9$)과 상대적으로 높은 변이 확률($P_m=0.7$)의 조합에서 가장 넓은 파레토 프런트와 높은 HV 지표를 확보할 수 있었다. 특히 본 연구와 같이 이산적 단면 인덱스를 다루는 문제에서는 높은 변이 확률이 국부 최적점(Local optima)을 탈출하고 설계 공간의 전역적 탐색을 수행하는 데 결정적인 역할을 수행함을 확인하였다(Figure 3c, 3d).
 
-마지막으로 알고리즘의 전역 탐색 성능과 연산 비용을 결정하는 개체군 크기를 100에서 1000까지 변화시키며 실험하였다. 개체군 크기가 증가함에 따라 HV 지표는 전반적으로 상승하는 경향을 보였으나, 500개체 이상에서는 지표의 향상 폭이 점차 둔화되는 양상을 보였다. 이에 따라 연산 효율성과 해의 품질 사이의 수렴성을 고려하여, HV  지표가 약 5.817로 안정화되는 시점인 개체군 크기 500을 최종 최적 값으로 채택하였(Figure 3e).
+마지막으로 알고리즘의 전역 탐색 성능과 연산 비용을 결정하는 개체군 크기를 100에서 1000까지 변화시키며 실험하였다. 개체군 크기가 증가함에 따라 HV 지표는 전반적으로 상승하는 경향을 보였으나, 500개체 이상에서는 지표의 향상 폭이 점차 둔화되는 양상을 보였다. 이에 따라 연산 효율성과 해의 품질 사이의 수렴성을 고려하여, HV 지표가 약 5.817로 안정화되는 시점인 개체군 크기 500을 최종 최적 값으로 채택하였다(Figure 3e).
 
 ![Figure 3. Parametric Optimization](../Results_Param_Optimization/Step5_PopSize_HV_Paper.png)
 **Figure 3. Sequential parameter optimization results: (a) Crossover Strategy, (b) Tournament Size, (c) Crossover Probability, (d) Mutation Probability, and (e) Population Size.**
@@ -116,12 +116,14 @@ $$
 
 ### 4.1 Project-Specific Structural Section Database Construction
 
-본 연구에서 제안하는 최적화 프레임워크의 시작점은 해당 구조물의 규모와 건축적 제약을 반영한 **'프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)'**를 구축하는 것이다. 본 프레임워크는 설계자가 정의한 탐색 가능 범위 내에서 유효한 이산 단면들을 사전에 생성하고, 이를 최적화의 검색 공간으로 활용한다.
+본 연구의 최적화 프레임워크는 구조물의 요구 성능과 건축적 제약을 반영한 '프로젝트 맞춤형 단면 데이터베이스(Project-specific Database)' 구축에서 시작된다. 이 데이터베이스는 설계자가 정의한 탐색 범위 내에서 구조적으로 유효한 이산 단면 후보군을 생성하며, 각 단면은 Figure 4의 상세 설계 로직과 수치 해석 엔진을 통해 성능 및 경제성 지표를 부여받는다. 주요 설계 변수와 생성 범위는 Table 3에 정리하였다.
 
-**Integrated section generation and sampling.** 데이터베이스는 Figure 4에 도식화된 정밀 배근 알고리즘을 통해 구축된다. Table 3은 본 연구에서 검색 공간 구성을 위해 설정한 주요 단면 치수 및 재료 정보의 생성 범위를 나타낸다. 알고리즘은 이러한 범위를 바탕으로 초기 후보군(Initial Pool)을 무작위 조합으로 생성하며, 이후 부재별 상세 설계 로직이 적용된다.
+상세 설계 단계에서 기둥과 보의 배근 로직은 실무 설계 지침과 ACI 318-19 규정을 반영하여 다음과 같은 통합적인 프로세스로 수행된다.
 
-* **Column detailing (Steps C1-C3):** 코너 철근 배치 후 목표 철근비에 따라 사이드 철근을 분배하며, 순간격 150 mm 초과 시 보조 대근(Crossties)을 자동 배치한다.
-* **Beam detailing (Steps B1-B3):** 모멘트 요구량에 따른 다층 배근을 수행하고 유효 깊이를 정밀 산정한다.
+*   **Column detailing:** 기둥 단면은 4개의 코너 철근 배치를 시작으로, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 주철근을 쌍(Pair)으로 추가 분배한다. 이 과정에서 하중의 특성과 단면 형상에 따라 철근이 특정 축에 집중되는 **일방향(Uniaxial) 배근** 또는 모든 면에 균등하게 배치되는 **양방향(Biaxial) 배근** 패턴이 생성된다. 주철근의 순간격이 규정치를 초과할 경우 보조 대근(Crossties)을 자동으로 배치하여 횡구속 성능을 확보하며, 변형률 적합 조건(Strain compatibility)을 기반으로 강축과 약축 방향의 $P-M$ 상관도 해석을 수행하여 단면 성능을 정량화한다.
+*   **Beam detailing:** 보 단면은 설계 모멘트 요구량에 따라 인장 및 압축 철근의 기여도를 정밀하게 고려하는 **복근보(Doubly reinforced beam)** 이론을 기반으로 설계된다. 이는 내진 골조의 연성(Ductility) 확보와 실무적인 배근 관행을 반영하기 위함이며, 철근의 다층 배치 시 발생하는 순간격 변화와 실제 유효 깊이($d$)를 실시간으로 갱신하여 휨 내력($M_n$) 산정의 정밀도를 확보한다. 전단 강도는 콘크리트 전단 기여분과 스터럽의 기여분을 합산하여 산출하며, 스터럽 간격은 규정된 최대 제한치를 엄격히 준수하도록 설계하였다.
+
+생성된 모든 단면은 단위 길이(1m)당 공사비와 탄소 배출량을 자동으로 산출한다. 탄소 배출량은 재료별 내재탄소 배출계수(ECF)와 단위 중량을 결합한 질량 기반 산정 방식을 적용하여 신뢰도를 높였으며, 구조 해석 모델의 하중 데이터로 활용하기 위해 각 단면의 단위 중량(UnitWeight)을 함께 도출한다.
 
 **Table 3. Definition of Discrete Search Space and User-Defined Ranges for Database Generation.**
 
@@ -137,7 +139,7 @@ $$
 | **Steel** ($f_y$)        | 400, 500 MPa               | 400, 500 MPa                 | Main reinforcement      |
 | **Aggregate Size**         | 25 mm                      | 25 mm                        | For spacing/cover       |
 
-**Internal performance filtering.** 생성 엔진의 마지막 단계에서는 **지능형 설계 공간 감축(Smart search space reduction)** 로직이 수행된다. 방대하게 생성된 초기 후보군을 동일한 기하 규격별로 그룹화한 뒤, 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력 $M_n$)이 열등한 단면들을 필터링하여 제거한다. 이러한 Pareto 기반 선별 과정을 통해 불필요한 비경제적 단면을 탐색 범위에서 제외함으로써 알고리즘의 수렴 속도를 비약적으로 향상시킨다.
+데이터베이스 구축의 최종 단계에서는 Pareto 기반의 지능형 설계 공간 감축(Smart search space reduction) 로직을 수행한다. 동일한 기하 규격을 가진 단면 후보군 내에서 공사비 대비 구조 성능(기둥: $P-M$ 상관도 체적, 보: 휨 내력)이 열등한 비효율적 단면들을 사전에 필터링함으로써, 최적화 알고리즘의 탐색 효율을 극대화하고 전체적인 연산 비용을 절감한다.
 
 ![Figure 4. DB Workflow](Figure4_DB_Workflow.png)
 **Figure 4. Detailed flowchart of the structural section detailing logic and Pareto-based reduction process.**
@@ -174,15 +176,49 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 6. Conclusions
 
-본 연구에서는 실무적 배근 상세와 기둥 회전 변수를 독립적으로 고려한 RC 모멘트 골조 다중목적 최적설계 프레임워크를 제안하고 검증하였다. 주요 결론은 다음과 같다.
+본 연구에서는 실무적인 구조 설계 조건과 시공성을 엄격히 반영한 '3차원 RC 프레임 전용 다중목적 최적화 프레임워크'를 개발하고 그 효용성을 검증하였다. 연구를 통해 도출된 주요 결론은 다음과 같다.
 
-첫째, 기둥의 회전각을 독립된 유전 변수로 운영하는 전략은 기존 방식보다 탐색 효율을 높여 하이퍼볼륨 지표를 향상시키고 공사비를 추가 절감(약 1.3%)하는 효과를 입증하였다. 10회의 독립 반복 실험을 통한 통계적 검증 결과, 매우 낮은 변동 계수(0.24%)를 기록하여 알고리즘의 우수한 수렴 안정성과 신뢰성을 확인하였다.
+1. **실무적 설계 변수의 확장:** 기존 연구에서 고정된 상수로 취급되던 기둥의 회전 방향을 이진 설계 변수($R_{dir}$)로 도입함으로써, 알고리즘이 3차원 공간상의 비대칭 하중 및 횡력에 최적화된 강성 분포를 스스로 탐색하도록 유도하였다. 이는 정방형 단면에 국한된 기존 설계 방식 대비 재료량 절감뿐만 아니라 구조적 저항 성능의 향상을 동시에 달성하는 핵심 기제로 작용하였다.
+2. **정밀 데이터베이스 기반의 신뢰도 확보:** ACI 318-19 규정을 준수한 자동 배근 알고리즘을 통해 보조 대근, 표피 철근, 내진 상세 갈고리 등을 포함한 정밀 데이터베이스를 구축하였다. 이를 통해 최적화 결과로 도출된 단면이 별도의 수정 없이 실제 시공 현장에 즉각 적용 가능한 수준의 물량 정보와 상세를 포함하도록 하여, 최적화 모델과 실제 시공 간의 간극을 획기적으로 줄였다.
+3. **알고리즘의 안정성 및 효율성:** 하이퍼볼륨 지표 기반의 5단계 순차적 매개변수 연구를 통해 3차원 RC 프레임 최적화에 특화된 NSGA-II 하이퍼파라미터 조합을 도출하였다. 통계적 검증 결과, 제안된 프레임워크는 매우 낮은 변동 계수를 기록하며 광범위한 이산적 설계 공간 내에서도 전역 최적해 근사치로의 일관된 수렴 성능을 보여주었다.
+4. **다중목적 의사결정 지원:** 경제성(공사비 및 탄소 배출량)과 구조 성능(층간변위) 사이의 명확한 트레이드-오프(Trade-off) 관계를 파레토 프런트로 제시함으로써, 설계자가 프로젝트의 우선순위에 따라 데이터에 기반한 합리적인 의사결정을 내릴 수 있는 도구를 제공하였다.
 
-둘째, ACI 318-19 규정을 준수한 정밀 상세 데이터베이스는 실제 시공 현장에서 즉각적으로 활용 가능한 수준의 철근 배치 정보를 포함한 최적 설계안을 도출한다. 4층 예제 분석을 통해 경제성 중심(6-D32)과 성능 중심(18-D32) 설계의 구체적인 부재 상세를 제시함으로써, 설계 목적에 따른 유연한 대안 선택 가능성을 입증하였다.
+본 연구의 결과는 고도화된 메타heuristic 알고리즘이 복잡한 실무 설계 관행과 결합될 때 발생하는 시너지를 보여주며, 향후 탄소 중립 및 공기 단축이 중시되는 스마트 건설 환경에서 RC 구조물의 최적 설계를 위한 원천 기술로 활용될 것으로 기대된다. 후속 연구에서는 기둥-보 접합부의 전단 성능 검토와 전단벽 시스템이 통합된 복합 구조 시스템으로의 확장을 도모할 예정이다.
 
-셋째, 제안된 프레임워크는 횡력에 취약하거나 하중 불균형이 발생하는 축 방향으로 기둥의 강축을 능동적으로 배치함으로써, 구조물의 기하학적 효율성을 극대화하는 맞춤형 강성 설계를 가능하게 하였다.
+## Nomenclature
 
-본 연구의 결과는 고도화된 최적화 알고리즘이 실제 RC 구조 설계 관행을 혁신하여 더 경제적이고 친환경적인 건축물을 설계하는 데 기여할 수 있음을 보여준다. 향후 연구에서는 전단벽 시스템과의 통합 최적화 및 시공 단계를 고려한 동적 탄소 배출 모델로 확장될 수 있는 기반을 마련하였다.
+| Symbol             | Description                                                         | Unit        |
+| :----------------- | :------------------------------------------------------------------ | :---------- |
+| $X$              | Design variable vector                                              | -           |
+| $C_{id}, B_{id}$ | Index of column and beam section in the database                    | -           |
+| $R_{dir}$        | Binary variable for column rotation (0: 0°, 1: 90°)               | -           |
+| $f_1, f_2$       | First (Economy/CO2) and second (Serviceability) objective functions | -           |
+| $Cost(X)$        | Total construction cost of the frame                                | KRW         |
+| $CO_2(X)$        | Total embodied carbon dioxide emissions                             | $kgCO_2e$ |
+| $V_{c,k}$        | Concrete volume of the$k$-th member                               | $m^3$     |
+| $W_{s,k}$        | Reinforcement steel weight of the$k$-th member                    | $ton$     |
+| $A_{f,k}$        | Formwork area of the$k$-th member                                 | $m^2$     |
+| $C_{i}, E_{i}$   | Unit cost and CO2 emission factor for material$i$                 | -           |
+| $\gamma_c$       | Unit weight of concrete ($2,400 \, kg/m^3$)                       | $kg/m^3$  |
+| $\Delta_{i,j,k}$ | Story drift at node$j$, floor $k$, in direction $i$           | $mm$      |
+| $H_k$            | Height of the$k$-th story                                         | $mm$      |
+| $\theta_{all}$   | Allowable story drift ratio (0.020 rad)                             | rad         |
+| $g_i(X)$         | The$i$-th structural constraint function                          | -           |
+| $\Phi(X)$        | Total amount of constraint violations                               | -           |
+| $P_c, P_m$       | Crossover and mutation probabilities                                | -           |
+| $f_{ck}, f_y$    | Design compressive strength of concrete and yield strength of steel | MPa         |
+| $\rho$           | Reinforcement ratio                                                 | %           |
+
+## Declarations
+
+**Conflict of Interest**
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+**Data Availability**
+The section database and optimization results generated during the current study are available from the corresponding author on reasonable request.
+
+**Author Contributions**
+**Author A:** Conceptualization, Methodology, Software, Writing - Original Draft; **Author B:** Supervision, Writing - Review & Editing.
 
 ## References
 
