@@ -120,8 +120,8 @@ $$
 
 상세 설계 단계에서 기둥과 보의 배근 로직은 실무 설계 지침과 ACI 318-19 규정을 반영하여 다음과 같은 통합적인 프로세스로 수행된다.
 
-*   **Column detailing:** 기둥 단면은 4개의 코너 철근 배치를 시작으로, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 주철근을 쌍(Pair)으로 추가 분배한다. 이 과정에서 하중의 특성과 단면 형상에 따라 철근이 특정 축에 집중되는 **일방향(Uniaxial) 배근** 또는 모든 면에 균등하게 배치되는 **양방향(Biaxial) 배근** 패턴이 생성된다. 주철근의 순간격이 규정치를 초과할 경우 보조 대근(Crossties)을 자동으로 배치하여 횡구속 성능을 확보하며, 변형률 적합 조건(Strain compatibility)을 기반으로 강축과 약축 방향의 $P-M$ 상관도 해석을 수행하여 단면 성능을 정량화한다.
-*   **Beam detailing:** 보 단면은 설계 모멘트 요구량에 따라 인장 및 압축 철근의 기여도를 정밀하게 고려하는 **복근보(Doubly reinforced beam)** 이론을 기반으로 설계된다. 이는 내진 골조의 연성(Ductility) 확보와 실무적인 배근 관행을 반영하기 위함이며, 철근의 다층 배치 시 발생하는 순간격 변화와 실제 유효 깊이($d$)를 실시간으로 갱신하여 휨 내력($M_n$) 산정의 정밀도를 확보한다. 전단 강도는 콘크리트 전단 기여분과 스터럽의 기여분을 합산하여 산출하며, 스터럽 간격은 규정된 최대 제한치를 엄격히 준수하도록 설계하였다.
+* **Column detailing (Steps C1-C3):** 기둥 단면은 4개의 코너 철근 배치를 시작으로, 목표 철근비에 맞춰 전·후면 및 좌·우측 면에 주철근을 쌍(Pair)으로 추가 분배한다. 이 과정에서 하중의 특성과 단면 형상에 따라 철근이 특정 축에 집중되는 **일방향(Uniaxial) 배근** 또는 모든 면에 균등하게 배치되는 **양방향(Biaxial) 배근** 패턴이 생성된다. 주철근의 순간격이 규정치를 초과할 경우 보조 대근(Crossties)을 자동으로 배치하여 횡구속 성능을 확보하며, 변형률 적합 조건(Strain compatibility)을 기반으로 강축과 약축 방향의 $P-M$ 상관도 해석을 수행하여 단면 성능을 정량화한다.
+* **Beam detailing (Steps B1-B3):** 보 단면은 설계 모멘트 요구량에 따라 인장 및 압축 철근의 기여도를 정밀하게 고려하는 **복근보(Doubly reinforced beam)** 이론을 기반으로 설계된다. 이는 내진 골조의 연성(Ductility) 확보와 실무적인 배근 관행을 반영하기 위함이며, 철근의 다층 배치 시 발생하는 순간격 변화와 실제 유효 깊이($d$)를 실시간으로 갱신하여 휨 내력($M_n$) 산정의 정밀도를 확보한다. 전단 강도는 콘크리트 전단 기여분과 스터럽의 기여분을 합산하여 산출하며, 스터럽 간격은 규정된 최대 제한치를 엄격히 준수하도록 설계하였다.
 
 생성된 모든 단면은 단위 길이(1m)당 공사비와 탄소 배출량을 자동으로 산출한다. 탄소 배출량은 재료별 내재탄소 배출계수(ECF)와 단위 중량을 결합한 질량 기반 산정 방식을 적용하여 신뢰도를 높였으며, 구조 해석 모델의 하중 데이터로 활용하기 위해 각 단면의 단위 중량(UnitWeight)을 함께 도출한다.
 
@@ -176,49 +176,7 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 6. Conclusions
 
-본 연구에서는 실무적인 구조 설계 조건과 시공성을 엄격히 반영한 '3차원 RC 프레임 전용 다중목적 최적화 프레임워크'를 개발하고 그 효용성을 검증하였다. 연구를 통해 도출된 주요 결론은 다음과 같다.
-
-1. **실무적 설계 변수의 확장:** 기존 연구에서 고정된 상수로 취급되던 기둥의 회전 방향을 이진 설계 변수($R_{dir}$)로 도입함으로써, 알고리즘이 3차원 공간상의 비대칭 하중 및 횡력에 최적화된 강성 분포를 스스로 탐색하도록 유도하였다. 이는 정방형 단면에 국한된 기존 설계 방식 대비 재료량 절감뿐만 아니라 구조적 저항 성능의 향상을 동시에 달성하는 핵심 기제로 작용하였다.
-2. **정밀 데이터베이스 기반의 신뢰도 확보:** ACI 318-19 규정을 준수한 자동 배근 알고리즘을 통해 보조 대근, 표피 철근, 내진 상세 갈고리 등을 포함한 정밀 데이터베이스를 구축하였다. 이를 통해 최적화 결과로 도출된 단면이 별도의 수정 없이 실제 시공 현장에 즉각 적용 가능한 수준의 물량 정보와 상세를 포함하도록 하여, 최적화 모델과 실제 시공 간의 간극을 획기적으로 줄였다.
-3. **알고리즘의 안정성 및 효율성:** 하이퍼볼륨 지표 기반의 5단계 순차적 매개변수 연구를 통해 3차원 RC 프레임 최적화에 특화된 NSGA-II 하이퍼파라미터 조합을 도출하였다. 통계적 검증 결과, 제안된 프레임워크는 매우 낮은 변동 계수를 기록하며 광범위한 이산적 설계 공간 내에서도 전역 최적해 근사치로의 일관된 수렴 성능을 보여주었다.
-4. **다중목적 의사결정 지원:** 경제성(공사비 및 탄소 배출량)과 구조 성능(층간변위) 사이의 명확한 트레이드-오프(Trade-off) 관계를 파레토 프런트로 제시함으로써, 설계자가 프로젝트의 우선순위에 따라 데이터에 기반한 합리적인 의사결정을 내릴 수 있는 도구를 제공하였다.
-
-본 연구의 결과는 고도화된 메타heuristic 알고리즘이 복잡한 실무 설계 관행과 결합될 때 발생하는 시너지를 보여주며, 향후 탄소 중립 및 공기 단축이 중시되는 스마트 건설 환경에서 RC 구조물의 최적 설계를 위한 원천 기술로 활용될 것으로 기대된다. 후속 연구에서는 기둥-보 접합부의 전단 성능 검토와 전단벽 시스템이 통합된 복합 구조 시스템으로의 확장을 도모할 예정이다.
-
-## Nomenclature
-
-| Symbol             | Description                                                         | Unit        |
-| :----------------- | :------------------------------------------------------------------ | :---------- |
-| $X$              | Design variable vector                                              | -           |
-| $C_{id}, B_{id}$ | Index of column and beam section in the database                    | -           |
-| $R_{dir}$        | Binary variable for column rotation (0: 0°, 1: 90°)               | -           |
-| $f_1, f_2$       | First (Economy/CO2) and second (Serviceability) objective functions | -           |
-| $Cost(X)$        | Total construction cost of the frame                                | KRW         |
-| $CO_2(X)$        | Total embodied carbon dioxide emissions                             | $kgCO_2e$ |
-| $V_{c,k}$        | Concrete volume of the$k$-th member                               | $m^3$     |
-| $W_{s,k}$        | Reinforcement steel weight of the$k$-th member                    | $ton$     |
-| $A_{f,k}$        | Formwork area of the$k$-th member                                 | $m^2$     |
-| $C_{i}, E_{i}$   | Unit cost and CO2 emission factor for material$i$                 | -           |
-| $\gamma_c$       | Unit weight of concrete ($2,400 \, kg/m^3$)                       | $kg/m^3$  |
-| $\Delta_{i,j,k}$ | Story drift at node$j$, floor $k$, in direction $i$           | $mm$      |
-| $H_k$            | Height of the$k$-th story                                         | $mm$      |
-| $\theta_{all}$   | Allowable story drift ratio (0.020 rad)                             | rad         |
-| $g_i(X)$         | The$i$-th structural constraint function                          | -           |
-| $\Phi(X)$        | Total amount of constraint violations                               | -           |
-| $P_c, P_m$       | Crossover and mutation probabilities                                | -           |
-| $f_{ck}, f_y$    | Design compressive strength of concrete and yield strength of steel | MPa         |
-| $\rho$           | Reinforcement ratio                                                 | %           |
-
-## Declarations
-
-**Conflict of Interest**
-The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
-
-**Data Availability**
-The section database and optimization results generated during the current study are available from the corresponding author on reasonable request.
-
-**Author Contributions**
-**Author A:** Conceptualization, Methodology, Software, Writing - Original Draft; **Author B:** Supervision, Writing - Review & Editing.
+(To be rewritten based on new results)
 
 ## References
 
