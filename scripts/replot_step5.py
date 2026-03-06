@@ -39,10 +39,11 @@ def replot_step5(base_dir, output_path, target_norm=0.02):
     worst_size = hv_df.loc[hv_df['Hypervolume'].idxmin(), 'Pop_Size']
 
     # 2. Pareto 데이터 수집 및 시각화
-    plt.figure(figsize=(10, 7))
+    plt.figure(figsize=(8, 6))
     markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     
+    all_obj2_norms = []
     for i, size in enumerate(pop_sizes):
         csv_name = f"Step5_Pop_{size}_Pareto.csv"
         csv_path = os.path.join(base_dir, csv_name)
@@ -53,6 +54,7 @@ def replot_step5(base_dir, output_path, target_norm=0.02):
         y_col = 'Obj1_NormCostCO2' if 'Obj1_NormCostCO2' in df.columns else ('obj1' if 'obj1' in df.columns else 'obj1')
         
         df['Obj2_Norm'] = df[x_col] / target_norm
+        all_obj2_norms.extend(df['Obj2_Norm'].tolist())
         
         label_str = f"Pop {size}"
         color = colors[i % len(colors)]
@@ -82,6 +84,13 @@ def replot_step5(base_dir, output_path, target_norm=0.02):
     plt.xlabel('Objective 2 (Normalized Max. Drift Ratio)')
     plt.ylabel(r'Objective 1 (Normalized Cost + CO$_2$)')
     plt.legend(frameon=True, loc='upper right', ncol=2, fontsize=10)
+    
+    # X축 범위 조정: 모든 데이터의 min/max에 맞게 자동 스케일링 (좌우 5% 여백)
+    if all_obj2_norms:
+        x_min, x_max = min(all_obj2_norms), max(all_obj2_norms)
+        x_margin = (x_max - x_min) * 0.05 if x_max != x_min else x_max * 0.05
+        plt.xlim(x_min - x_margin, x_max + x_margin)
+        
     plt.tight_layout()
     
     plt.savefig(output_path)

@@ -170,9 +170,35 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 5. Results and Discussion
 
+## 5. Results and Discussion
+
 ### 5.1 Analysis of Pareto Fronts and Representative Optimized Designs
 
-(To be rewritten based on new results)
+본 절에서는 제안된 3차원 RC 프레임 최적화 프레임워크를 4층(Example 1) 및 6층(Example 2) 벤치마크 구조물에 적용하여 도출된 다중목적 최적화 결과를 분석한다. 최적화 과정에서 총 공사비 및 탄소 배출량의 통합 정규화 지표($f_1$)와 최대 층간변위비($f_2$)를 상충하는 목적으로 설정하였으며, NSGA-II 알고리즘을 통해 수렴된 파레토 최적해(Pareto Front)를 도출하였다.
+
+#### 5.1.1 Pareto Front and Convergence Characteristics
+Figure 7과 Figure 8은 각각 4층 및 6층 예제에 대한 목적 함수 공간(Objective Space)에서의 파레토 프런트와 하이퍼볼륨(HV) 수렴 과정을 보여준다. 모든 예제에서 경제성($f_1$)과 구조적 성능($f_2$) 사이의 명확한 트레이드오프(Trade-off) 관계가 확인되었다.
+
+4층 예제(Example 1)의 경우, 파레토 요약 데이터(`pareto_summary.csv`) 분석 결과 비용 중심 설계(Solution ID 1)는 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으며, 강성 중심 설계(Solution ID 21)는 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하였다. 하이퍼볼륨 지표는 초기에 급격히 상승하여 약 40세대 부근에서 5.2 이상의 값으로 안정화되었으며, 이는 알고리즘이 방대한 설계 공간 내에서 유효한 해를 빠르게 탐색했음을 의미한다.
+
+6층 예제(Example 2)에서는 층수 증가에 따른 횡력 저항 요구 조건으로 인해 파레토 해들이 상대적으로 높은 비용 구간에 밀집되는 경향을 보였다. 최대 층간변위비는 0.95%에서 1.70% 사이에서 형성되었으며, 비용 지표는 0.19에서 0.26 사이로 수렴하며 구조적 서비스 가능성과 경제성 사이의 최적 균형점들을 제시하였다.
+
+![Figure 7. Pareto results 4F](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
+**Figure 7. Multi-objective optimization results for the 4-story frame: Pareto front in the objective space and hypervolume convergence history.**
+
+![Figure 8. Pareto results 6F](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_objective_space.png)
+**Figure 8. Multi-objective optimization results for the 6-story frame: Pareto front in the objective space and hypervolume convergence history.**
+
+#### 5.1.2 Comparison of Representative Optimized Designs
+파레토 프런트의 양단에 위치한 설계안들의 부재 할당 현황을 분석함으로써, 알고리즘의 지능적인 단면 선택 및 회전 전략을 확인하였다. 4층 예제의 상세 데이터 분석 결과, 공사비 최소화 설계안(ID 1)은 평균 DCR을 0.089 수준으로 유지하며 재료 효율성을 극대화한 반면, 강성 극대화 설계안(ID 20)은 1층 및 2층의 하부 기둥에 대형 단면을 집중 배치하고 기둥의 강축 방향($R_{dir}$)을 횡력이 집중되는 방향으로 능동적으로 회전시켜 시스템 전체의 강성을 확보하였다.
+
+Figure 9와 Figure 10은 향후 분석 예정인 8층 예제의 목적 함수 공간 및 솔루션 공간 분포를 미리 보여준다. 층수가 높아짐에 따라 설계 변수의 복잡도가 증가함에도 불구하고, 제안된 프레임워크가 일관된 파레토 전선을 형성할 수 있음을 시사한다.
+
+![Figure 9. 8F Objective Space](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_objective_space.png)
+**Figure 9. Pareto front in the objective space for the 8-story benchmark frame.**
+
+![Figure 10. 8F Solution Space](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_solution_space_new.png)
+**Figure 10. Actual cost vs. CO2 emission distribution for the 8-story Pareto solutions.**
 
 ### 5.2 Comparative Analysis: Effect of Separate Column Rotation Variables
 

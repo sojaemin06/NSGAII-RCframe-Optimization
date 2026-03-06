@@ -75,9 +75,10 @@ def replot_pareto(csv_path, output_path, target_norm=0.02):
     plt.ylabel(r'Objective 1 (Normalized Cost + CO$_2$)')
     plt.legend(frameon=True, loc='upper right')
     
-    # X축 범위 조정
-    current_xmax = df['Obj2_Norm'].max()
-    plt.xlim(left=0, right=max(1.05, current_xmax * 1.05))
+    # X축 범위 조정: 데이터에 맞게 자동 스케일링 (좌우 5% 여백)
+    x_min, x_max = df['Obj2_Norm'].min(), df['Obj2_Norm'].max()
+    x_margin = (x_max - x_min) * 0.05 if x_max != x_min else x_max * 0.05
+    plt.xlim(x_min - x_margin, x_max + x_margin)
 
     plt.tight_layout()
     plt.savefig(output_path)
