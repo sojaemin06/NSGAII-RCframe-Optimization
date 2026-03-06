@@ -170,35 +170,25 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 5. Results and Discussion
 
-## 5. Results and Discussion
-
-### 5.1 Analysis of Pareto Fronts for 4-Story and 6-Story Frames
+### 5.1 Analysis of Pareto Fronts for 4-Story, 6-Story, and 8-Story Frames
 
 본 연구에서 제안한 최적화 프레임워크를 4층(Example 1) 및 6층(Example 2) RC 모멘트 골조 예제에 적용한 결과, 목적 함수 공간에서 명확한 파레토 프런트(Pareto Front)가 도출되었다. 모든 예제에서 총 공사비 및 탄소 배출량의 통합 정규화 지표($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 트레이드오프(Trade-off) 관계가 확인되었다.
 
-Figure 7은 4층 및 6층 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하여 구조적 성능을 약 3배가량 향상시켰다. 반면 6층 예제(Figure 7b)에서는 층수 증가에 따른 최소 강성 요구 조건으로 인해 파레토 해들이 상대적으로 좁은 비용 구간(약 4,683만 원 ~ 5,186만 원)에 밀집되는 경향을 보였다. 이는 건물의 규모가 커질수록 구조적 안전성 제약 조건이 설계 공간을 더욱 압축하며, 경제성과 성능 사이의 선택 폭이 고층화될수록 정교해짐을 시사한다.
+Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하여 구조적 성능을 약 3배가량 향상시켰다. 반면 6층 예제(Figure 7b)에서는 층수 증가에 따른 최소 강성 요구 조건으로 인해 파레토 해들이 상대적으로 좁은 비용 구간(약 4,683만 원 ~ 5,186만 원)에 밀집되는 경향을 보였다. 이는 건물의 규모가 커질수록 구조적 안전성 제약 조건이 설계 공간을 더욱 압축하며, 경제성과 성능 사이의 선택 폭이 고층화될수록 정교해짐을 시사한다. 8층 예제(Figure 7c)에 대한 결과 분석은 해석 완료 후 추가될 예정이다.
 
-![Figure 7. Pareto fronts for (a) 4-story and (b) 6-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
+![Figure 7. Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
 **(a)**
 ![Figure 7b. 6F Pareto](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_objective_space.png)
 **(b)**
-**Figure 7. Multi-objective optimization results in the objective space: Pareto fronts for (a) 4-story and (b) 6-story benchmark structures.**
+**Figure 7. Multi-objective optimization results in the objective space: Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story benchmark structures.**
 
-Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 두 지표는 모든 예제에서 매우 강한 양의 상관관계를 보였으며, 이는 공사비와 환경 영향성을 하나의 통합 지표로 관리하는 본 연구의 방식이 실무적으로 타당함을 입증한다. 4층 예제(Figure 8a)에서는 고강성 설계로 갈수록 재료 투입량이 급격히 늘어나며 탄소 배출량이 최대 2.7배까지 증가하는 양상을 보인 반면, 6층 예제(Figure 8b)는 제한된 설계 공간 내에서 최적의 재료 분배를 통해 탄소 배출량의 변동 폭을 최소화하면서도 목표 성능을 달성하는 해들을 도출하였다.
+Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 두 지표는 모든 예제에서 매우 강한 양의 상관관계를 보였으며, 이는 공사비와 환경 영향성을 하나의 통합 지표로 관리하는 본 연구의 방식이 실무적으로 타당함을 입증한다. 4층 예제(Figure 8a)에서는 고강성 설계로 갈수록 재료 투입량이 급격히 늘어나며 탄소 배출량이 최대 2.7배까지 증가하는 양상을 보인 반면, 6층 예제(Figure 8b)는 제한된 설계 공간 내에서 최적의 재료 분배를 통해 탄소 배출량의 변동 폭을 최소화하면서도 목표 성능을 달성하는 해들을 도출하였다. 8층 예제(Figure 8c) 역시 유사한 경향을 보일 것으로 기대된다.
 
-![Figure 8. Solution space for (a) 4-story and (b) 6-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_solution_space_new.png)
+![Figure 8. Solution space for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_solution_space_new.png)
 **(a)**
 ![Figure 8b. 6F Solution Space](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_solution_space_new.png)
 **(b)**
-**Figure 8. Distribution of Pareto solutions in the physical space (Total Cost vs. CO2): (a) 4-story and (b) 6-story cases.**
-
-Figure 9와 Figure 10은 8층 예제의 결과를 보여주며, 건물의 규모가 확장됨에도 불구하고 본 프레임워크가 일관된 최적화 성능과 파레토 전선을 유지함을 시사한다.
-
-![Figure 9. 8F Objective Space](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_objective_space.png)
-**Figure 9. Pareto front in the objective space for the 8-story benchmark frame.**
-
-![Figure 10. 8F Solution Space](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_solution_space_new.png)
-**Figure 10. Actual cost vs. CO2 emission distribution for the 8-story Pareto solutions.**
+**Figure 8. Distribution of Pareto solutions in the physical space (Total Cost vs. CO2): (a) 4-story, (b) 6-story, and (c) 8-story cases.**
 
 ### 5.2 Detailed Comparative Analysis of Representative 4-Story Designs
 
@@ -206,24 +196,26 @@ Figure 9와 Figure 10은 8층 예제의 결과를 보여주며, 건물의 규모
 
 **Table 4. Comparison of design variable vectors for Solution ID 1 and ID 20 (4-Story).**
 
-| Category | Floor | Group / Position | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
-| :--- | :--- | :--- | :---: | :---: |
-| **Column ID** | 1F | Corner (Grp 0) / Interior (Grp 2) | 4 / 15 | 676 / 402 |
-| | 4F | Corner (Grp 9) / Interior (Grp 11) | 201 / 28 | 640 / 238 |
-| **Rotation** | 1F | Corner (Grp 0) / Interior (Grp 2) | 90° / 90° | 90° / 90° |
-| (0°/90°) | 2F | Corner (Grp 3) / Edge (Grp 4) | 0° / 90° | 90° / 0° |
-| **Beam ID** | 1F | Exterior (Grp 0) / Interior (Grp 1) | 71 / 27 | 436 / 351 |
-| | 4F | Exterior (Grp 6) / Interior (Grp 7) | 60 / 6 | 404 / 436 |
+| Category            | Floor | Group / Position                    | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
+| :------------------ | :---- | :---------------------------------- | :----------------------------------: | :---------------------------------------: |
+| **Column ID** | 1F    | Corner (Grp 0) / Interior (Grp 2)   |                4 / 15                |                 676 / 402                 |
+|                     | 4F    | Corner (Grp 9) / Interior (Grp 11)  |               201 / 28               |                 640 / 238                 |
+| **Rotation**  | 1F    | Corner (Grp 0) / Interior (Grp 2)   |             90° / 90°             |                90° / 90°                |
+| (0°/90°)          | 2F    | Corner (Grp 3) / Edge (Grp 4)       |              0° / 90°              |                90° / 0°                |
+| **Beam ID**   | 1F    | Exterior (Grp 0) / Interior (Grp 1) |               71 / 27               |                 436 / 351                 |
+|                     | 4F    | Exterior (Grp 6) / Interior (Grp 7) |                60 / 6                |                 404 / 436                 |
 
 #### 5.2.1 Solution ID 1: Economical Design (비용 중심 설계)
+
 Solution 1은 제약 조건을 만족하는 범위 내에서 물량을 최소화하는 극단적인 전략을 취한다. 1층 내부 기둥에 상대적으로 작은 단면(ID 15)을 배치하고, 보 부재 역시 데이터베이스 내에서 하위 인덱스에 해당하는 경제적 단면들을 선택하였다. 특징적인 점은 기둥의 회전 변수($R_{dir}$)를 활용하여 체커보드 하중 패턴에 의해 발생하는 불균형 모멘트 방향으로 강축을 적절히 배치함으로써, 단면 크기를 대폭 키우지 않고도 구조적 유효성을 확보했다는 점이다. 이 설계안의 평균 부재 응력비(Mean DCR)는 약 0.089로 나타났다.
 
 #### 5.2.2 Solution ID 20: High-Stiffness Design (강성 중심 설계)
+
 반면 Solution 20은 공사비 상승을 감수하더라도 건물의 강성을 극대화하는 데 집중한다. 기둥 단면으로 ID 676, 774와 같은 대형 직사각형 단면을 대거 채택하였으며, 특히 하부층(1-2층) 기둥의 강축 방향을 횡력이 집중되는 축에 대해 전략적으로 배분하였다. 보 단면 또한 강성이 큰 ID 400번대의 단면들을 사용하여 접합부 강성을 확보하였다. 그 결과, 최대 층간변위비는 0.64%로 억제되었으며, 이는 지진 발생 시 구조물의 비구조 요소 손상을 최소화할 수 있는 높은 서비스 가능성을 제공한다.
 
 ### 5.3 Behavioral Observations and DCR Distribution
 
-모든 예제에서 부재 DCR(Demand-Capacity Ratio)은 1.0 이하를 유지하여 구조적 안전성을 확보하였다. 특히 경제적 설계안으로 갈수록 DCR 분포가 0.7~0.9 구간으로 이동하며 재료 효율성이 극대화되는 양상이 관찰되었다. 이는 NSGA-II 알고리즘이 제약 조건 경계면(Constraint boundary)을 따라 매우 정밀하게 최적해를 탐색했음을 입증한다. 
+모든 예제에서 부재 DCR(Demand-Capacity Ratio)은 1.0 이하를 유지하여 구조적 안전성을 확보하였다. 특히 경제적 설계안으로 갈수록 DCR 분포가 0.7~0.9 구간으로 이동하며 재료 효율성이 극대화되는 양상이 관찰되었다. 이는 NSGA-II 알고리즘이 제약 조건 경계면(Constraint boundary)을 따라 매우 정밀하게 최적해를 탐색했음을 입증한다.
 
 또한, 기둥 회전 변수의 도입은 특히 편심 하중이 작용하는 외곽 기둥(Edge Column)에서 두드러진 효과를 보였다. 알고리즘은 외곽 보에서 전달되는 일방향 모멘트의 방향에 맞춰 기둥의 강축을 자동 정렬함으로써 부재의 2축 휨 저항 능력을 최적화하였다. 이러한 거동은 3차원 프레임 최적화에서 기둥 방향성이 경제성과 성능 모두에 결정적인 영향을 미치는 핵심 변수임을 시사한다.
 
@@ -318,12 +310,14 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 본 부록에서는 5.2절에서 분석된 4층 예제의 두 가지 대표 설계안(Solution ID 1, Solution ID 20)에 대한 부재별 상세 배근 정보를 제공한다.
 
 ### B.1 Solution ID 1 (Economical Design)
-*   **Column Reinforcement:** 주로 최소 철근비(1.0%)에 근접한 배근이 이루어졌으며, 단면 크기를 최소화하는 대신 고강도 철근(SD500)을 활용하여 내력을 확보하였다.
-*   **Beam Reinforcement:** 휨 모멘트 요구량에 맞춘 정밀 복근 배근이 적용되었으며, 스터럽 간격은 전단력 분포에 따라 최적화되었다.
+
+* **Column Reinforcement:** 주로 최소 철근비(1.0%)에 근접한 배근이 이루어졌으며, 단면 크기를 최소화하는 대신 고강도 철근(SD500)을 활용하여 내력을 확보하였다.
+* **Beam Reinforcement:** 휨 모멘트 요구량에 맞춘 정밀 복근 배근이 적용되었으며, 스터럽 간격은 전단력 분포에 따라 최적화되었다.
 
 ### B.2 Solution ID 20 (High-Stiffness Design)
-*   **Column Reinforcement:** 대형 단면과 함께 고배근(2.5~4.0%)이 적용되어 횡강성을 극대화하였다. 특히 1, 2층 내부 기둥에는 연성 확보를 위한 조밀한 보조 대근 배치가 특징이다.
-*   **Beam Reinforcement:** 강성이 큰 단면과 함께 충분한 주철근량이 배치되어 접합부의 모멘트 재분배 능력을 높였다.
+
+* **Column Reinforcement:** 대형 단면과 함께 고배근(2.5~4.0%)이 적용되어 횡강성을 극대화하였다. 특히 1, 2층 내부 기둥에는 연성 확보를 위한 조밀한 보조 대근 배치가 특징이다.
+* **Beam Reinforcement:** 강성이 큰 단면과 함께 충분한 주철근량이 배치되어 접합부의 모멘트 재분배 능력을 높였다.
 
 ## References
 
