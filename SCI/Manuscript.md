@@ -170,11 +170,11 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ## 5. Results and Discussion
 
-### 5.1 Analysis of Pareto Fronts for 4-Story, 6-Story, and 8-Story Frames
+### 5.1 Multi-Objective Optimization Results and Representative Design Analysis
 
-본 연구에서 제안한 최적화 프레임워크를 4층(Example 1) 및 6층(Example 2) RC 모멘트 골조 예제에 적용한 결과, 목적 함수 공간에서 명확한 파레토 프런트(Pareto Front)가 도출되었다. 모든 예제에서 총 공사비 및 탄소 배출량의 통합 정규화 지표($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 트레이드오프(Trade-off) 관계가 확인되었다.
+본 연구에서 제안한 최적화 프레임워크를 4층(Example 1) 및 6층(Example 2) RC 모멘트 골조 예제에 적용한 결과, 목적 함수 공간에서 명확한 파레토 프런트(Pareto Front)가 도출되었다. 모든 예제에서 총 공사비 및 탄소 배출량의 통합 정규화 지표($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 트레이드오프(Trade-off) 관계가 확인되었다. Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하여 구조적 성능을 약 3배가량 향상시켰다. 반면 6층 예제(Figure 7b)에서는 층수 증가에 따른 최소 강성 요구 조건으로 인해 파레토 해들이 상대적으로 좁은 비용 구간(약 4,683만 원 ~ 5,186만 원)에 밀집되는 경향을 보였다. 이는 건물의 규모가 커질수록 구조적 안전성 제약 조건이 설계 공간을 더욱 압축하며, 경제성과 성능 사이의 선택 폭이 고층화될수록 정교해짐을 시사한다. 8층 예제(Figure 7c)에 대한 결과 분석은 해석 완료 후 추가될 예정이다.
 
-Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하여 구조적 성능을 약 3배가량 향상시켰다. 반면 6층 예제(Figure 7b)에서는 층수 증가에 따른 최소 강성 요구 조건으로 인해 파레토 해들이 상대적으로 좁은 비용 구간(약 4,683만 원 ~ 5,186만 원)에 밀집되는 경향을 보였다. 이는 건물의 규모가 커질수록 구조적 안전성 제약 조건이 설계 공간을 더욱 압축하며, 경제성과 성능 사이의 선택 폭이 고층화될수록 정교해짐을 시사한다. 8층 예제(Figure 7c)에 대한 결과 분석은 해석 완료 후 추가될 예정이다.
+Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 두 지표는 모든 예제에서 매우 강한 양의 상관관계를 보였으며, 이는 공사비와 환경 영향성을 하나의 통합 지표로 관리하는 본 연구의 방식이 실무적으로 타당함을 입증한다. 4층 예제(Figure 8a)에서는 고강성 설계로 갈수록 재료 투입량이 급격히 늘어나며 탄소 배출량이 최대 2.7배까지 증가하는 양상을 보인 반면, 6층 예제(Figure 8b)는 제한된 설계 공간 내에서 최적의 재료 분배를 통해 탄소 배출량의 변동 폭을 최소화하면서도 목표 성능을 달성하는 해들을 도출하였다. 8층 예제(Figure 8c) 역시 유사한 경향을 보일 것으로 기대된다.
 
 ![Figure 7. Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
 **(a)**
@@ -182,44 +182,32 @@ Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런�
 **(b)**
 **Figure 7. Multi-objective optimization results in the objective space: Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story benchmark structures.**
 
-Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 두 지표는 모든 예제에서 매우 강한 양의 상관관계를 보였으며, 이는 공사비와 환경 영향성을 하나의 통합 지표로 관리하는 본 연구의 방식이 실무적으로 타당함을 입증한다. 4층 예제(Figure 8a)에서는 고강성 설계로 갈수록 재료 투입량이 급격히 늘어나며 탄소 배출량이 최대 2.7배까지 증가하는 양상을 보인 반면, 6층 예제(Figure 8b)는 제한된 설계 공간 내에서 최적의 재료 분배를 통해 탄소 배출량의 변동 폭을 최소화하면서도 목표 성능을 달성하는 해들을 도출하였다. 8층 예제(Figure 8c) 역시 유사한 경향을 보일 것으로 기대된다.
-
 ![Figure 8. Solution space for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_solution_space_new.png)
 **(a)**
 ![Figure 8b. 6F Solution Space](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_solution_space_new.png)
 **(b)**
 **Figure 8. Distribution of Pareto solutions in the physical space (Total Cost vs. CO2): (a) 4-story, (b) 6-story, and (c) 8-story cases.**
 
-### 5.2 Detailed Comparative Analysis of Representative 4-Story Designs
+최적화 알고리즘이 탐색한 설계 전략을 심층적으로 분석하기 위해, 4층 예제의 파레토 양 극단에 위치한 두 가지 대표 설계안(Solution ID 1, Solution ID 20)을 선정하여 비교하였다. 두 설계안의 상세 설계 변수 구성은 Table 4와 같다. Solution 1은 제약 조건을 만족하는 범위 내에서 물량을 최소화하는 극단적인 전략을 취한다. 1층 내부 기둥에 상대적으로 작은 단면(ID 15)을 배치하고, 보 부재 역시 데이터베이스 내에서 하위 인덱스에 해당하는 경제적 단면들을 선택하였다. 특징적인 점은 기둥의 회전 변수($R_{dir}$)를 활용하여 체커보드 하중 패턴에 의해 발생하는 불균형 모멘트 방향으로 강축을 적절히 배치함으로써, 단면 크기를 대폭 키우지 않고도 구조적 유효성을 확보했다는 점이다. 이 설계안의 평균 부재 응력비(Mean DCR)는 약 0.089로 나타났다.
 
-최적화 알고리즘이 탐색한 설계 전략을 심층적으로 분석하기 위해, 4층 예제의 파레토 양 극단에 위치한 두 가지 대표 설계안(Solution ID 1, Solution ID 20)을 선정하여 비교하였다. 두 설계안의 상세 설계 변수 구성은 Table 4와 같다.
+반면 Solution 20은 공사비 상승을 감수하더라도 건물의 강성을 극대화하는 데 집중한다. 기둥 단면으로 ID 676, 774와 같은 대형 직사각형 단면을 대거 채택하였으며, 특히 하부층(1-2층) 기둥의 강축 방향을 횡력이 집중되는 축에 대해 전략적으로 배분하였다. 보 단면 또한 강성이 큰 ID 400번대의 단면들을 사용하여 접합부 강성을 확보하였다. 그 결과, 최대 층간변위비는 0.64%로 억제되었으며, 이는 지진 발생 시 구조물의 비구조 요소 손상을 최소화할 수 있는 높은 서비스 가능성을 제공한다. 모든 예제에서 부재 DCR(Demand-Capacity Ratio)은 1.0 이하를 유지하여 구조적 안전성을 확보하였다. 특히 경제적 설계안으로 갈수록 DCR 분포가 0.7~0.9 구간으로 이동하며 재료 효율성이 극대화되는 양상이 관찰되었다. 이는 NSGA-II 알고리즘이 제약 조건 경계면(Constraint boundary)을 따라 매우 정밀하게 최적해를 탐색했음을 입증한다. 또한, 기둥 회전 변수의 도입은 특히 편심 하중이 작용하는 외곽 기둥(Edge Column)에서 두드러진 효과를 보였다. 알고리즘은 외곽 보에서 전달되는 일방향 모멘트의 방향에 맞춰 기둥의 강축을 자동 정렬함으로써 부재의 2축 휨 저항 능력을 최적화하였다.
 
 **Table 4. Comparison of design variable vectors for Solution ID 1 and ID 20 (4-Story).**
 
-| Category            | Floor | Group / Position                    | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
-| :------------------ | :---- | :---------------------------------- | :----------------------------------: | :---------------------------------------: |
-| **Column ID** | 1F    | Corner (Grp 0) / Interior (Grp 2)   |                4 / 15                |                 676 / 402                 |
-|                     | 4F    | Corner (Grp 9) / Interior (Grp 11)  |               201 / 28               |                 640 / 238                 |
-| **Rotation**  | 1F    | Corner (Grp 0) / Interior (Grp 2)   |             90° / 90°             |                90° / 90°                |
-| (0°/90°)          | 2F    | Corner (Grp 3) / Edge (Grp 4)       |              0° / 90°              |                90° / 0°                |
-| **Beam ID**   | 1F    | Exterior (Grp 0) / Interior (Grp 1) |               71 / 27               |                 436 / 351                 |
-|                     | 4F    | Exterior (Grp 6) / Interior (Grp 7) |                60 / 6                |                 404 / 436                 |
+| Category | Floor | Group / Position | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
+| :--- | :--- | :--- | :---: | :---: |
+| **Column ID** | 1F | Corner (Grp 0) / Interior (Grp 2) | 4 / 15 | 676 / 402 |
+| | 4F | Corner (Grp 9) / Interior (Grp 11) | 201 / 28 | 640 / 238 |
+| **Rotation** | 1F | Corner (Grp 0) / Interior (Grp 2) | 90° / 90° | 90° / 90° |
+| (0°/90°) | 2F | Corner (Grp 3) / Edge (Grp 4) | 0° / 90° | 90° / 0° |
+| **Beam ID** | 1F | Exterior (Grp 0) / Interior (Grp 1) | 71 / 27 | 436 / 351 |
+| | 4F | Exterior (Grp 6) / Interior (Grp 7) | 60 / 6 | 404 / 436 |
 
-#### 5.2.1 Solution ID 1: Economical Design (비용 중심 설계)
+### 5.2 Comparative Analysis: Effect of Separate Column Rotation Variables
 
-Solution 1은 제약 조건을 만족하는 범위 내에서 물량을 최소화하는 극단적인 전략을 취한다. 1층 내부 기둥에 상대적으로 작은 단면(ID 15)을 배치하고, 보 부재 역시 데이터베이스 내에서 하위 인덱스에 해당하는 경제적 단면들을 선택하였다. 특징적인 점은 기둥의 회전 변수($R_{dir}$)를 활용하여 체커보드 하중 패턴에 의해 발생하는 불균형 모멘트 방향으로 강축을 적절히 배치함으로써, 단면 크기를 대폭 키우지 않고도 구조적 유효성을 확보했다는 점이다. 이 설계안의 평균 부재 응력비(Mean DCR)는 약 0.089로 나타났다.
+(To be rewritten based on scenario comparison results)
 
-#### 5.2.2 Solution ID 20: High-Stiffness Design (강성 중심 설계)
-
-반면 Solution 20은 공사비 상승을 감수하더라도 건물의 강성을 극대화하는 데 집중한다. 기둥 단면으로 ID 676, 774와 같은 대형 직사각형 단면을 대거 채택하였으며, 특히 하부층(1-2층) 기둥의 강축 방향을 횡력이 집중되는 축에 대해 전략적으로 배분하였다. 보 단면 또한 강성이 큰 ID 400번대의 단면들을 사용하여 접합부 강성을 확보하였다. 그 결과, 최대 층간변위비는 0.64%로 억제되었으며, 이는 지진 발생 시 구조물의 비구조 요소 손상을 최소화할 수 있는 높은 서비스 가능성을 제공한다.
-
-### 5.3 Behavioral Observations and DCR Distribution
-
-모든 예제에서 부재 DCR(Demand-Capacity Ratio)은 1.0 이하를 유지하여 구조적 안전성을 확보하였다. 특히 경제적 설계안으로 갈수록 DCR 분포가 0.7~0.9 구간으로 이동하며 재료 효율성이 극대화되는 양상이 관찰되었다. 이는 NSGA-II 알고리즘이 제약 조건 경계면(Constraint boundary)을 따라 매우 정밀하게 최적해를 탐색했음을 입증한다.
-
-또한, 기둥 회전 변수의 도입은 특히 편심 하중이 작용하는 외곽 기둥(Edge Column)에서 두드러진 효과를 보였다. 알고리즘은 외곽 보에서 전달되는 일방향 모멘트의 방향에 맞춰 기둥의 강축을 자동 정렬함으로써 부재의 2축 휨 저항 능력을 최적화하였다. 이러한 거동은 3차원 프레임 최적화에서 기둥 방향성이 경제성과 성능 모두에 결정적인 영향을 미치는 핵심 변수임을 시사한다.
-
-### 5.4 Statistical Reliability and Convergence Stability
+### 5.3 Statistical Reliability and Convergence Stability
 
 (To be rewritten based on statistical validation results)
 
@@ -311,86 +299,10 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 
 ### B.1 Solution ID 1 (Economical Design)
 
-* **Column Reinforcement:** 주로 최소 철근비(1.0%)에 근접한 배근이 이루어졌으며, 단면 크기를 최소화하는 대신 고강도 철근(SD500)을 활용하여 내력을 확보하였다.
-* **Beam Reinforcement:** 휨 모멘트 요구량에 맞춘 정밀 복근 배근이 적용되었으며, 스터럽 간격은 전단력 분포에 따라 최적화되었다.
+*   **Column Reinforcement:** 주로 최소 철근비(1.0%)에 근접한 배근이 이루어졌으며, 단면 크기를 최소화하는 대신 고강도 철근(SD500)을 활용하여 내력을 확보하였다.
+*   **Beam Reinforcement:** 휨 모멘트 요구량에 맞춘 정밀 복근 배근이 적용되었으며, 스터럽 간격은 전단력 분포에 따라 최적화되었다.
 
 ### B.2 Solution ID 20 (High-Stiffness Design)
 
-* **Column Reinforcement:** 대형 단면과 함께 고배근(2.5~4.0%)이 적용되어 횡강성을 극대화하였다. 특히 1, 2층 내부 기둥에는 연성 확보를 위한 조밀한 보조 대근 배치가 특징이다.
-* **Beam Reinforcement:** 강성이 큰 단면과 함께 충분한 주철근량이 배치되어 접합부의 모멘트 재분배 능력을 높였다.
-
-## References
-
-Aga, A. A., & Adam, F. M. (2015). Design optimization of reinforced concrete frames. Open Journal of Civil Engineering, 05(01), 74–83.
-Akin, A., & Saka, M. P. (2015). Harmony search algorithm based optimum detailed design of reinforced concrete plane frames subject to ACI 318-05 provisions. Computers & Structures, 147, 79-95.
-American Society for Civil Engineering (ASCE). (2016). Mign Loads and Associated Criteria for Buildings and Other Structures, ASCE/SEI 7-16.
-Aslay, S. E., Dede, T., & Kaveh, A. (2024). Integrated design optimization process for building projects. Periodica Polytechnica Civil Engineering, 68(4), 1175-1183.
-Babaei, M., & Mollayi, M. (2016). Multi-objective optimization of reinforced concrete frames using NSGA-II algorithm. Engineering Structures and Technologies, 8(4), 157-164.
-BAI, J. L., CHEN, H. M., SUN, B. H., & JIN, S. S. (2020). Seismic uniform damage-targeted design of RC frame structures. Engineering Mechanics, 37(8), 179-188.
-Bekdaş, L., & Nigdeli, S. M. (2014, July). Optimization of RC frame structures subjected to static loading. In 11th World Congress on Computational Mechanics (pp. 20-25).
-Boscardin, J. T., Yepes, V., & Kripka, M. (2019). Optimization of reinforced concrete building frames with automated grouping of columns. Automation in Construction, 104, 331-340.
-Chaudhuri, P., Barman, S., Maity, D., & Maiti, D. K. (2021). Cost effective design of RC building frame employing unified particle swarm optimization.
-Chopra, A. K. (2017). Dynamics of Structures: Theory and Applications to Earthquake Engineering. Pearson.
-Chutani, S., & Singh, J. (2018). Use of modified hybrid PSOGSA for optimum design of RC frame. Journal of the Chinese Institute of Engineers, 41(4), 342-352.
-Coello, C. C. (2006). Evolutionary multi-objective optimization: a historical view of the field. IEEE computational intelligence magazine, 1(1), 28-36.
-Deb, K., Pratap, A., Agarwal, S., & Meyarivan, T. A. M. T. (2002). A fast and elitist multiobjective genetic algorithm: NSGA-II. IEEE transactions on evolutionary computation, 6(2), 182-197.
-Dehnavipour, H., Mehrabani, M., Fakhriyat, A., & Jakubczyk-Gałczyńska, A. (2019). Optimization-based design of 3D reinforced concrete structures. Journal of soft computing in civil engineering, 3(3), 95-106.
-Djedoui, N., Djafar-Henni, N., Bekdaş, L., & Nigdeli, S. M. (2025). Multi-objective optimization of RC structures. Iranian Journal of Science and Technology, Transactions of Civil Engineering, 1-22.
-Ehrgott, M. (2012). Vilfredo Pareto and multi-objective optimization. Doc. math, 8, 447-453.
-Esfandiari, M. J., Urgessa, G. S., Sheikholarefin, S., & Manshadi, S. D. (2018). Optimum design of 3D reinforced concrete frames using DMPSO algorithm. Advances in Engineering Software, 115, 149-160.
-Esfandiary, M. J., Sheikholarefin, S., & Bondarabadi, H. R. (2016). A combination of particle swarm optimization and multi-criterion decision-making for optimum design of reinforced concrete frames. International journal of optimization in civil engineering, 6(2), 245-268.
-Faghirnejad, S. (2023). Performance-Based Optimization of 2D Reinforced Concrete Moment Frames through Pushover Analysis and ABC Optimization Algorithm. arXiv preprint arXiv:2312.09450.
-Gharehbaghi, S. (2012). Design optimization of RC frames under earthquake loads. Iran University of Science & Technology.
-Govindaraj, V., & Ramasamy, J. V. (2005). Optimum detailed design of reinforced concrete continuous beams using genetic algorithms. Computers & structures, 84(1-2), 34-48.
-Heydari, F., Andalib, M., Epackachi, S., & Rafiee-Dehkharghani, R. (2025). Optimized design of RC moment frames with machine learning methods. Journal of Building Engineering, 104, 112222.
-Juliani, M. A., & Gomes, W. J. D. S. (2021). Optimal configuration of RC frames considering ultimate and serviceability limit state constraints. Revista IBRACON de Estruturas e Materiais, 14(2), e14204.
-Kaveh, A., & Ardebili, S. R. (2023a). Optimal design of mixed structures under time-history loading using metaheuristic algorithm. Periodica Polytechnica Civil Engineering, 67(1), 57-64.
-Kaveh, A., Izadifard, R. A., & Mottaghi, L. (2020a). Cost optimization of RC frames using automated member grouping. International Journal of Optimization in Civil Engineering, 10(1), 91-100.
-Kaveh, A., Izadifard, R. A., & Mottaghi, L. (2020b). Optimal design of planar RC frames considering CO2 emissions using ECBO, EVPS and PSO metaheuristic algorithms. Journal of Building Engineering, 28, 101014.
-Kaveh, A., & Ardebili, S. R. (2021, December). An improved plasma generation optimization algorithm for optimal design of reinforced concrete frames under time-history loading. In Structures (Vol. 34, pp. 758-770).
-Kaveh, A., & Ardebili, S. R. (2023b, February). Optimum design of 3D reinforced concrete frames using IPGO algorithm. In Structures (Vol. 48, pp. 1848-1855).
-Kaveh, A., & Sabzi, O. (2011). A comparative study of two meta-heuristic algorithms for optimum design of reinforced concrete frames.
-Federal Emergency Management Agency (FEMA). (2012). Seismic Performance Assessment of Buildings Volume 1-Methodology. Rep. No. FEMA P-58-1.
-MacGregor, J. G., Wight, J. K., Teng, S., & Irawan, P. (1997). Reinforced concrete: Mechanics and design (Vol. 3). Upper Saddle River, NJ: Prentice Hall.
-Marler, R. T., & Arora, J. S. (2004). Survey of multi-objective optimization methods for engineering. Structural and multidisciplinary optimization, 26(6), 369-395.
-Mazzoni, S., McKenna, F., Scott, M. H., & Fenves, G. L. (2006). Open system for earthquake engineering simulation (opensees) opensees command language manual. Pacific Earthquake Engineering Research Center, 1-465.
-McKenna, F. T. (1997). Object-oriented finite element programming: frameworks for analysis, algorithms and parallel computing. University of California, Berkeley.
-Mergos, P. E. (2021). Optimum design of 3D reinforced concrete building frames with the flower pollination algorithm. Journal of Building Engineering, 44, 102935.
-Mergos, P. E. (2022). Surrogate-based optimum design of 3D reinforced concrete building frames to Eurocodes. Developments in the Built Environment, 11, 100079.
-Mergos, P. E. (2024). Structural design of reinforced concrete frames for minimum amount of concrete or embodied carbon. Energy and Buildings, 318, 114505.
-Nebro, A. J., Galeano-Brajones, J., Luna, F., & Coello Coello, C. A. (2022). Is NSGA-II ready for large-scale multi-objective optimization?. Mathematical and Computational Applications, 27(6), 103.
-Oluwole Akadiri, P., & Olaniran Fadiya, O. (2013). Empirical analysis of the determinants of environmentally sustainable practices in the UK construction industry. Construction Innovation, 13(4), 352-373.
-Paya-Zaforteza, I., Yepes, V., Hospitaler, A., & Gonzalez-Vidosa, F. (2009). CO2-optimization of reinforced concrete frames by simulated annealing. Engineering Structures, 31(7), 1501-1508.
-Werner, W., & Burns, J. G. (2012). Quantification and optimization of structural embodied energy and carbon. In Structures Congress 2012 (pp. 929-940).
-Zavala, G., Nebro, A. J., Luna, F., & Coello Coello, C. A. (2016). Structural design using multi-objective metaheuristics. Comparative study and application to a real-world problem. Structural and Multidisciplinary Optimization, 53(3), 545-566.
-Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comparative case study and the strength Pareto approach. IEEE transactions on Evolutionary Computation, 3(4), 257-271.
-
----
-
-## Appendix A. Structural Modeling and Loading Details
-
-본 부록에서는 4.2절에서 언급된 수치 해석 모델의 상세 가정과 하중 산정 근거를 기술한다.
-
-**Modeling assumptions:** 3차원 골조의 거동을 모사하기 위해 사용된 `elasticBeamColumn` 요소는 축력, 전단력, 비틀림 및 2축 휨을 모두 고려한다. 기둥 부재에는 P-Delta 기하학적 변환을 적용하여 고차 효과를 반영하였으며, 바닥판의 강체 횡경막 거동을 위해 각 층의 모든 절점은 해당 층의 마스터 절점에 대해 수평 자유도가 구속되었다. 강성 저감은 ACI 318-19를 따르며 ($0.7I_g$ for columns, $0.35I_g$ for beams), 구체적인 파라미터는 Table A1에 정리하였다.
-
-**Loading and Seismic parameters**: 지진하중은 ASCE 7-16의 등가정적해석법을 기반으로 하며, 반응수정계수($R=5.0$)와 변위증폭계수($C_d=4.5$)를 적용하였다. 층별 지진력은 고유치 해석으로 도출된 1차 모드 형상($\phi$)에 따라 분배되었다. 활하중은 층별 용도 차이를 반영하여 로비층($5.0{\mathrm{kN/m}}^2$)부터 상층부 주거/사무 공간($2.0\sim3.0{\mathrm{kN/m}}^2$)까지 차등 적용되었다. 풍하중 산정 시에는 지표면 조도 구분 B(Exposure B)를 적용하였으며, 풍속 $30\mathrm{m/s}$에 대한 풍압 계수($C_p$)는 풍상측 0.8, 풍하측 -0.5를 사용하였다.
-
-**Table A1. Detailed structural modeling and loading parameters for benchmark frames.**
-
-| Category                | Parameter                        | Value / Description                                        |
-| :---------------------- | :------------------------------- | :--------------------------------------------------------- |
-| **Modeling**      | Element type                     | 3D elasticBeamColumn (6-DOF per node)                      |
-|                         | Geometric nonlinearity           | P-Delta transformation for columns                         |
-|                         | Diaphragm action                 | Rigid diaphragm (Master-Slave) at each floor               |
-|                         | Effective stiffness              | $0.7 I_g$ (Columns), $0.35 I_g$ (Beams) (ACI 318-19)   |
-|                         | Steel strength ($f_y$)         | $400,\ 500 MPa (E_s=200,000 MPa)$                        |
-| **Gravity Load**  | Dead load (Slab + Superimposed)  | $5.0{\mathrm{kN/m}}^2$ (including 150mm slab)            |
-|                         | Live load (Floor 1-2 / 3-5 / 6+) | $5.0 / 3.0 / 2.0 \, \text{kN/m}^2$                       |
-|                         | Load pattern                     | Checkerboard pattern per floor                             |
-| **Seismic (ELF)** | Design spectral acceleration     | $S_{DS}=0.60g$, $S_{D1}=0.36g$ (Site Class D)          |
-|                         | Response / Displacement factors  | $R = 5.0$, $C_d = 4.5$, $I_e = 1.0$                  |
-|                         | Force distribution               | First mode shape ($\phi$) based (Eigenvalue analysis)    |
-|                         | Directional combinations         | 100% (Principal) + 30% (Orthogonal)                        |
-| **Wind (MWFRS)**  | Basic wind speed ($V$)         | $30 \, \text{m/s}$ (Exposure B, ASCE 7-16)               |
-|                         | Gust / Pressure coefficients     | $G = 0.85$, $C_p = 0.8$ (Windward), $-0.5$ (Leeward) |
-| **Analysis**      | Total load combinations          | 38 combinations (Strength: 26, Serviceability: 12)         |
+*   **Column Reinforcement:** 대형 단면과 함께 고배근(2.5~4.0%)이 적용되어 횡강성을 극대화하였다. 특히 1, 2층 내부 기둥에는 연성 확보를 위한 조밀한 보조 대근 배치가 특징이다.
+*   **Beam Reinforcement:** 강성이 큰 단면과 함께 충분한 주철근량이 배치되어 접합부의 모멘트 재분배 능력을 높였다.
