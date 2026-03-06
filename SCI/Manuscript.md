@@ -292,55 +292,45 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 
 ---
 
-## Appendix B. Detailed Design Variables and Reinforcement Detailing for 4-Story Optimized Designs
+## Appendix B. Detailed Design Variables and Section Detailing for 4-Story Optimized Designs
 
-본 부록에서는 5.1절에서 분석된 4층 예제의 두 가지 대표 설계안(Solution ID 1, Solution ID 20)의 전체 설계 변수 벡터(Design Variable Vector) 구성 및 부재별 상세 배근 정보를 제공한다.
+본 부록에서는 5.1절에서 분석된 4층 예제의 두 가지 대표 설계안(Solution ID 1, Solution ID 20)의 전체 설계 변수 벡터와 각 부재의 상세 구조 정보를 제공한다. 모든 정보는 ACI 318-19 내진 상세를 준수하며, 추후 단면 도식도(Detailing Drawing) 작성을 위한 기초 자료로 활용된다.
 
-### B.1 Design Variable Vector Comparison
+### B.1 Column Section Details (ID, Dimensions, Strength, and Reinforcement)
 
-|          Category          |    Floor    | Group / Position  | **Solution ID 1** | **Solution ID 20** |
-| :-------------------------: | :----------: | :---------------- | :---------------------: | :----------------------: |
-| **Column Section ID** | **1F** | Corner (Grp 0)    |            4            |           676           |
-|                            |              | Edge (Grp 1)      |            7            |           747           |
-|                            |              | Interior (Grp 2)  |           15           |           402           |
-|                            | **2F** | Corner (Grp 3)    |           47           |           774           |
-|                            |              | Edge (Grp 4)      |           28           |           692           |
-|                            |              | Interior (Grp 5)  |            8            |           584           |
-|                            | **3F** | Corner (Grp 6)    |           170           |           754           |
-|                            |              | Edge (Grp 7)      |           11           |            52            |
-|                            |              | Interior (Grp 8)  |           11           |           716           |
-|                            | **4F** | Corner (Grp 9)    |           201           |           640           |
-|                            |              | Edge (Grp 10)     |           157           |           473           |
-|                            |              | Interior (Grp 11) |           28           |           238           |
-|  **Column Rotation**  | **1F** | Corner (Grp 0)    |        1 (90°)        |         1 (90°)         |
-|       (0=0°, 1=90°)       |              | Edge (Grp 1)      |        1 (90°)        |         0 (0°)         |
-|                            |              | Interior (Grp 2)  |        1 (90°)        |         1 (90°)         |
-|                            | **2F** | Corner (Grp 3)    |         0 (0°)         |         1 (90°)         |
-|                            |              | Edge (Grp 4)      |        1 (90°)        |         0 (0°)         |
-|                            |              | Interior (Grp 5)  |        1 (90°)        |         1 (90°)         |
-|                            | **3F** | Corner (Grp 6)    |        1 (90°)        |         0 (0°)         |
-|                            |              | Edge (Grp 7)      |         0 (0°)         |         0 (0°)         |
-|                            |              | Interior (Grp 8)  |        1 (90°)        |         0 (0°)         |
-|                            | **4F** | Corner (Grp 9)    |         0 (0°)         |         0 (0°)         |
-|                            |              | Edge (Grp 10)     |         0 (0°)         |         1 (90°)         |
-|                            |              | Interior (Grp 11) |        1 (90°)        |         0 (0°)         |
-|  **Beam Section ID**  | **1F** | Exterior (Grp 0)  |           71           |           436           |
-|                            |              | Interior (Grp 1)  |           27           |           351           |
-|                            | **2F** | Exterior (Grp 2)  |           131           |           384           |
-|                            |              | Interior (Grp 3)  |           11           |           472           |
-|                            | **3F** | Exterior (Grp 4)  |           90           |           344           |
-|                            |              | Interior (Grp 5)  |           27           |           398           |
-|                            | **4F** | Exterior (Grp 6)  |           60           |           404           |
-|                            |              | Interior (Grp 7)  |            6            |           436           |
+| Floor | Group / Position | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
+|:---:|:---|:---|:---|
+| **1F** | Corner (Grp 0) | ID 4 [600x600, C30, 12-D25, D10@350] | ID 676 [1000x1000, C35, 26-D32, D10@350] |
+| | Edge (Grp 1) | ID 7 [650x600, C27, 10-D29, D10@350] | ID 747 [1200x850, C35, 44-D29, D13@300] |
+| | Interior (Grp 2) | ID 15 [650x600, C35, 8-D29, D10@450] | ID 402 [1050x850, C27, 22-D29, D10@200] |
+| **2F** | Corner (Grp 3) | ID 47 [750x600, C27, 12-D29, D10@150] | ID 774 [1350x950, C40, 42-D25, D13@400] |
+| | Edge (Grp 4) | ID 28 [800x600, C27, 8-D32, D13@350] | ID 692 [1200x950, C40, 20-D29, D13@350] |
+| | Interior (Grp 5) | ID 8 [600x600, C35, 8-D29, D10@150] | ID 584 [1200x850, C27, 28-D29, D13@200] |
+| **3F** | Corner (Grp 6) | ID 170 [850x650, C27, 14-D32, D10@200] | ID 754 [1300x950, C40, 38-D25, D10@400] |
+| | Edge (Grp 7) | ID 11 [650x650, C27, 8-D32, D13@100] | ID 52 [750x700, C27, 10-D29, D10@400] |
+| | Interior (Grp 8) | ID 11 [650x650, C27, 8-D32, D13@100] | ID 716 [1300x1000, C30, 32-D29, D13@400] |
+| **4F** | Corner (Grp 9) | ID 201 [900x750, C27, 16-D25, D10@300] | ID 640 [1100x1000, C27, 32-D29, D13@200] |
+| | Edge (Grp 10) | ID 157 [700x700, C35, 12-D32, D10@250] | ID 473 [1300x950, C27, 28-D29, D13@450] |
+| | Interior (Grp 11)| ID 28 [800x600, C27, 8-D32, D13@350] | ID 238 [800x700, C35, 26-D25, D13@300] |
 
-### B.2 Reinforcement Detailing Analysis
+### B.2 Column Rotation and Beam Section Details
 
-#### Solution ID 1 (Economical Design)
+#### Table B1. Column Rotation Angle (0: 0°, 1: 90°)
+| Floor | Corner | Edge | Interior | Solution |
+|:---:|:---:|:---:|:---:|:---:|
+| **1F ~ 4F** | 1, 0, 1, 0 | 1, 1, 0, 0 | 1, 1, 1, 1 | **ID 1** |
+| **1F ~ 4F** | 1, 1, 0, 0 | 0, 0, 0, 1 | 1, 1, 0, 0 | **ID 20** |
 
-* **Column Reinforcement:** 주로 최소 철근비(1.0%)에 근접한 배근이 이루어졌으며, 단면 크기를 최소화하는 대신 고강도 철근(SD500)을 활용하여 내력을 확보하였다.
-* **Beam Reinforcement:** 휨 모멘트 요구량에 맞춘 정밀 복근 배근이 적용되었으며, 스터럽 간격은 전단력 분포에 따라 최적화되었다.
+#### Table B2. Beam Section Details (ID, Dimensions, Strength, and Reinforcement)
+| Floor | Group | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
+|:---:|:---|:---|:---|
+| **1F** | Exterior | ID 71 [400x550, C30, 6-D16/2-D16, D10@100] | ID 436 [500x750, C27, 14-D25/2-D25, D13@250] |
+| | Interior | ID 27 [300x500, C30, 4-D22/2-D22, D10@200] | ID 351 [300x800, C24, 5-D22/2-D22, D13@300] |
+| **2F** | Exterior | ID 131 [400x550, C30, 5-D22/1-D22, D10@100] | ID 384 [300x800, C35, 6-D22/2-D22, D13@100] |
+| | Interior | ID 11 [300x500, C27, 5-D16/2-D16, D10@200] | ID 472 [500x750, C30, 19-D25/3-D25, D10@100] |
+| **3F** | Exterior | ID 90 [400x550, C24, 6-D16/1-D16, D10@150] | ID 344 [400x750, C35, 14-D16/3-D16, D13@100] |
+| | Interior | ID 27 [300x500, C30, 4-D22/2-D22, D10@200] | ID 398 [400x800, C30, 14-D16/3-D16, D10@250] |
+| **4F** | Exterior | ID 60 [400x500, C27, 9-D16/2-D16, D10@200] | ID 404 [500x700, C30, 12-D29/1-D29, D13@150] |
+| | Interior | ID 6 [300x500, C24, 5-D16/2-D16, D10@100] | ID 436 [500x750, C27, 14-D25/2-D25, D13@250] |
 
-#### Solution ID 20 (High-Stiffness Design)
-
-* **Column Reinforcement:** 대형 단면과 함께 고배근(2.5~4.0%)이 적용되어 횡강성을 극대화하였다. 특히 1, 2층 내부 기둥에는 연성 확보를 위한 조밀한 보조 대근 배치가 특징이다.
-* **Beam Reinforcement:** 강성이 큰 단면과 함께 충분한 주철근량이 배치되어 접합부의 모멘트 재분배 능력을 높였다.
+*Note: 기둥 배근 정보의 주철근은 총 개수를 의미하며, 보 배근 정보의 슬래시(/) 앞뒤는 각각 상부 인장근과 하부 압축근의 개수를 의미함.*
