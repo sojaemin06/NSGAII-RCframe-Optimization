@@ -1,6 +1,6 @@
 === Optimization Timing Report ===
-Date: 2026-03-06 09:36:35
+Date: 2026-03-06 15:03:05
 -----------------------------------
-Example_1_4Story: 159412.0 seconds
+Example_2_6Story: 178987.1 seconds
 -----------------------------------
-Total Combined Time: 159412.0 seconds (2656.87 minutes)
+Total Combined Time: 178987.1 seconds (2983.12 minutes)

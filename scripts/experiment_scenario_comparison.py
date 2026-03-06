@@ -1,4 +1,3 @@
-
 import sys
 import os
 import warnings
@@ -21,38 +20,104 @@ from src.utils import load_section_data, get_beam_lengths, calculate_fixed_scale
 from src.optimization import run_ga_optimization
 from src.post_processing import save_results_to_csv
 
-# --- Experiment Configuration ---
+# --- [Configuration] Set Example Index to run (0: Example 1, 1: Example 2, 2: Example 3) ---
+EXAMPLE_INDEX = 1  
+
 OUTPUT_BASE_DIR = "Results_Scenario_Comparison"
 POP_SIZE = 500
 GENERATIONS = 100
-EXAMPLE_NAME = 'Example_1_4Story'
 
-# Use Example 1 Config
-cfg.FLOORS = 4
-cfg.COLUMN_LOCATIONS = cfg.COLUMN_LOCATIONS_4F
-cfg.BEAM_CONNECTIONS = cfg.BEAM_CONNECTIONS_4F
-cfg.BEAM_TRIBUTARY_WIDTHS = cfg.BEAM_TRIBUTARY_WIDTHS_4F
-DYNAMIC_PATTERNS = cfg.LOAD_PATTERNS_4F
-cfg.GROUPING_STRATEGY = "Hybrid" # Match past success, more tractable search space
+# Example Configuration List
+EXAMPLE_CONFIGS = [
+    {
+        'id': 'Example_1_4Story',
+        'floors': 4,
+        'col_locs': cfg.COLUMN_LOCATIONS_4F,
+        'beam_conn': cfg.BEAM_CONNECTIONS_4F,
+        'beam_trib': cfg.BEAM_TRIBUTARY_WIDTHS_4F,
+        'patterns': cfg.LOAD_PATTERNS_4F
+    },
+    {
+        'id': 'Example_2_6Story',
+        'floors': 6,
+        'col_locs': cfg.COLUMN_LOCATIONS_6F,
+        'beam_conn': cfg.BEAM_CONNECTIONS_6F,
+        'beam_trib': cfg.BEAM_TRIBUTARY_WIDTHS_6F,
+        'patterns': cfg.LOAD_PATTERNS_6F
+    },
+    {
+        'id': 'Example_3_8Story',
+        'floors': 8,
+        'col_locs': cfg.COLUMN_LOCATIONS_8F,
+        'beam_conn': cfg.BEAM_CONNECTIONS_8F,
+        'beam_trib': cfg.BEAM_TRIBUTARY_WIDTHS_8F,
+        'patterns': cfg.LOAD_PATTERNS_8F
+    }
+]
 
-def run_scenario(scenario_name, use_expanded_db, use_separate_rotation, fixed_scale_info):
-    print(f"\n{'='*60}")
-    print(f"Running {scenario_name}")
-    print(f" - DB: {'Expanded (1600 items)' if use_expanded_db else 'Reduced (800 items)'}")
-    print(f" - Rotation Variables: {'Included (Separate Gene)' if use_separate_rotation else 'Excluded (Integrated in DB)'}")
-    print(f" - Grouping Strategy: {cfg.GROUPING_STRATEGY}")
-    print(f"{'='*60}")
+def update_config(config):
+    """Update global config based on the selected example."""
+    cfg.FLOORS = config['floors']
+    cfg.COLUMN_LOCATIONS = config['col_locs']
+    cfg.BEAM_CONNECTIONS = config['beam_conn']
+    cfg.BEAM_TRIBUTARY_WIDTHS = config['beam_trib']
     
-    # 1. Load Appropriate Data
-    col_db_path = "column_sections_expanded_rotated.csv" if use_expanded_db else "column_sections_reduced.csv"
-    beam_sections_df, column_sections_df, beam_sections, column_sections = load_section_data(col_path=col_db_path)
+    # Recalculate dimensions for wind load
+    all_x = [p[0] for p in cfg.COLUMN_LOCATIONS]
+    all_y = [p[1] for p in cfg.COLUMN_LOCATIONS]
+    cfg.BUILDING_WIDTH_X = max(all_x) - min(all_x)
+    cfg.BUILDING_WIDTH_Y = max(all_y) - min(all_y)
     
-    print(f"Loaded Column DB with {len(column_sections)} entries.")
+    return config['patterns']
+
+def load_scenario_a_results(example_id):
+    """Load existing Scenario A (Proposed) results from Results_Optimization_Paper_Final."""
+    source_dir = os.path.join("Results_Optimization_Paper_Final", example_id)
+    print(f"\nLoading Scenario A (Proposed) from: {source_dir}")
+    
+    log_path = os.path.join(source_dir, "Data", "optimization_log.csv")
+    if not os.path.exists(log_path):
+        print(f"Warning: Existing results not found at {log_path}")
+        return None
+        
+    try:
+        df_log = pd.read_csv(log_path)
+        logbook = [row.to_dict() for _, row in df_log.iterrows()]
+        
+        # Infer chromosome length
+        design_vars_path = os.path.join(source_dir, "Data", "design_variables.csv")
+        chromosome_len = 0
+        if os.path.exists(design_vars_path):
+            dv_df = pd.read_csv(design_vars_path, nrows=1)
+            cols = dv_df.columns
+            n_col_grps = sum(1 for c in cols if c.startswith('col_grp_') and c.endswith('_ID'))
+            n_beam_grps = sum(1 for c in cols if c.startswith('beam_grp_') and c.endswith('_ID'))
+            has_rot = any(c.startswith('col_grp_') and c.endswith('_Rot') for c in cols)
+            chromosome_len = (n_col_grps * (2 if has_rot else 1)) + n_beam_grps
+            
+        return {
+            'name': 'Scenario_A_Proposed',
+            'logbook': logbook,
+            'chromosome_len': chromosome_len,
+            'time': 0.0
+        }
+    except Exception as e:
+        print(f"Error loading Scenario A: {e}")
+        return None
+
+def run_scenario_b(example_dir, fixed_scale_info, dynamic_patterns):
+    """Run Scenario B (Conventional): Expanded DB + Integrated Rotation."""
+    scenario_name = "Scenario_B_Conventional"
+    print(f"\nRunning {scenario_name}")
+    
+    # Load Expanded DB
+    beam_sections_df, column_sections_df, beam_sections, column_sections = load_section_data(
+        col_path="column_sections_expanded_rotated.csv"
+    )
     
     h5_file = h5py.File('pm_dataset_simple02.mat', 'r')
     
     try:
-        # 2. Setup Chromosome Structure
         num_locations = len(cfg.COLUMN_LOCATIONS)
         num_columns = num_locations * cfg.FLOORS
         num_beams = len(cfg.BEAM_CONNECTIONS) * cfg.FLOORS
@@ -62,25 +127,20 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation, fixed_sc
             cfg.GROUPING_STRATEGY, num_locations, num_columns, num_beams, cfg.FLOORS, cfg.BEAM_CONNECTIONS, cfg.COLUMN_LOCATIONS
         )
         
+        # Scenario B: No separate rotation variable
         chromosome_structure = {
             'col_sec': num_col_groups,
-            'col_rot': num_col_groups if use_separate_rotation else 0, 
+            'col_rot': 0, 
             'beam_sec': num_beam_groups
         }
         
-        total_genes = chromosome_structure['col_sec'] + chromosome_structure['col_rot'] + chromosome_structure['beam_sec']
-        print(f"Chromosome Length: {total_genes} (Col: {chromosome_structure['col_sec']}, Rot: {chromosome_structure['col_rot']}, Beam: {chromosome_structure['beam_sec']})")
-
-        # 3. Use Provided Normalization Scale
         fixed_min_cost, fixed_range_cost, fixed_min_co2, fixed_range_co2 = fixed_scale_info
         
         start_time = time.time()
-        
-        # 4. Run Optimization
         pop, logbook, final_hof, hof_stats = run_ga_optimization(
             DL=cfg.DL_AREA_LOAD, LL=cfg.LL_AREA_LOAD,
             crossover_method=cfg.CROSSOVER_STRATEGY, 
-            patterns_by_floor=DYNAMIC_PATTERNS,
+            patterns_by_floor=dynamic_patterns,
             h5_file=h5_file,
             num_generations=GENERATIONS, population_size=POP_SIZE,
             col_map=col_map, beam_map=beam_map, 
@@ -93,175 +153,98 @@ def run_scenario(scenario_name, use_expanded_db, use_separate_rotation, fixed_sc
             tournament_size=cfg.TOURNAMENT_SIZE, cxpb=cfg.CXPB, mutpb=cfg.MUTPB,
             verbose=True
         )
-        
         elapsed = time.time() - start_time
-        print(f"Scenario {scenario_name} completed in {elapsed:.2f}s")
         
-        # Save Results
-        output_dir = os.path.join(OUTPUT_BASE_DIR, scenario_name)
+        output_dir = os.path.join(example_dir, scenario_name)
         os.makedirs(output_dir, exist_ok=True)
         
-        processed_valid_solutions = []
+        processed_solutions = []
         for i, ind in enumerate(final_hof):
             if hasattr(ind, 'detailed_results') and ind.detailed_results.get('violation') == 0.0:
-                solution_data = ind.detailed_results.copy()
-                solution_data['ID'] = i + 1
-                solution_data['ind_object'] = ind 
-                processed_valid_solutions.append(solution_data)
+                sol = ind.detailed_results.copy()
+                sol['ID'] = i + 1
+                sol['ind_object'] = ind
+                processed_solutions.append(sol)
         
-        save_results_to_csv(output_dir, processed_valid_solutions, logbook, hof_stats, chromosome_structure)
+        save_results_to_csv(output_dir, processed_solutions, logbook, hof_stats, chromosome_structure)
         
         return {
             'name': scenario_name,
-            'time': elapsed,
             'logbook': logbook,
-            'stats': hof_stats,
-            'chromosome_len': total_genes
+            'chromosome_len': sum(chromosome_structure.values()),
+            'time': elapsed
         }
-
     finally:
         h5_file.close()
 
-def load_existing_results(scenario_name, source_dir):
-    print(f"\n{'='*60}")
-    print(f"Attempting to Load Existing Results for {scenario_name}")
-    print(f"Source: {source_dir}")
-    
-    log_path = os.path.join(source_dir, "Data", "optimization_log.csv")
-    if not os.path.exists(log_path):
-        print(f" - Optimization log not found at {log_path}")
-        return None
-        
-    try:
-        # Load logbook from CSV using pandas
-        df_log = pd.read_csv(log_path)
-        
-        # Create a dummy logbook-like object (list of dicts)
-        logbook = []
-        for _, row in df_log.iterrows():
-            logbook.append(row.to_dict())
-            
-        # Get Final HV
-        final_hv = df_log.iloc[-1]['hypervolume']
-        
-        # Chromosome length inference
-        design_vars_path = os.path.join(source_dir, "Data", "design_variables.csv")
-        chromosome_len = 208 # Default fallback
-        
-        if os.path.exists(design_vars_path):
-            try:
-                dv_df = pd.read_csv(design_vars_path, nrows=1) # Read header only
-                cols = dv_df.columns
-                
-                n_col_grps = sum(1 for c in cols if c.startswith('col_grp_') and c.endswith('_ID'))
-                n_beam_grps = sum(1 for c in cols if c.startswith('beam_grp_') and c.endswith('_ID'))
-                has_rot = any(c.startswith('col_grp_') and c.endswith('_Rot') for c in cols)
-                
-                chromosome_len = (n_col_grps * (2 if has_rot else 1)) + n_beam_grps
-                print(f" - Inferred Chromosome Length from Data: {chromosome_len}")
-            except Exception as e:
-                print(f" - Warning: Failed to infer chromosome length from CSV ({e}). Using default 208.")
-        else:
-             print(" - Warning: design_variables.csv not found. Using default 208.")
-        
-        print(f" - Successfully loaded existing results.")
-        return {
-            'name': scenario_name,
-            'time': 0.0,
-            'logbook': logbook,
-            'stats': [{'hypervolume': final_hv}],
-            'chromosome_len': chromosome_len
-        }
-    except Exception as e:
-        print(f" - Error loading existing results: {e}")
-        return None
-
 def main():
-    os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
+    if EXAMPLE_INDEX >= len(EXAMPLE_CONFIGS):
+        print(f"Invalid EXAMPLE_INDEX: {EXAMPLE_INDEX}")
+        return
+
+    config = EXAMPLE_CONFIGS[EXAMPLE_INDEX]
+    example_id = config['id']
+    example_dir = os.path.join(OUTPUT_BASE_DIR, example_id)
+    os.makedirs(example_dir, exist_ok=True)
     
-    # --- SCI Paper Style Configuration ---
-    plt.rcParams['font.family'] = 'Times New Roman'
-    plt.rcParams['font.size'] = 12
-    plt.rcParams['axes.labelsize'] = 14
-    plt.rcParams['axes.titlesize'] = 14
-    plt.rcParams['xtick.labelsize'] = 12
-    plt.rcParams['ytick.labelsize'] = 12
-    plt.rcParams['legend.fontsize'] = 11
-    plt.rcParams['figure.dpi'] = 300
-    plt.rcParams['savefig.dpi'] = 300
-    plt.rcParams['mathtext.fontset'] = 'stix' 
-    plt.rcParams['axes.grid'] = True
-    plt.rcParams['grid.linestyle'] = '-' 
-    plt.rcParams['grid.alpha'] = 0.5
+    print(f"\n{'#'*80}")
+    print(f"### SCENARIO COMPARISON EXPERIMENT: {example_id} ###")
+    print(f"{'#'*80}")
     
-    # --- 0. Calculate Global Normalization Scale ---
-    print("Calculating Global Normalization Scale...")
+    # 1. Update Config and Load Patterns
+    dynamic_patterns = update_config(config)
+    
+    # 2. Calculate Normalization Scale for the current building size
     b_df, c_df, _, _ = load_section_data(col_path="column_sections_expanded_rotated.csv")
-    num_locations = len(cfg.COLUMN_LOCATIONS)
-    num_columns = num_locations * cfg.FLOORS
     beam_lengths = get_beam_lengths(cfg.COLUMN_LOCATIONS, cfg.BEAM_CONNECTIONS)
-    total_col_len = num_columns * cfg.H
+    total_col_len = (len(cfg.COLUMN_LOCATIONS) * cfg.FLOORS) * cfg.H
     total_beam_len = sum(beam_lengths) * cfg.FLOORS
     fixed_scale_info = calculate_fixed_scale(c_df, b_df, total_col_len, total_beam_len)
 
-    all_exp_results = []
-
-    def update_comparison_summary(results_list):
-        summary = []
-        for res in results_list:
-            best_hv = res['stats'][-1]['hypervolume']
-            summary.append({
-                'Scenario': res['name'],
-                'Time(s)': round(res['time'], 1),
-                'Chromosome_Length': res['chromosome_len'],
-                'Final_HV': round(best_hv, 4)
-            })
-        pd.DataFrame(summary).to_csv(os.path.join(OUTPUT_BASE_DIR, "Comparison_Summary.csv"), index=False)
-        print(f" -> Partial summary saved to Comparison_Summary.csv")
-
-    # --- [Step 1] Scenario B: Conventional Strategy ---
-    # DB: Expanded (1600), Rot Variables: No (Integrated in DB index)
-    results_B = run_scenario("Scenario_B_Conventional", use_expanded_db=True, use_separate_rotation=False, fixed_scale_info=fixed_scale_info)
-    all_exp_results.append(results_B)
-    update_comparison_summary(all_exp_results)
-
-    # --- [Step 2] Scenario A: Proposed Strategy (Load from main.py results) ---
-    # We use Example 1 (4-story) results from the main optimization run
-    main_results_dir = os.path.join("Results_Optimization_Paper_Final", "Example_1_4Story")
-    results_A = load_existing_results("Scenario_A_Proposed", main_results_dir)
+    # 3. Load Scenario A Results (Proposed)
+    results_A = load_scenario_a_results(example_id)
     
-    if results_A is None:
-        print("Warning: Existing Scenario A results not found. Running Scenario A now...")
-        results_A = run_scenario("Scenario_A_Proposed", use_expanded_db=False, use_separate_rotation=True, fixed_scale_info=fixed_scale_info)
-    
-    all_exp_results.append(results_A)
-    update_comparison_summary(all_exp_results)
+    # 4. Run Scenario B (Conventional)
+    results_B = run_scenario_b(example_dir, fixed_scale_info, dynamic_patterns)
 
-    # --- [Step 3] Comparison Visualization ---
-    plt.figure(figsize=(10, 7))
-    
-    def get_data(res):
-        gens = [entry['gen'] for entry in res['logbook']]
-        hvs = [entry['hypervolume'] for entry in res['logbook']]
-        return gens, hvs
+    # 5. Summary and Plotting
+    results_list = []
+    if results_A: results_list.append(results_A)
+    results_list.append(results_B)
 
-    gen_B, hv_B = get_data(results_B)
-    gen_A, hv_A = get_data(results_A)
+    summary = []
+    for res in results_list:
+        summary.append({
+            'Scenario': res['name'],
+            'Chromosome_Length': res['chromosome_len'],
+            'Time(s)': round(res['time'], 1),
+            'Final_HV': round(res['logbook'][-1]['hypervolume'], 4)
+        })
+    pd.DataFrame(summary).to_csv(os.path.join(example_dir, f"Summary_{example_id}.csv"), index=False)
+
+    plt.figure(figsize=(9, 6))
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 11
     
-    plt.plot(gen_B, hv_B, color='#C0392B', linestyle='--', linewidth=2, 
-             label=f"Scenario B (Conventional):\nExpanded DB (Len={results_B['chromosome_len']})")
-    plt.plot(gen_A, hv_A, color='#2C3E50', linestyle='-', linewidth=2, 
-             label=f"Scenario A (Proposed):\nReduced DB + Rotation Genes (Len={results_A['chromosome_len']})")
+    colors = ['#2C3E50', '#C0392B']
+    linestyles = ['-', '--']
     
+    for res, color, ls in zip(results_list, colors, linestyles):
+        gens = [e['gen'] for e in res['logbook']]
+        hvs = [e['hypervolume'] for e in res['logbook']]
+        label = f"{res['name']} (Len={res['chromosome_len']})"
+        plt.plot(gens, hvs, color=color, linestyle=ls, linewidth=2, label=label)
+        
     plt.xlabel('Generation', fontweight='bold')
     plt.ylabel('Hypervolume Indicator', fontweight='bold')
+    plt.title(f'Hypervolume Convergence Comparison - {example_id}', fontweight='bold')
     plt.legend(frameon=True, loc='lower right', edgecolor='black')
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
+    plt.savefig(os.path.join(example_dir, f"Comparison_HV_{example_id}.png"))
     
-    plt.savefig(os.path.join(OUTPUT_BASE_DIR, "Comparison_Hypervolume.png"))
-    
-    print("\nExperiment Complete.")
-    print(f"Results saved in: {OUTPUT_BASE_DIR}")
+    print(f"\nExperiment for {example_id} complete.")
+    print(f"Results saved in: {example_dir}")
 
 if __name__ == "__main__":
     main()
