@@ -292,43 +292,71 @@ Zitzler, E., & Thiele, L. (2002). Multiobjective evolutionary algorithms: a comp
 
 ---
 
-## Appendix B. Integrated Design Variable and Structural Detailing Table (4-Story)
+## Appendix B. Design Variable Sequences and Detailed Section Properties (4-Story)
 
-본 부록에서는 5.1절에서 분석된 4층 예제의 두 가지 대표 설계안(Solution ID 1, Solution ID 20)의 모든 설계 변수와 상세 구조 정보를 하나의 통합 표로 제공한다. 모든 정보는 ACI 318-19 내진 상세를 준수하며, 기둥 회전 변수(0: 0°, 1: 90°)를 포함한 전체 염색체 구조를 상세히 나열한다.
+본 부록에서는 5.1절에서 분석된 4층 예제의 두 가지 대표 설계안(Solution ID 1, Solution ID 20)의 설계 변수 구성(B.1)과 최적화 과정에서 활용된 주요 단면의 상세 구조 정보(B.2)를 제공한다.
+
+### B.1 Optimized Design Variable Sequences
 
 | Category | Floor | Group / Position | **Solution ID 1** (Economical) | **Solution ID 20** (High-Stiffness) |
-|:---:|:---:|:---|:---|:---|
-| **Column Section ID** | **1F** | Corner (Grp 0) | ID 4 [600x600, C30, 12-D25, D13@350] | ID 676 [1000x1000, C35, 26-D32, D10@350] |
-| (Dimensions, $f_{ck}$, | | Edge (Grp 1) | ID 7 [650x600, C27, 10-D29, D10@350] | ID 747 [1200x850, C35, 44-D29, D13@300] |
-| Main Rebar, Stirrup) | | Interior (Grp 2) | ID 15 [650x600, C35, 8-D29, D10@450] | ID 402 [1050x850, C27, 22-D29, D10@200] |
-| | **2F** | Corner (Grp 3) | ID 47 [750x600, C27, 12-D29, D10@150] | ID 774 [1350x950, C40, 42-D25, D13@400] |
-| | | Edge (Grp 4) | ID 28 [800x600, C27, 8-D32, D13@350] | ID 692 [1200x950, C40, 20-D29, D13@350] |
-| | | Interior (Grp 5) | ID 8 [600x600, C35, 8-D29, D10@150] | ID 584 [1200x850, C27, 28-D29, D13@200] |
-| | **3F** | Corner (Grp 6) | ID 170 [850x650, C27, 14-D32, D10@200] | ID 754 [1300x950, C40, 38-D25, D10@400] |
-| | | Edge (Grp 7) | ID 11 [650x650, C27, 8-D32, D13@100] | ID 52 [750x700, C27, 10-D29, D10@400] |
-| | | Interior (Grp 8) | ID 11 [650x650, C27, 8-D32, D13@100] | ID 716 [1300x1000, C30, 32-D29, D13@400] |
-| | **4F** | Corner (Grp 9) | ID 201 [900x750, C27, 16-D25, D10@300] | ID 640 [1100x1000, C27, 32-D29, D13@200] |
-| | | Edge (Grp 10) | ID 157 [700x700, C35, 12-D32, D10@250] | ID 473 [1300x950, C27, 28-D29, D13@450] |
-| | | Interior (Grp 11)| ID 28 [800x600, C27, 8-D32, D13@350] | ID 238 [800x700, C35, 26-D25, D13@300] |
-| **Column Rotation** | **1F** | Corner (Grp 0) | 1 (90°) | 1 (90°) |
-| (0: 0°, 1: 90°) | | Edge (Grp 1) | 1 (90°) | 0 (0°) |
-| | | Interior (Grp 2) | 1 (90°) | 1 (90°) |
-| | **2F** | Corner (Grp 3) | 0 (0°) | 1 (90°) |
-| | | Edge (Grp 4) | 1 (90°) | 0 (0°) |
-| | | Interior (Grp 5) | 1 (90°) | 1 (90°) |
-| | **3F** | Corner (Grp 6) | 1 (90°) | 0 (0°) |
-| | | Edge (Grp 7) | 0 (0°) | 0 (0°) |
-| | | Interior (Grp 8) | 1 (90°) | 0 (0°) |
-| | **4F** | Corner (Grp 9) | 0 (0°) | 0 (0°) |
-| | | Edge (Grp 10) | 0 (0°) | 1 (90°) |
-| | | Interior (Grp 11)| 1 (90°) | 0 (0°) |
-| **Beam Section ID** | **1F** | Exterior (Grp 0) | ID 71 [400x500, C30, 7-D16/6-D16, D10@100] | ID 436 [500x750, C27, 14-D25/2-D25, D13@250] |
-| (Dimensions, $f_{ck}$, | | Interior (Grp 1) | ID 27 [300x500, C30, 4-D22/3-D22, D10@200] | ID 351 [300x800, C24, 5-D22/2-D22, D13@300] |
-| Top/Bottom Rebar, | **2F** | Exterior (Grp 2) | ID 131 [400x550, C30, 5-D22/1-D22, D10@100] | ID 384 [300x800, C35, 6-D22/2-D22, D13@100] |
-| Stirrup) | | Interior (Grp 3) | ID 11 [300x500, C27, 5-D16/2-D16, D10@200] | ID 472 [500x750, C30, 19-D25/3-D25, D10@100] |
-| | **3F** | Exterior (Grp 4) | ID 90 [400x550, C24, 6-D16/1-D16, D10@150] | ID 344 [400x750, C35, 14-D16/3-D16, D13@100] |
-| | | Interior (Grp 5) | ID 27 [300x500, C30, 4-D22/3-D22, D10@200] | ID 398 [400x800, C30, 14-D16/3-D16, D10@250] |
-| | **4F** | Exterior (Grp 6) | ID 60 [400x500, C27, 9-D16/2-D16, D10@200] | ID 404 [500x700, C30, 12-D29/1-D29, D13@150] |
-| | | Interior (Grp 7) | ID 6 [300x500, C24, 5-D16/2-D16, D10@100] | ID 436 [500x750, C27, 14-D25/2-D25, D13@250] |
+|:---:|:---:|:---|:---:|:---:|
+| **Column Section ID** | **1F** | Corner / Edge / Interior | 4 / 7 / 15 | 676 / 747 / 402 |
+| | **2F** | Corner / Edge / Interior | 47 / 28 / 8 | 774 / 692 / 584 |
+| | **3F** | Corner / Edge / Interior | 170 / 11 / 11 | 754 / 52 / 716 |
+| | **4F** | Corner / Edge / Interior | 201 / 157 / 28 | 640 / 473 / 238 |
+| **Column Rotation** | **1F** | Corner / Edge / Interior | 1 / 1 / 1 | 1 / 0 / 1 |
+| (0: 0°, 1: 90°) | **2F** | Corner / Edge / Interior | 0 / 1 / 1 | 1 / 0 / 1 |
+| | **3F** | Corner / Edge / Interior | 1 / 0 / 1 | 0 / 0 / 0 |
+| | **4F** | Corner / Edge / Interior | 0 / 0 / 1 | 0 / 1 / 0 |
+| **Beam Section ID** | **1F** | Exterior / Interior | 71 / 27 | 436 / 351 |
+| | **2F** | Exterior / Interior | 131 / 11 | 384 / 472 |
+| | **3F** | Exterior / Interior | 90 / 27 | 344 / 398 |
+| | **4F** | Exterior / Interior | 60 / 6 | 404 / 436 |
 
-*Note: 기둥 배근 정보의 주철근은 총 개수를 의미하며, 보 배근 정보의 슬래시(/) 앞뒤는 각각 상부 인장근과 하부 압축근의 개수를 의미함.*
+### B.2 Detailed Structural Properties of Optimized Sections (Ascending Order by ID)
+
+#### Table B1. Column Section Properties
+| ID | Dimensions (mm) | $f_{ck}$ (MPa) | Main Reinforcement | Stirrup Detailing |
+|:---:|:---:|:---:|:---|:---|
+| **4** | 600x600 | 30 | 12-D25 (Biaxial) | D10 @ 350 |
+| **7** | 650x600 | 27 | 10-D29 (Uniaxial) | D10 @ 350 |
+| **8** | 600x600 | 35 | 8-D29 (Uniaxial) | D10 @ 150 |
+| **11** | 650x650 | 27 | 8-D32 (Uniaxial) | D13 @ 100 |
+| **15** | 650x600 | 35 | 8-D29 (Uniaxial) | D10 @ 450 |
+| **28** | 800x600 | 27 | 8-D32 (Uniaxial) | D13 @ 350 |
+| **47** | 750x600 | 27 | 12-D29 (Biaxial) | D10 @ 150 |
+| **52** | 750x700 | 27 | 10-D29 (Uniaxial) | D10 @ 400 |
+| **157** | 700x700 | 35 | 12-D32 (Biaxial) | D10 @ 250 |
+| **170** | 850x650 | 27 | 14-D32 (Biaxial) | D10 @ 200 |
+| **201** | 900x750 | 27 | 16-D25 (Biaxial) | D10 @ 300 |
+| **238** | 800x700 | 35 | 26-D25 (Biaxial) | D13 @ 300 |
+| **402** | 1050x850 | 27 | 22-D29 (Biaxial) | D10 @ 200 |
+| **473** | 1300x950 | 27 | 28-D29 (Biaxial) | D13 @ 450 |
+| **584** | 1200x850 | 27 | 28-D29 (Biaxial) | D13 @ 200 |
+| **640** | 1100x1000 | 27 | 32-D29 (Biaxial) | D13 @ 200 |
+| **676** | 1000x1000 | 35 | 26-D32 (Biaxial) | D10 @ 350 |
+| **692** | 1200x950 | 40 | 20-D29 (Uniaxial) | D13 @ 350 |
+| **716** | 1300x1000 | 30 | 32-D29 (Biaxial) | D13 @ 400 |
+| **747** | 1200x850 | 35 | 44-D29 (Biaxial) | D13 @ 300 |
+| **754** | 1300x950 | 40 | 38-D25 (Biaxial) | D10 @ 400 |
+| **774** | 1350x950 | 40 | 42-D25 (Biaxial) | D13 @ 400 |
+
+#### Table B2. Beam Section Properties
+| ID | Dimensions (mm) | $f_{ck}$ (MPa) | Top Rebar | Bottom Rebar | Stirrup |
+|:---:|:---:|:---:|:---:|:---:|:---|
+| **6** | 300x500 | 24 | 5-D16 | 2-D16 | D10 @ 100 |
+| **11** | 300x500 | 27 | 5-D16 | 2-D16 | D10 @ 200 |
+| **27** | 300x500 | 30 | 4-D22 | 2-D22 | D10 @ 200 |
+| **60** | 400x500 | 27 | 9-D16 | 2-D16 | D10 @ 200 |
+| **71** | 400x500 | 30 | 7-D16 | 6-D16 | D10 @ 100 |
+| **90** | 400x550 | 24 | 6-D16 | 1-D16 | D10 @ 150 |
+| **131** | 400x550 | 30 | 5-D22 | 1-D22 | D10 @ 100 |
+| **344** | 400x750 | 35 | 14-D16 | 3-D16 | D13 @ 100 |
+| **351** | 300x800 | 24 | 5-D22 | 2-D22 | D13 @ 300 |
+| **384** | 300x800 | 35 | 6-D22 | 2-D22 | D13 @ 100 |
+| **398** | 400x800 | 30 | 14-D16 | 3-D16 | D10 @ 250 |
+| **404** | 500x700 | 30 | 12-D29 | 1-D29 | D13 @ 150 |
+| **436** | 500x750 | 27 | 14-D25 | 2-D25 | D13 @ 250 |
+| **472** | 500x750 | 30 | 19-D25 | 3-D25 | D10 @ 100 |
+
+*Note: 기둥 배근의 Uniaxial/Biaxial 구분은 철근 배치 패턴을 의미하며, 보 배근의 숫자는 주철근 가닥 수를 나타냄.*

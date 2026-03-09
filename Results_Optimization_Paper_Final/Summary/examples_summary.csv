@@ -1,2 +1,2 @@
 Example,Floors,Time(s),Final_HV,Best_Cost,Best_CO2,Max_Drift_Ratio,N_types
-Example_2_6Story,6,178987.1,4.6512,46833940.0,147345.0,0.0171,27
+Example_3_8Story,8,221211.8,4.2648,63694212.0,197254.0,0.0199,37
