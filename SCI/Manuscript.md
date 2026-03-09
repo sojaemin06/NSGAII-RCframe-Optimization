@@ -170,20 +170,28 @@ Figure 6에 제시된 체커보드 하중 재하 방식은 실무 설계에서 �
 
 ### 5.1 Multi-Objective Optimization Results and Representative Design Analysis
 
-본 연구에서 제안한 최적화 프레임워크를 4층(Example 1) 및 6층(Example 2) RC 모멘트 골조 예제에 적용한 결과, 목적 함수 공간에서 명확한 파레토 프런트(Pareto Front)가 도출되었다. 모든 예제에서 총 공사비 및 탄소 배출량의 통합 정규화 지표($f_1$)와 최대 층간변위비($f_2$) 사이의 명확한 트레이드오프(Trade-off) 관계가 확인되었다. Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 대폭 억제하여 구조적 성능을 약 3배가량 향상시켰다. 반면 6층 예제(Figure 7b)에서는 층수 증가에 따른 최소 강성 요구 조건으로 인해 파레토 해들이 상대적으로 좁은 비용 구간(약 4,683만 원 ~ 5,186만 원)에 밀집되는 경향을 보였다. 이는 건물의 규모가 커질수록 구조적 안전성 제약 조건이 설계 공간을 더욱 압축하며, 경제성과 성능 사이의 선택 폭이 고층화될수록 정교해짐을 시사한다. 8층 예제(Figure 7c)에 대한 결과 분석은 해석 완료 후 추가될 예정이다.
+본 연구에서 제안한 최적화 프레임워크를 4층(Example 1), 6층(Example 2), 8층(Example 3) RC 모멘트 골조 예제에 적용한 결과, 모든 예제에서 목적 함수 공간의 명확한 파레토 프런트(Pareto Front)가 도출되었다. Figure 7은 각 예제에 대한 목적 함수 공간에서의 파레토 프런트 분포를 보여준다. 
 
-Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 두 지표는 모든 예제에서 매우 강한 양의 상관관계를 보였으며, 이는 공사비와 환경 영향성을 하나의 통합 지표로 관리하는 본 연구의 방식이 실무적으로 타당함을 입증한다. 4층 예제(Figure 8a)에서는 고강성 설계로 갈수록 재료 투입량이 급격히 늘어나며 탄소 배출량이 최대 2.7배까지 증가하는 양상을 보인 반면, 6층 예제(Figure 8b)는 제한된 설계 공간 내에서 최적의 재료 분배를 통해 탄소 배출량의 변동 폭을 최소화하면서도 목표 성능을 달성하는 해들을 도출하였다. 8층 예제(Figure 8c) 역시 유사한 경향을 보일 것으로 기대된다.
+층수 증가에 따른 파레토 해의 분포 특성을 분석한 결과, 건물이 고층화될수록 구조적 안전성 및 사용성 제약 조건이 설계 공간을 더욱 압축하는 경향이 뚜렷하게 나타났다. 4층 예제(Figure 7a)의 경우, 비용 중심 설계안(Solution ID 1)은 약 3,174만 원의 공사비와 1.78%의 최대 층간변위비를 보였으나, 강성 중심 설계안(Solution ID 21)은 공사비가 약 9,301만 원까지 상승하는 대신 변위비를 0.62%까지 낮추어 넓은 선택의 폭을 제공하였다. 
+
+반면, 6층 예제(Figure 7b)와 8층 예제(Figure 7c)에서는 이러한 선택 폭이 급격히 좁아지는 양상을 보였다. 8층 예제의 경우, 최저 비용 설계안(ID 1)은 약 6,369만 원(1.99% Drift)이었으며, 최고 강성 설계안(ID 23)은 공사비가 약 6,795만 원(1.29% Drift)으로, 비용 차이는 약 6.7%에 불과했다. 이는 고층 건물일수록 횡력에 저항하기 위한 최소한의 강성 확보가 필수적이므로, 경제성 위주의 탐색 중에도 이미 상당한 물량이 투입되어야 함을 의미한다.
+
+Figure 8은 각 설계안의 실제 공사비와 탄소 배출량 사이의 상관관계를 보여준다. 모든 층수 예제에서 두 지표는 매우 강한 양의 상관관계를 유지하였다. 특히 8층 예제(Figure 8c)에서 공사비가 6,369만 원에서 6,795만 원으로 증가할 때, 탄소 배출량 역시 약 19.7만 kg에서 21.0만 kg으로 약 6.5% 비례하여 상승하였다. 이는 3차원 RC 구조물 최적화에서 경제성 지표와 환경성 지표가 상충하지 않고 통합적으로 관리될 수 있음을 시사한다.
 
 ![Figure 7. Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_objective_space.png)
 **(a)**
 ![Figure 7b. 6F Pareto](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_objective_space.png)
 **(b)**
+![Figure 7c. 8F Pareto](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_objective_space.png)
+**(c)**
 **Figure 7. Multi-objective optimization results in the objective space: Pareto fronts for (a) 4-story, (b) 6-story, and (c) 8-story benchmark structures.**
 
 ![Figure 8. Solution space for (a) 4-story, (b) 6-story, and (c) 8-story frames.](../Results_Optimization_Paper_Final/Example_1_4Story/Figures/analysis_pareto_solution_space_new.png)
 **(a)**
 ![Figure 8b. 6F Solution Space](../Results_Optimization_Paper_Final/Example_2_6Story/Figures/analysis_pareto_solution_space_new.png)
 **(b)**
+![Figure 8c. 8F Solution Space](../Results_Optimization_Paper_Final/Example_3_8Story/Figures/analysis_pareto_solution_space_new.png)
+**(c)**
 **Figure 8. Distribution of Pareto solutions in the physical space (Total Cost vs. CO2): (a) 4-story, (b) 6-story, and (c) 8-story cases.**
 
 최적화 알고리즘이 탐색한 설계 전략을 심층적으로 분석하기 위해, 4층 예제의 파레토 양 극단에 위치한 두 가지 대표 설계안(Solution ID 1, Solution ID 20)을 선정하여 비교하였다. 두 설계안의 주요 성능 지표 비교는 Table 4와 같다.
